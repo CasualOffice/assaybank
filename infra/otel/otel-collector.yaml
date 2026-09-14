@@ -1,0 +1,189 @@
+# ---------------------------------------------------------------------------
+# OpenTelemetry Collector (contrib distribution, Apache-2.0).
+#
+# ACTIVATES: M0 (2026-09-21 → 2026-10-09), as soon as apps/api emits its first
+# span. Runs under `--profile observability` or `--profile full` in development.
+#
+# The collector exists so that application code talks to exactly one endpoint
+# (OTEL_EXPORTER_OTLP_ENDPOINT) and never knows where telemetry ends up. Moving
+# from local Prometheus to a hosted backend then changes this file and nothing
+# else — no redeploy of the API to change an exporter.
+#
+# docs/02-HLD.md section 8 names the trace that matters: a trace ID propagated
+# from the candidate's request, through the queue, into the worker and out to
+# the execution call. "Why did this candidate's score differ on re-grade" is
+# unanswerable without it, and the queue hop is where such traces usually break.
+# ---------------------------------------------------------------------------
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # The collector's own health and pipeline metrics, scraped by Prometheus via
+  # the exporter below. A collector that is silently dropping spans should be
+  # visible as a metric, not discovered by noticing a gap in a trace.
+  prometheus/internal:
+    config:
+      scrape_configs:
+        - job_name: otel-collector-internal
+          scrape_interval: 30s
+          static_configs:
+            - targets: ["127.0.0.1:8888"]
+
+processors:
+  # Bound the collector's own memory before it becomes the reason the node is
+  # unhealthy. A collector that OOMs during an exam window takes the evidence
+  # of what went wrong with it.
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: ${env:APP_ENV:-local}
+        action: upsert
+      - key: service.namespace
+        value: hiring
+        action: upsert
+
+  # -------------------------------------------------------------------------
+  # REDACTION — not optional.
+  #
+  # Spans cross a trust boundary the moment they leave the process. Candidate
+  # source code, invitation tokens, WebSocket tickets, correct-answer flags and
+  # hidden test-case expectations must never be in one. The application is
+  # responsible for not putting them there; this is the second line, because
+  # "a developer added a debug attribute" is a real event.
+  #
+  # docs/02-HLD.md section 1: nothing the candidate must not see ever reaches
+  # the client. The inverse also holds — nothing the candidate wrote should end
+  # up in an operations tool that a wider group can read.
+  # -------------------------------------------------------------------------
+  attributes/redact:
+    actions:
+      - key: candidate.code
+        action: delete
+      - key: submission.source
+        action: delete
+      - key: invitation.token
+        action: delete
+      - key: ws.ticket
+        action: delete
+      - key: test_case.expected_stdout
+        action: delete
+      - key: question.reference_solution
+        action: delete
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: db.statement.parameters
+        action: delete
+      # Candidate email is PII under a 12-month retention policy
+      # (RETENTION_CANDIDATE_PII_MONTHS). Telemetry has no retention policy of
+      # its own, so PII simply does not go in. Hash instead, so a trace can
+      # still be correlated to one candidate without naming them.
+      - key: candidate.email
+        action: hash
+      - key: user.email
+        action: hash
+
+  # Keep every trace that failed or was slow; sample the rest. A grading dispute
+  # is always about an outlier, and an outlier that was sampled away cannot be
+  # investigated.
+  tail_sampling:
+    decision_wait: 10s
+    num_traces: 50000
+    expected_new_traces_per_sec: 200
+    policies:
+      - name: errors-always
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+      - name: slow-always
+        type: latency
+        latency:
+          threshold_ms: 2000
+      - name: grading-always
+        type: string_attribute
+        string_attribute:
+          key: hiring.operation
+          values: [grade_submission, finalise_attempt, score_override]
+      - name: everything-else
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+
+exporters:
+  # Metrics are pulled by Prometheus from this endpoint. Pull rather than push
+  # so a collector restart shows up as a gap in one place instead of as an
+  # unexplained silence.
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  debug:
+    verbosity: normal
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+  # TBD — owner: platform engineer, decide by 2026-12-25 (M3 exit): the trace
+  # backend. Options are a self-hosted Jaeger or Tempo (both Apache-2.0, both
+  # inside the licence policy) or a hosted OTLP endpoint. Until then traces are
+  # emitted to the debug exporter and read from the collector's logs, which is
+  # adequate for a single developer and adequate for nobody else.
+  #
+  # otlp/traces:
+  #   endpoint: ${env:TRACE_BACKEND_ENDPOINT}
+  #   tls:
+  #     insecure: false
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+
+  telemetry:
+    logs:
+      # Fixed at info rather than driven by LOG_LEVEL. The collector accepts
+      # debug/info/warn/error only, while LOG_LEVEL is the application's pino
+      # level and also admits trace and fatal — either would fail the collector
+      # at boot. A separate variable for one knob is not worth a new entry in
+      # the canonical environment set.
+      level: info
+    metrics:
+      level: detailed
+      address: 127.0.0.1:8888
+
+  pipelines:
+    traces:
+      receivers: [otlp]
+      # Order is significant. memory_limiter first so it can shed load before
+      # anything else allocates; redaction before sampling so a dropped span was
+      # never holding a secret in the first place.
+      processors: [memory_limiter, attributes/redact, resource, tail_sampling, batch]
+      exporters: [debug]
+
+    metrics:
+      receivers: [otlp, prometheus/internal]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheus]
+
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/redact, resource, batch]
+      exporters: [debug]

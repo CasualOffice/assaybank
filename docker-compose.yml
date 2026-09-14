@@ -1,0 +1,566 @@
+# Assaybank — local development stack.
+#
+# Bring up the data + execution tier only (the default, works today):
+#     docker compose up -d
+#
+# Add metrics and traces:
+#     docker compose --profile observability up -d
+#
+# Everything, including the application services:
+#     docker compose --profile full up -d
+#
+# ---------------------------------------------------------------------------
+# READ THIS BEFORE YOU WONDER WHY api/worker/collab/web/candidate DO NOT START
+# ---------------------------------------------------------------------------
+# This repository is documentation-only as of 2026-09-15. The directories
+# apps/api, apps/worker, apps/collab, apps/web and apps/candidate do not exist
+# yet, so their build contexts cannot resolve and `docker compose build` would
+# fail if they were part of the default set.
+#
+# They are therefore defined in full but guarded behind the `apps` and `ui`
+# profiles. A service that carries a `profiles:` key is inert unless that
+# profile is enabled, so the file parses, `docker compose config` validates,
+# and `docker compose up` works — the guarded services are simply skipped.
+#
+# Activation plan:
+#   M0  (2026-09-21 → 2026-10-09)  apps/api and apps/worker scaffolded; set
+#                                  COMPOSE_PROFILES=apps in .env so the `apps`
+#                                  profile is on by default for everyone.
+#   M1  (2026-10-12 → 2026-10-30)  apps/candidate and apps/web scaffolded;
+#                                  add `ui` to COMPOSE_PROFILES.
+#   M3  (2026-11-30 → 2026-12-25)  apps/collab carries real traffic; LiveKit is
+#                                  added as a further service at that point.
+# Once every app directory exists, delete the `apps`/`ui` entries from the
+# `profiles:` lists below and this comment block with them.
+#
+# Canonical ports, env var names and image choices come from the repo canon.
+# See infra/README.md for the network topology and the from-clean bring-up
+# sequence, and docs/02-HLD.md section 7 for why the exec tier is isolated.
+# ---------------------------------------------------------------------------
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-app-env: &app-env
+  NODE_ENV: ${NODE_ENV:-development}
+  APP_ENV: ${APP_ENV:-local}
+  LOG_LEVEL: ${LOG_LEVEL:-debug}
+  API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:8080}
+  WEB_PUBLIC_URL: ${WEB_PUBLIC_URL:-http://localhost:5173}
+  CANDIDATE_PUBLIC_URL: ${CANDIDATE_PUBLIC_URL:-http://localhost:5174}
+  COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL:-ws://localhost:8081}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174}
+  DATABASE_URL: ${DATABASE_URL:-postgres://hiring_app:hiring_app@postgres:5432/hiring}
+  DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+  DATABASE_APP_ROLE: ${DATABASE_APP_ROLE:-hiring_app}
+  DATABASE_JOB_ROLE: ${DATABASE_JOB_ROLE:-hiring_job}
+  REDIS_URL: ${REDIS_URL:-redis://valkey:6379}
+  S3_ENDPOINT: ${S3_ENDPOINT:-http://seaweedfs:8333}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_BUCKET: ${S3_BUCKET:-hiring-dev}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-hiring-dev-access-key}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-hiring-dev-secret-key}
+  S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+  SMTP_URL: ${SMTP_URL:-smtp://mailpit:1025}
+  MAIL_FROM: ${MAIL_FROM:-no-reply@hiring.localhost}
+  SESSION_SECRET: ${SESSION_SECRET:-dev-session-secret-change-me}
+  TOKEN_PEPPER: ${TOKEN_PEPPER:-dev-token-pepper-change-me}
+  WEBHOOK_SIGNING_SECRET_ROTATION_DAYS: ${WEBHOOK_SIGNING_SECRET_ROTATION_DAYS:-90}
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4317}
+  OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-1.0}
+
+x-retention-env: &retention-env
+  RETENTION_PROCTOR_MEDIA_DAYS: ${RETENTION_PROCTOR_MEDIA_DAYS:-30}
+  RETENTION_SESSION_RECORDING_DAYS: ${RETENTION_SESSION_RECORDING_DAYS:-90}
+  RETENTION_ATTEMPT_DATA_MONTHS: ${RETENTION_ATTEMPT_DATA_MONTHS:-24}
+  RETENTION_CANDIDATE_PII_MONTHS: ${RETENTION_CANDIDATE_PII_MONTHS:-12}
+  RETENTION_AUDIT_LOG_YEARS: ${RETENTION_AUDIT_LOG_YEARS:-7}
+
+networks:
+  # The application plane. Everything that holds or reaches credentials.
+  edge:
+    name: hiring_edge
+    driver: bridge
+
+  # The execution plane. Piston lives here and nowhere else, so it has no
+  # route to postgres, valkey, seaweedfs or the API — the property docs/02-HLD.md
+  # section 7 requires. apps/worker is the only service on both networks, and it
+  # is the only thing that may speak to Piston.
+  #
+  # `internal: true` is deliberately NOT set here. In development Piston must
+  # reach the public package index to install language runtimes on first boot
+  # (see infra/piston/README.md). In production the exec tier runs on its own
+  # node group with egress denied at the network layer and the runtimes baked
+  # into the node image — see docker-compose.prod.yml.
+  exec:
+    name: hiring_exec
+    driver: bridge
+
+volumes:
+  postgres_data:
+  valkey_data:
+  piston_runtimes:
+  seaweedfs_data:
+  prometheus_data:
+  grafana_data:
+  pnpm_store:
+
+services:
+  # =========================================================================
+  # DATA TIER — starts by default
+  # =========================================================================
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: hiring-postgres
+    restart: unless-stopped
+    networks: [edge]
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hiring}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hiring}
+      POSTGRES_DB: ${POSTGRES_DB:-hiring}
+      # Deterministic collation. A locale change between machines silently
+      # reorders text indexes and makes "reproduces on re-grade" untrue.
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+      APP_ROLE: ${DATABASE_APP_ROLE:-hiring_app}
+      APP_ROLE_PASSWORD: ${DATABASE_APP_ROLE_PASSWORD:-hiring_app}
+      JOB_ROLE: ${DATABASE_JOB_ROLE:-hiring_job}
+      JOB_ROLE_PASSWORD: ${DATABASE_JOB_ROLE_PASSWORD:-hiring_job}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Init scripts run once, in filename order, on an empty data directory.
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      # The authoritative schema is the one in docs/. It is mounted read-only
+      # and loaded verbatim by 02-schema.sql, so the container runs the same
+      # DDL the documentation describes — there is no second copy to drift.
+      - ./docs/hiring_platform_schema.sql:/opt/hiring/schema/hiring_platform_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiring} -d ${POSTGRES_DB:-hiring}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    logging: *default-logging
+
+  valkey:
+    # Valkey 8, BSD-3. Not Redis > 7.2, which relicensed to RSALv2/SSPL.
+    # See docs/05-licensing-and-compliance.md.
+    image: valkey/valkey:8-alpine
+    container_name: hiring-valkey
+    restart: unless-stopped
+    networks: [edge]
+    ports:
+      - "${VALKEY_PORT:-6379}:6379"
+    command:
+      - valkey-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --save
+      - "900 1"
+      - --maxmemory-policy
+      - noeviction
+    volumes:
+      - valkey_data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    logging: *default-logging
+
+  # =========================================================================
+  # EXECUTION TIER — isolated. On `exec` only.
+  # =========================================================================
+
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: hiring-piston
+    restart: unless-stopped
+    # Piston builds per-execution isolation with mount namespaces, cgroups and
+    # an overlayfs per job. It cannot do that unprivileged. This is precisely
+    # why it must not share a network with anything that holds a credential.
+    privileged: true
+    networks: [exec]
+    # Port 2000 is the canonical Piston port and it is deliberately NOT
+    # published to the host. Publishing it would put an unauthenticated
+    # arbitrary-code-execution endpoint on the developer's loopback interface.
+    # Reach it from the worker as http://piston:2000, or uncomment the mapping
+    # below for a debugging session and comment it back out afterwards.
+    expose:
+      - "2000"
+    # ports:
+    #   - "2000:2000"
+    volumes:
+      - piston_runtimes:/piston
+      # The runtime matrix, mounted so it can be installed from inside the
+      # container without the port being published:
+      #   docker compose exec piston sh /piston/install-runtimes.sh
+      - ./infra/piston/install-runtimes.sh:/piston/install-runtimes.sh:ro
+      - ./infra/piston/packages.json:/piston/packages.json:ro
+    tmpfs:
+      - /tmp:exec,mode=1777,size=512m
+    environment:
+      PISTON_LOG_LEVEL: ${PISTON_LOG_LEVEL:-INFO}
+      # These mirror the EXEC_* contract vars. The worker also passes per-job
+      # limits on every call; these are the ceiling Piston will not exceed.
+      PISTON_COMPILE_TIMEOUT: ${EXEC_WALL_TIME_MS:-10000}
+      PISTON_RUN_TIMEOUT: ${EXEC_WALL_TIME_MS:-10000}
+      PISTON_COMPILE_CPU_TIME: ${EXEC_CPU_TIME_MS:-10000}
+      PISTON_RUN_CPU_TIME: ${EXEC_CPU_TIME_MS:-5000}
+      PISTON_RUN_MEMORY_LIMIT: ${EXEC_MEMORY_MB_BYTES:-268435456}
+      PISTON_MAX_PROCESS_COUNT: ${EXEC_MAX_PROCESSES:-64}
+      PISTON_OUTPUT_MAX_SIZE: ${EXEC_MAX_OUTPUT_BYTES:-65536}
+      PISTON_DISABLE_NETWORKING: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2000/api/v2/runtimes || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    logging: *default-logging
+
+  # =========================================================================
+  # OBJECT STORE + MAIL — start by default
+  # =========================================================================
+
+  seaweedfs:
+    # SeaweedFS (Apache-2.0), not MinIO (AGPL-3.0). See
+    # docs/05-licensing-and-compliance.md.
+    image: chrislusf/seaweedfs:3.68
+    container_name: hiring-seaweedfs
+    restart: unless-stopped
+    networks: [edge]
+    ports:
+      - "${S3_PORT:-8333}:8333"
+      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
+    command: >
+      server
+      -dir=/data
+      -master.volumeSizeLimitMB=256
+      -volume.max=16
+      -s3
+      -s3.port=8333
+      -s3.allowEmptyFolder=false
+      -filer
+      -ip=seaweedfs
+    volumes:
+      - seaweedfs_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9333/cluster/status || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    logging: *default-logging
+
+  seaweedfs-init:
+    # One-shot. Creates the bucket, then exits 0. Safe to re-run.
+    image: chrislusf/seaweedfs:3.68
+    container_name: hiring-seaweedfs-init
+    restart: "no"
+    networks: [edge]
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      S3_BUCKET: ${S3_BUCKET:-hiring-dev}
+      SEAWEEDFS_MASTER: seaweedfs:9333
+    volumes:
+      - ./infra/seaweedfs/bootstrap.sh:/bootstrap.sh:ro
+    entrypoint: ["/bin/sh", "/bootstrap.sh"]
+    logging: *default-logging
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: hiring-mailpit
+    restart: unless-stopped
+    networks: [edge]
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+    environment:
+      MP_MAX_MESSAGES: "5000"
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    logging: *default-logging
+
+  # =========================================================================
+  # OBSERVABILITY — `--profile observability` or `--profile full`
+  # =========================================================================
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.109.0
+    container_name: hiring-otel-collector
+    restart: unless-stopped
+    profiles: ["observability", "full"]
+    networks: [edge]
+    command: ["--config=/etc/otel/otel-collector.yaml"]
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+    ports:
+      - "${OTLP_GRPC_PORT:-4317}:4317"
+      - "${OTLP_HTTP_PORT:-4318}:4318"
+    volumes:
+      - ./infra/otel/otel-collector.yaml:/etc/otel/otel-collector.yaml:ro
+    # The collector image is distroless: no shell, no wget, so a container
+    # healthcheck cannot be expressed here. Prometheus scrapes its health_check
+    # extension on :13133 instead — see infra/prometheus/prometheus.yml.
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: hiring-prometheus
+    restart: unless-stopped
+    profiles: ["observability", "full"]
+    networks: [edge]
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    logging: *default-logging
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: hiring-grafana
+    restart: unless-stopped
+    profiles: ["observability", "full"]
+    networks: [edge]
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    ports:
+      - "${GRAFANA_PORT:-3030}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    logging: *default-logging
+
+  # =========================================================================
+  # APPLICATION TIER — inert until the workspace exists. See the header block.
+  # `--profile apps` (api, worker, collab) / `--profile ui` (web, candidate).
+  # `--profile full` enables every profile at once.
+  # =========================================================================
+
+  api:
+    profiles: ["apps", "full"]
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: dev
+    container_name: hiring-api
+    restart: unless-stopped
+    # Note the networks list: `edge` only. The API never calls Piston. An
+    # interactive "Run" is enqueued exactly like a submission and executed by
+    # the worker, so there is no path from a request handler into the sandbox.
+    networks: [edge]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8080}:8080"
+    environment:
+      <<: [*app-env, *retention-env]
+      API_PORT: "8080"
+      OTEL_SERVICE_NAME: hiring-api
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - pnpm_store:/home/node/.local/share/pnpm/store
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging
+
+  worker:
+    profiles: ["apps", "full"]
+    build:
+      context: .
+      dockerfile: infra/docker/worker.Dockerfile
+      target: dev
+    container_name: hiring-worker
+    restart: unless-stopped
+    # The only service on both networks. It is the bridge between the
+    # application plane and the execution plane, and the bridge is one-way by
+    # construction: the worker calls Piston, Piston cannot call anything.
+    networks: [edge, exec]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      piston:
+        condition: service_healthy
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      <<: [*app-env, *retention-env]
+      OTEL_SERVICE_NAME: hiring-worker
+      # The worker connects as the elevated background-job role (ADR-010),
+      # which bypasses RLS and writes its own audit trail.
+      DATABASE_URL: ${DATABASE_JOB_URL:-postgres://hiring_job:hiring_job@postgres:5432/hiring}
+      PISTON_URL: ${PISTON_URL:-http://piston:2000}
+      EXEC_CPU_TIME_MS: ${EXEC_CPU_TIME_MS:-5000}
+      EXEC_WALL_TIME_MS: ${EXEC_WALL_TIME_MS:-10000}
+      EXEC_MEMORY_MB: ${EXEC_MEMORY_MB:-256}
+      EXEC_MAX_PROCESSES: ${EXEC_MAX_PROCESSES:-64}
+      EXEC_MAX_OUTPUT_BYTES: ${EXEC_MAX_OUTPUT_BYTES:-65536}
+      QUEUE_RUN_CONCURRENCY: ${QUEUE_RUN_CONCURRENCY:-4}
+      QUEUE_SUBMIT_CONCURRENCY: ${QUEUE_SUBMIT_CONCURRENCY:-2}
+      QUEUE_MAX_ATTEMPTS: ${QUEUE_MAX_ATTEMPTS:-3}
+      QUEUE_BACKOFF_MS: ${QUEUE_BACKOFF_MS:-2000}
+    volumes:
+      - ./apps/worker:/app/apps/worker
+      - ./packages:/app/packages
+      - pnpm_store:/home/node/.local/share/pnpm/store
+    healthcheck:
+      # The worker exposes a small health/metrics listener on 9464; it serves
+      # no domain routes.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9464/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging
+
+  collab:
+    profiles: ["apps", "full"]
+    build:
+      context: .
+      dockerfile: infra/docker/collab.Dockerfile
+      target: dev
+    container_name: hiring-collab
+    restart: unless-stopped
+    networks: [edge]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    ports:
+      - "${COLLAB_PORT:-8081}:8081"
+    environment:
+      <<: *app-env
+      COLLAB_PORT: "8081"
+      COLLAB_SNAPSHOT_INTERVAL_MS: ${COLLAB_SNAPSHOT_INTERVAL_MS:-15000}
+      OTEL_SERVICE_NAME: hiring-collab
+    volumes:
+      - ./apps/collab:/app/apps/collab
+      - ./packages:/app/packages
+      - pnpm_store:/home/node/.local/share/pnpm/store
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging
+
+  web:
+    profiles: ["ui", "full"]
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      target: dev
+    container_name: hiring-web
+    restart: unless-stopped
+    networks: [edge]
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    environment:
+      <<: *app-env
+      VITE_API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:8080}
+      VITE_COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL:-ws://localhost:8081}
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - pnpm_store:/home/node/.local/share/pnpm/store
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:5173/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging
+
+  candidate:
+    profiles: ["ui", "full"]
+    build:
+      context: .
+      dockerfile: infra/docker/candidate.Dockerfile
+      target: dev
+    container_name: hiring-candidate
+    restart: unless-stopped
+    networks: [edge]
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${CANDIDATE_PORT:-5174}:5174"
+    environment:
+      <<: *app-env
+      VITE_API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:8080}
+      VITE_COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL:-ws://localhost:8081}
+    volumes:
+      - ./apps/candidate:/app/apps/candidate
+      - ./packages:/app/packages
+      - pnpm_store:/home/node/.local/share/pnpm/store
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:5174/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging: *default-logging

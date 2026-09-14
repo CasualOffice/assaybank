@@ -1,0 +1,67 @@
+{
+  "$comment": [
+    "TEMPLATE. Not read by anything. Copy, fill in real keys, and load it as",
+    "the `hiring_s3_config_json` Docker secret:",
+    "",
+    "    docker secret create hiring_s3_config_json ./s3_config.json",
+    "",
+    "Never commit the filled-in version. .gitignore excludes s3_config.json in",
+    "this directory for exactly that reason.",
+    "",
+    "ACTIVATES: staging bring-up, planned for 2026-10-30.",
+    "",
+    "Three identities, not one. The API issues pre-signed URLs and needs to",
+    "Write and Read. The worker writes archived event partitions and export",
+    "files. The retention sweep is the only identity that may Delete, because",
+    "a bug in the API must not be able to remove proctor media that an",
+    "integrity review is about to look at. Separating the delete capability",
+    "costs one more secret and removes a whole class of incident.",
+    "",
+    "See docs/11-data-retention-and-dpia.md for what is deleted and when."
+  ],
+  "identities": [
+    {
+      "name": "hiring-api",
+      "credentials": [
+        {
+          "accessKey": "REPLACE_ME_API_ACCESS_KEY",
+          "secretKey": "REPLACE_ME_API_SECRET_KEY"
+        }
+      ],
+      "actions": [
+        "Read:hiring",
+        "Write:hiring",
+        "List:hiring"
+      ]
+    },
+    {
+      "name": "hiring-worker",
+      "credentials": [
+        {
+          "accessKey": "REPLACE_ME_WORKER_ACCESS_KEY",
+          "secretKey": "REPLACE_ME_WORKER_SECRET_KEY"
+        }
+      ],
+      "actions": [
+        "Read:hiring",
+        "Write:hiring",
+        "List:hiring"
+      ]
+    },
+    {
+      "name": "hiring-retention",
+      "credentials": [
+        {
+          "accessKey": "REPLACE_ME_RETENTION_ACCESS_KEY",
+          "secretKey": "REPLACE_ME_RETENTION_SECRET_KEY"
+        }
+      ],
+      "actions": [
+        "Read:hiring",
+        "List:hiring",
+        "Tagging:hiring",
+        "DeleteBucket:hiring"
+      ]
+    }
+  ]
+}

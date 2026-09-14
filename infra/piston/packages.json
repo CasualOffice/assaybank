@@ -1,0 +1,127 @@
+{
+  "$comment": [
+    "Language runtimes pre-installed into the Piston container.",
+    "",
+    "This is the execution matrix the platform supports. It is deliberately a",
+    "data file rather than a shell script so that packages/exec-adapter can",
+    "read the same list and reject a language the sandbox cannot run, instead",
+    "of discovering it at grading time when a candidate is already waiting.",
+    "",
+    "VERSION PINNING. The `version` values below are the targets. Piston",
+    "resolves them against its own package index, which carries specific patch",
+    "releases and does not always have the newest one. install-runtimes.sh",
+    "resolves each target to a concrete patch version at install time and",
+    "writes the result to resolved-runtimes.json. That resolved file, not this",
+    "one, is what a build is reproducible against.",
+    "",
+    "A version bump here changes what candidate code runs on, so it changes",
+    "results. Treat it as a schema change: bump in a PR of its own, re-run the",
+    "regression bank against the M2 golden submissions, and record the before",
+    "and after in the PR body. Never bump during an open exam window.",
+    "",
+    "ACTIVATES: M2 (2026-11-02 to 2026-11-27). Before then only the Piston",
+    "container itself runs; nothing calls it."
+  ],
+  "pistonApiVersion": "v2",
+  "runtimes": [
+    {
+      "language": "python",
+      "version": "3.12.0",
+      "aliases": ["py", "python3"],
+      "role": "primary",
+      "notes": "Default language for the coding bank and for every SQL-adjacent data question."
+    },
+    {
+      "language": "node",
+      "version": "22.0.0",
+      "aliases": ["javascript", "js"],
+      "role": "primary",
+      "notes": "Matches the platform runtime, which keeps one Node version in a candidate's head and ours."
+    },
+    {
+      "language": "typescript",
+      "version": "5.4.5",
+      "aliases": ["ts"],
+      "role": "primary",
+      "notes": "Compiles then runs. Compile time counts against EXEC_WALL_TIME_MS, not EXEC_CPU_TIME_MS."
+    },
+    {
+      "language": "java",
+      "version": "21.0.0",
+      "aliases": [],
+      "role": "primary",
+      "notes": "JVM start-up dominates short programs. Sized in the pre-warm set for that reason."
+    },
+    {
+      "language": "go",
+      "version": "1.22.0",
+      "aliases": ["golang"],
+      "role": "primary",
+      "notes": "Compiled per run; the compile step is the expensive half."
+    },
+    {
+      "language": "c++",
+      "version": "12.2.0",
+      "aliases": ["cpp", "g++"],
+      "role": "primary",
+      "notes": "GCC. Compile errors must reach the candidate verbatim, which is why EXEC_MAX_OUTPUT_BYTES applies per stream."
+    },
+    {
+      "language": "csharp",
+      "version": "6.12.0",
+      "aliases": ["cs", "c#"],
+      "role": "secondary",
+      "notes": "Mono. Heaviest image in the matrix; install last."
+    },
+    {
+      "language": "rust",
+      "version": "1.68.2",
+      "aliases": ["rs"],
+      "role": "secondary",
+      "notes": "Compile time regularly exceeds run time. Give rust questions a wall-time override."
+    },
+    {
+      "language": "ruby",
+      "version": "3.0.1",
+      "aliases": ["rb"],
+      "role": "secondary",
+      "notes": ""
+    },
+    {
+      "language": "php",
+      "version": "8.2.3",
+      "aliases": [],
+      "role": "secondary",
+      "notes": ""
+    },
+    {
+      "language": "kotlin",
+      "version": "1.8.20",
+      "aliases": ["kt"],
+      "role": "secondary",
+      "notes": "Shares the JVM start-up cost with java and adds its own compile step."
+    },
+    {
+      "language": "swift",
+      "version": "5.3.3",
+      "aliases": [],
+      "role": "secondary",
+      "notes": "Large image, low expected usage. Install it, do not pre-warm it."
+    },
+    {
+      "language": "sqlite3",
+      "version": "3.36.0",
+      "aliases": ["sql", "sqlite"],
+      "role": "primary",
+      "notes": "How SQL questions execute. The question's schema and fixture rows are supplied as the stdin script; there is no server, no persistence and no network, which is exactly the isolation a SQL question needs."
+    }
+  ],
+  "prewarm": ["python", "node", "java", "c++", "sqlite3"],
+  "$prewarmComment": [
+    "The pre-warm set is the languages worth keeping hot, chosen by expected",
+    "share of executions rather than by cold-start cost alone. Adding a",
+    "language here costs steady-state memory on every exec node, so the list",
+    "is short on purpose. Revisit it against real usage after the first",
+    "campus drive, not before."
+  ]
+}

@@ -1,0 +1,138 @@
+# ---------------------------------------------------------------------------
+# Prometheus scrape configuration.
+#
+# ACTIVATES: M0 (2026-09-21 → 2026-10-09). Runs under `--profile observability`
+# or `--profile full` in development, and on the app node group in production.
+#
+# The metrics that matter are named in docs/02-HLD.md section 8: queue depth by
+# priority, execution latency histogram, sandbox timeout rate, attempt
+# completion rate, autosave failure rate, WebSocket reconnect rate. The alert
+# rules that act on them live in infra/prometheus/rules/ — TBD, owner: platform
+# engineer, decide by 2026-11-27 (M2 exit), because most of them cannot be
+# written honestly until there is a real load profile to set a threshold from.
+# ---------------------------------------------------------------------------
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: hiring
+    environment: local
+
+# rule_files:
+#   - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # -------------------------------------------------------------------------
+  # apps/api — the HTTP tier.
+  #
+  # Watch: request duration by route, 5xx rate, and autosave failures. The
+  # autosave failure rate is the one to page on above zero, not above a
+  # threshold: a non-zero rate means candidates are losing work right now.
+  # -------------------------------------------------------------------------
+  - job_name: hiring-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8080"]
+        labels:
+          service: hiring-api
+          tier: app
+    # The dev stack runs one replica with a fixed name. Production discovers
+    # tasks through the orchestrator instead, since replicas come and go.
+    # TBD — owner: platform engineer, decide by 2026-10-30 (staging bring-up):
+    # dockerswarm_sd_config versus a static list maintained by the deploy job.
+
+  # -------------------------------------------------------------------------
+  # apps/worker — grading queue and scheduled sweeps.
+  #
+  # The most important dashboard in the system during an exam window. Queue
+  # depth growing while execution latency is flat means execution capacity;
+  # queue depth flat while latency grows means a slow question. The two are
+  # confused constantly and the fix for each is the opposite of the other.
+  #
+  # Also here: dead-letter queue depth. Non-empty means ungraded submissions,
+  # which means attempts sitting in `under_review` waiting on a human who does
+  # not know they are waiting.
+  # -------------------------------------------------------------------------
+  - job_name: hiring-worker
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["worker:9464"]
+        labels:
+          service: hiring-worker
+          tier: worker
+
+  # -------------------------------------------------------------------------
+  # apps/collab — live interview documents.
+  #
+  # Memory-bound, not CPU-bound (docs/02-HLD.md section 6). Scale on connection
+  # count. The WebSocket reconnect rate is the leading indicator: a rising rate
+  # during an interview means participants are dropping, and they will notice
+  # before any dashboard does.
+  # -------------------------------------------------------------------------
+  - job_name: hiring-collab
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["collab:8081"]
+        labels:
+          service: hiring-collab
+          tier: app
+
+  # -------------------------------------------------------------------------
+  # Collector-relayed application metrics.
+  #
+  # Anything an app exports over OTLP arrives here through the collector's
+  # Prometheus exporter, rather than from the app's own /metrics endpoint. Both
+  # paths are scraped on purpose: the direct scrape keeps working when the
+  # collector is down, which is exactly when you want to know why.
+  # -------------------------------------------------------------------------
+  - job_name: otel-collector-relay
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["otel-collector:8889"]
+        labels:
+          service: otel-collector
+          tier: observability
+
+  # The collector's own pipeline health. A collector dropping spans is not
+  # visible in the spans.
+  - job_name: otel-collector-internal
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["otel-collector:8888"]
+        labels:
+          service: otel-collector
+          tier: observability
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: prometheus
+          tier: observability
+
+  # -------------------------------------------------------------------------
+  # NOT SCRAPED: piston.
+  #
+  # Prometheus sits on `edge`. Piston sits on `exec`, alone, and a scrape job
+  # would require a route between the two — the exact route the isolation
+  # model forbids (docs/02-HLD.md section 7). Execution health is therefore
+  # observed from the worker's side: the worker already measures every call's
+  # latency, exit status, timeout and memory-kill, which is what anyone would
+  # actually look at. Piston's own process metrics are not worth a hole in the
+  # network boundary.
+  #
+  # If node-level exec metrics become necessary, the answer is a node exporter
+  # on the exec host scraped over the management interface, never a route from
+  # the application plane into the execution plane.
+  # -------------------------------------------------------------------------
+
+  # -------------------------------------------------------------------------
+  # NOT SCRAPED: postgres, valkey, seaweedfs.
+  #
+  # Each needs its own exporter sidecar (postgres_exporter, redis_exporter, and
+  # SeaweedFS's built-in Prometheus endpoint). Adding them before there is a
+  # dashboard that reads them produces metrics nobody looks at.
+  # TBD — owner: platform engineer, decide by 2026-10-30 (staging bring-up).
+  # -------------------------------------------------------------------------

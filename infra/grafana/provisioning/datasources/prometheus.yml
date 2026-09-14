@@ -1,0 +1,28 @@
+# Grafana datasource provisioning.
+#
+# Provisioned as a file rather than clicked in, so a fresh `docker compose
+# --profile observability up` produces a Grafana that already works. A
+# datasource configured by hand lives in one person's container volume and is
+# gone the first time someone runs `down -v`.
+#
+# ACTIVATES: M0 (2026-09-21 → 2026-10-09).
+#
+# Dashboards are deliberately not provisioned yet. TBD — owner: platform
+# engineer, decide by 2026-11-27 (M2 exit): the first dashboard is the exam
+# window view described in docs/02-HLD.md section 8 — queue depth by priority,
+# execution latency p95, autosave failure rate, attempts past deadline. It
+# cannot be built before there are metrics to point it at.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    uid: hiring-prometheus
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST

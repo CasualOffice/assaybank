@@ -1,0 +1,220 @@
+# ---------------------------------------------------------------------------
+# Caddy (Apache-2.0) — TLS-terminating reverse proxy for the production stack.
+#
+# ACTIVATES: staging deployment, planned for the end of M1 (2026-10-30).
+# Referenced by docker-compose.prod.yml, which mounts this file as the
+# `caddyfile` external config. The development stack does not run Caddy: the
+# dev services publish their ports directly, and adding a proxy in front of
+# them would only obscure which service returned an error.
+#
+# Caddy is here rather than nginx for one reason that matters and one that is
+# convenient. The one that matters: automatic certificate issuance and renewal
+# with no cron job, no certbot, and no expiry incident at 3am eighteen months
+# from now. The convenient one: WebSocket proxying needs no special-casing.
+#
+# Everything below assumes the three public hostnames are set in the
+# environment. Caddy reads {$VAR} from its own process environment.
+# ---------------------------------------------------------------------------
+
+{
+	# Fail loudly on a bad config rather than starting with half of it.
+	admin off
+
+	email {$ACME_CONTACT_EMAIL}
+
+	servers {
+		# Trust the load balancer in front of Caddy, if there is one, for the
+		# client IP. Without this, every audit_log row records the balancer's
+		# address and the audit trail is worthless for an integrity review.
+		trusted_proxies static {$TRUSTED_PROXY_CIDRS}
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Shared response headers.
+#
+# HSTS, framing and referrer policy on every surface. The candidate app gets a
+# stricter set of its own below.
+# ---------------------------------------------------------------------------
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		-Server
+	}
+}
+
+(compression) {
+	encode zstd gzip
+}
+
+# ---------------------------------------------------------------------------
+# Staff console — recruiter, interviewer, admin.
+# ---------------------------------------------------------------------------
+{$WEB_HOSTNAME} {
+	import security_headers
+	import compression
+
+	reverse_proxy web:3000 {
+		lb_policy round_robin
+		health_uri /
+		health_interval 10s
+		health_timeout 3s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# ---------------------------------------------------------------------------
+# Candidate app.
+#
+# Separate hostname, separate bundle, separate origin. The origin separation is
+# not cosmetic: a cross-site scripting bug in the staff console cannot read the
+# candidate app's storage, and vice versa.
+#
+# The Permissions-Policy override is the one place camera and microphone are
+# granted at all, and only to self — M3 live rounds and M4 proctoring both need
+# them. Granting them on the staff origin would be granting them for nothing.
+# ---------------------------------------------------------------------------
+{$CANDIDATE_HOSTNAME} {
+	import security_headers
+	import compression
+
+	header {
+		Permissions-Policy "camera=(self), microphone=(self), display-capture=(self), geolocation=(), interest-cohort=()"
+	}
+
+	reverse_proxy candidate:3001 {
+		lb_policy round_robin
+		health_uri /
+		health_interval 10s
+		health_timeout 3s
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# ---------------------------------------------------------------------------
+# API and collaboration WebSocket.
+#
+# Both live on one hostname so that a candidate's browser makes requests to one
+# origin and the CORS surface stays small.
+# ---------------------------------------------------------------------------
+{$API_HOSTNAME} {
+	import security_headers
+
+	# -----------------------------------------------------------------------
+	# Collaboration WebSocket — STICKY ROUTING.
+	#
+	# This is the one route where the load-balancing policy is load-bearing
+	# rather than a preference.
+	#
+	# A Yjs document lives in the memory of one collab instance. Two clients in
+	# the same interview that land on different instances fall back to Valkey
+	# pub/sub for fanout, which works but adds a round trip to every keystroke
+	# and doubles the awareness traffic. Worse, the periodic snapshot to
+	# `interview_sessions.doc_state` is then written by two instances that each
+	# hold a partial view, and last-write-wins on the snapshot loses work.
+	#
+	# `lb_policy uri_hash` hashes the request URI. The collab client connects to
+	# /collab/{room_code}, so every participant in one interview hashes to the
+	# same instance, deterministically, with no cookie and no sticky-session
+	# table to expire at the wrong moment.
+	#
+	# The failure mode is honest: if that instance dies, the hash moves the room
+	# to a new instance, which loads the last snapshot from Postgres and
+	# rebuilds. At most one snapshot interval (COLLAB_SNAPSHOT_INTERVAL_MS,
+	# default 15s) of work is lost. Rebalancing on a scale-up moves some rooms
+	# for the same cost. That is the trade accepted in docs/02-HLD.md s3.3.
+	#
+	# Yjs is a CRDT, so a split-brain merges rather than corrupting (ADR-005).
+	# Stickiness is a performance and snapshot-correctness measure, not the
+	# thing standing between us and a mangled document.
+	# -----------------------------------------------------------------------
+	@collab path /collab/*
+	reverse_proxy @collab collab:8081 {
+		lb_policy uri_hash
+
+		# A live interview lasts 45 minutes. The default proxy read timeout
+		# would cut the connection long before that.
+		transport http {
+			read_timeout 0
+			write_timeout 0
+			dial_timeout 5s
+		}
+
+		health_uri /healthz
+		health_interval 10s
+		health_timeout 3s
+	}
+
+	# -----------------------------------------------------------------------
+	# Server-sent events — submission results stream.
+	#
+	# Buffering an SSE stream defeats it entirely: the candidate would see
+	# every grading update arrive at once when the connection closes. The
+	# flush_interval of -1 disables response buffering for this route.
+	# -----------------------------------------------------------------------
+	@sse path_regexp sse ^/v1/submissions/[^/]+/stream$
+	reverse_proxy @sse api:8080 {
+		lb_policy round_robin
+		flush_interval -1
+		transport http {
+			read_timeout 0
+		}
+	}
+
+	# -----------------------------------------------------------------------
+	# Everything else — the HTTP API.
+	# -----------------------------------------------------------------------
+	reverse_proxy api:8080 {
+		lb_policy round_robin
+		health_uri /healthz
+		health_interval 10s
+		health_timeout 3s
+
+		# The API is the only writer of domain tables and it owns the clock
+		# (ADR-006). A request that takes longer than this is not a slow
+		# request, it is a stuck one.
+		transport http {
+			read_timeout 60s
+			write_timeout 60s
+			dial_timeout 5s
+		}
+	}
+
+	# Uploads: proctor media and bulk question imports. Above this, the client
+	# is told so rather than having the connection dropped mid-body.
+	request_body {
+		max_size 25MB
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}
+
+# ---------------------------------------------------------------------------
+# NOT PROXIED, ON PURPOSE
+#
+#   piston      — an unauthenticated arbitrary-code-execution endpoint. It is
+#                 reachable only from the worker, on the internal `exec`
+#                 network. Putting it behind TLS would not make it safe to
+#                 expose; nothing makes it safe to expose.
+#   postgres    } data tier, `internal: true`, no public surface
+#   valkey      }
+#   seaweedfs   — object access is through pre-signed short-lived URLs issued
+#                 by the API, never by a direct route to the store.
+#   prometheus  } operator tooling, reached over the operators' VPN
+#   grafana     }
+# ---------------------------------------------------------------------------

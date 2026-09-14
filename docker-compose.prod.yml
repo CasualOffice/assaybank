@@ -1,0 +1,682 @@
+# Assaybank — production-shaped composition.
+#
+# This file is the deployment *shape*, not a one-command production install. It
+# is written against `docker stack deploy` / Swarm semantics so that replicas,
+# placement constraints, resource limits and secrets are expressible. Read it
+# as the executable statement of how the tiers must be arranged; a Kubernetes
+# or Nomad translation must preserve every property asserted here.
+#
+#   docker stack deploy -c docker-compose.prod.yml hiring
+#
+# Differences from docker-compose.yml that matter:
+#   - No source bind mounts. Images are immutable and built at `target: runtime`.
+#   - Every image is pinned by digest. Tags move; digests do not.
+#   - Secrets arrive through `secrets:` (files) or the orchestrator's secret
+#     store. Nothing sensitive is an environment literal in this file.
+#   - Root filesystems are read-only and all capabilities are dropped wherever
+#     the process does not genuinely need them.
+#   - The execution tier is placed on dedicated, network-isolated nodes.
+#
+# ---------------------------------------------------------------------------
+# WHY THE EXECUTION TIER MAY NOT BE CO-LOCATED
+# ---------------------------------------------------------------------------
+# docs/02-HLD.md section 7 starts from the assumption that the sandbox will
+# eventually be escaped — both Piston and Judge0 have documented escapes. The
+# design therefore makes an escape worthless rather than impossible:
+#
+#   * An exec node holds no database credentials, no object-store keys, no
+#     session secret, no token pepper, no cloud IAM role and no OIDC client
+#     secret. Nothing on the node can be stolen because nothing is there.
+#   * An exec node has no network route to postgres, valkey, seaweedfs, the
+#     API or the collab service, and no egress to the public internet. Language
+#     runtimes are baked into the node image at build time, so the node never
+#     needs to fetch anything.
+#   * Test-case expectations never enter the sandbox. Comparison happens in the
+#     grading worker. A candidate who escapes learns nothing about hidden cases.
+#   * Nodes are ephemeral and recycled on a fixed cadence (infra/piston/README.md).
+#
+# Co-locating Piston with the API or the database would void all four at once:
+# a sandbox escape would land on a host holding the credentials to every
+# tenant's data. The `placement.constraints` below are the enforcement point,
+# and they are a hard requirement, not a tuning knob.
+# ---------------------------------------------------------------------------
+#
+# Node labels this file expects, applied with `docker node update --label-add`:
+#   hiring.role=app    API, collab, caddy
+#   hiring.role=worker grading workers (bridges app and exec planes)
+#   hiring.role=exec   Piston only. No other workload is ever scheduled here.
+#   hiring.role=data   postgres, valkey, seaweedfs
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "50m"
+    max-file: "5"
+
+x-restart: &restart-policy
+  condition: any
+  delay: 10s
+  max_attempts: 0
+  window: 120s
+
+x-update: &rolling-update
+  parallelism: 1
+  delay: 20s
+  order: start-first
+  failure_action: rollback
+  monitor: 60s
+
+x-hardened: &hardened
+  read_only: true
+  cap_drop: ["ALL"]
+  security_opt:
+    - no-new-privileges:true
+
+networks:
+  edge:
+    driver: overlay
+    attachable: false
+  # No route out and no route to the data plane. Piston attaches here alone;
+  # the worker attaches here and to `edge`.
+  exec:
+    driver: overlay
+    internal: true
+    attachable: false
+  data:
+    driver: overlay
+    internal: true
+    attachable: false
+
+volumes:
+  postgres_data:
+  valkey_data:
+  seaweedfs_data:
+  prometheus_data:
+  caddy_data:
+  caddy_config:
+
+# Secrets are files mounted at /run/secrets/<name>. Create them out of band:
+#   printf %s "$VALUE" | docker secret create hiring_session_secret -
+# Nothing here is ever committed, and no exec-tier service references any of them.
+secrets:
+  hiring_database_url:
+    external: true
+  hiring_database_job_url:
+    external: true
+  hiring_postgres_password:
+    external: true
+  hiring_session_secret:
+    external: true
+  hiring_token_pepper:
+    external: true
+  hiring_s3_access_key_id:
+    external: true
+  hiring_s3_secret_access_key:
+    external: true
+  hiring_oidc_client_secret:
+    external: true
+  hiring_livekit_api_secret:
+    external: true
+  hiring_s3_config_json:
+    external: true
+
+configs:
+  caddyfile:
+    external: true
+  otel_collector_config:
+    external: true
+  prometheus_config:
+    external: true
+
+services:
+  # =========================================================================
+  # EDGE — TLS termination and routing
+  # =========================================================================
+
+  caddy:
+    # Caddy (Apache-2.0). Automatic TLS, and a routing config that keeps the
+    # WebSocket path sticky by room code — see infra/caddy/Caddyfile.
+    image: caddy:2.8-alpine@sha256:REPLACE_WITH_PINNED_DIGEST
+    networks: [edge]
+    ports:
+      - target: 443
+        published: 443
+        mode: host
+      - target: 80
+        published: 80
+        mode: host
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    cap_drop: ["ALL"]
+    cap_add: ["NET_BIND_SERVICE"]
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      replicas: 2
+      placement:
+        constraints: ["node.labels.hiring.role == app"]
+      resources:
+        limits: {cpus: "1.0", memory: 512M}
+        reservations: {cpus: "0.25", memory: 128M}
+      restart_policy: *restart-policy
+      update_config: *rolling-update
+    logging: *default-logging
+
+  # =========================================================================
+  # APPLICATION TIER
+  # =========================================================================
+
+  api:
+    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-api:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: runtime
+    networks: [edge, data]
+    environment:
+      NODE_ENV: production
+      APP_ENV: ${APP_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      API_PORT: "8080"
+      API_PUBLIC_URL: ${API_PUBLIC_URL}
+      WEB_PUBLIC_URL: ${WEB_PUBLIC_URL}
+      CANDIDATE_PUBLIC_URL: ${CANDIDATE_PUBLIC_URL}
+      COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-20}
+      DATABASE_APP_ROLE: ${DATABASE_APP_ROLE:-hiring_app}
+      DATABASE_JOB_ROLE: ${DATABASE_JOB_ROLE:-hiring_job}
+      REDIS_URL: ${REDIS_URL}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      SMTP_URL: ${SMTP_URL}
+      MAIL_FROM: ${MAIL_FROM}
+      WEBHOOK_SIGNING_SECRET_ROTATION_DAYS: ${WEBHOOK_SIGNING_SECRET_ROTATION_DAYS:-90}
+      OIDC_ISSUER: ${OIDC_ISSUER}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      LIVEKIT_URL: ${LIVEKIT_URL}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: hiring-api
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
+      RETENTION_PROCTOR_MEDIA_DAYS: ${RETENTION_PROCTOR_MEDIA_DAYS:-30}
+      RETENTION_SESSION_RECORDING_DAYS: ${RETENTION_SESSION_RECORDING_DAYS:-90}
+      RETENTION_ATTEMPT_DATA_MONTHS: ${RETENTION_ATTEMPT_DATA_MONTHS:-24}
+      RETENTION_CANDIDATE_PII_MONTHS: ${RETENTION_CANDIDATE_PII_MONTHS:-12}
+      RETENTION_AUDIT_LOG_YEARS: ${RETENTION_AUDIT_LOG_YEARS:-7}
+      # The application reads the *_FILE variants and never the literal value.
+      DATABASE_URL_FILE: /run/secrets/hiring_database_url
+      SESSION_SECRET_FILE: /run/secrets/hiring_session_secret
+      TOKEN_PEPPER_FILE: /run/secrets/hiring_token_pepper
+      S3_ACCESS_KEY_ID_FILE: /run/secrets/hiring_s3_access_key_id
+      S3_SECRET_ACCESS_KEY_FILE: /run/secrets/hiring_s3_secret_access_key
+      OIDC_CLIENT_SECRET_FILE: /run/secrets/hiring_oidc_client_secret
+      LIVEKIT_API_SECRET_FILE: /run/secrets/hiring_livekit_api_secret
+    secrets:
+      - hiring_database_url
+      - hiring_session_secret
+      - hiring_token_pepper
+      - hiring_s3_access_key_id
+      - hiring_s3_secret_access_key
+      - hiring_oidc_client_secret
+      - hiring_livekit_api_secret
+    <<: *hardened
+    tmpfs:
+      - /tmp:size=64m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 3
+      placement:
+        constraints: ["node.labels.hiring.role == app"]
+      resources:
+        limits: {cpus: "2.0", memory: 1G}
+        reservations: {cpus: "0.5", memory: 512M}
+      restart_policy: *restart-policy
+      # Blue-green at the API tier: start the new task, let it pass health,
+      # then retire the old one. No request is served by a half-booted process.
+      update_config: *rolling-update
+      rollback_config:
+        parallelism: 0
+        order: stop-first
+    logging: *default-logging
+
+  collab:
+    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-collab:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    build:
+      context: .
+      dockerfile: infra/docker/collab.Dockerfile
+      target: runtime
+    networks: [edge, data]
+    environment:
+      NODE_ENV: production
+      APP_ENV: ${APP_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      COLLAB_PORT: "8081"
+      COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL}
+      COLLAB_SNAPSHOT_INTERVAL_MS: ${COLLAB_SNAPSHOT_INTERVAL_MS:-15000}
+      REDIS_URL: ${REDIS_URL}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: hiring-collab
+      DATABASE_URL_FILE: /run/secrets/hiring_database_url
+      SESSION_SECRET_FILE: /run/secrets/hiring_session_secret
+      TOKEN_PEPPER_FILE: /run/secrets/hiring_token_pepper
+    secrets:
+      - hiring_database_url
+      - hiring_session_secret
+      - hiring_token_pepper
+    <<: *hardened
+    tmpfs:
+      - /tmp:size=64m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8081/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 2
+      placement:
+        constraints: ["node.labels.hiring.role == app"]
+      resources:
+        limits: {cpus: "2.0", memory: 2G}
+        reservations: {cpus: "0.5", memory: 512M}
+      restart_policy: *restart-policy
+      # Collab is memory-bound and holds live documents. Start-first, and give
+      # the drain a long monitor window so a session is not cut mid-interview.
+      update_config:
+        parallelism: 1
+        delay: 60s
+        order: start-first
+        failure_action: rollback
+        monitor: 120s
+    logging: *default-logging
+
+  worker:
+    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-worker:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    build:
+      context: .
+      dockerfile: infra/docker/worker.Dockerfile
+      target: runtime
+    # The bridge. It is the only service attached to both `exec` and `data`,
+    # and it runs on worker-labelled nodes — never on exec nodes, because it
+    # holds database and object-store credentials and exec nodes must not.
+    networks: [exec, data, edge]
+    environment:
+      NODE_ENV: production
+      APP_ENV: ${APP_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      REDIS_URL: ${REDIS_URL}
+      DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
+      DATABASE_APP_ROLE: ${DATABASE_APP_ROLE:-hiring_app}
+      DATABASE_JOB_ROLE: ${DATABASE_JOB_ROLE:-hiring_job}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
+      SMTP_URL: ${SMTP_URL}
+      MAIL_FROM: ${MAIL_FROM}
+      PISTON_URL: ${PISTON_URL:-http://piston:2000}
+      EXEC_CPU_TIME_MS: ${EXEC_CPU_TIME_MS:-5000}
+      EXEC_WALL_TIME_MS: ${EXEC_WALL_TIME_MS:-10000}
+      EXEC_MEMORY_MB: ${EXEC_MEMORY_MB:-256}
+      EXEC_MAX_PROCESSES: ${EXEC_MAX_PROCESSES:-64}
+      EXEC_MAX_OUTPUT_BYTES: ${EXEC_MAX_OUTPUT_BYTES:-65536}
+      QUEUE_RUN_CONCURRENCY: ${QUEUE_RUN_CONCURRENCY:-8}
+      QUEUE_SUBMIT_CONCURRENCY: ${QUEUE_SUBMIT_CONCURRENCY:-4}
+      QUEUE_MAX_ATTEMPTS: ${QUEUE_MAX_ATTEMPTS:-3}
+      QUEUE_BACKOFF_MS: ${QUEUE_BACKOFF_MS:-2000}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_SERVICE_NAME: hiring-worker
+      RETENTION_PROCTOR_MEDIA_DAYS: ${RETENTION_PROCTOR_MEDIA_DAYS:-30}
+      RETENTION_SESSION_RECORDING_DAYS: ${RETENTION_SESSION_RECORDING_DAYS:-90}
+      RETENTION_ATTEMPT_DATA_MONTHS: ${RETENTION_ATTEMPT_DATA_MONTHS:-24}
+      RETENTION_CANDIDATE_PII_MONTHS: ${RETENTION_CANDIDATE_PII_MONTHS:-12}
+      RETENTION_AUDIT_LOG_YEARS: ${RETENTION_AUDIT_LOG_YEARS:-7}
+      # Elevated background-job role (ADR-010): bypasses RLS, writes its own
+      # audit trail. Distinct credential from the API's.
+      DATABASE_URL_FILE: /run/secrets/hiring_database_job_url
+      S3_ACCESS_KEY_ID_FILE: /run/secrets/hiring_s3_access_key_id
+      S3_SECRET_ACCESS_KEY_FILE: /run/secrets/hiring_s3_secret_access_key
+      TOKEN_PEPPER_FILE: /run/secrets/hiring_token_pepper
+    secrets:
+      - hiring_database_job_url
+      - hiring_s3_access_key_id
+      - hiring_s3_secret_access_key
+      - hiring_token_pepper
+    <<: *hardened
+    tmpfs:
+      - /tmp:size=256m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9464/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 4
+      placement:
+        constraints: ["node.labels.hiring.role == worker"]
+      resources:
+        limits: {cpus: "2.0", memory: 1G}
+        reservations: {cpus: "0.5", memory: 256M}
+      restart_policy: *restart-policy
+      # Workers drain rather than cut over. A submission in flight must finish;
+      # stop-first with a long grace period lets the current job complete.
+      update_config:
+        parallelism: 1
+        delay: 30s
+        order: stop-first
+        failure_action: pause
+        monitor: 60s
+    stop_grace_period: 120s
+    logging: *default-logging
+
+  web:
+    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-web:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      target: runtime
+      args:
+        VITE_API_PUBLIC_URL: ${API_PUBLIC_URL}
+        VITE_COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL}
+    networks: [edge]
+    environment:
+      PORT: "3000"
+    <<: *hardened
+    tmpfs:
+      - /tmp:size=16m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      replicas: 2
+      placement:
+        constraints: ["node.labels.hiring.role == app"]
+      resources:
+        limits: {cpus: "0.5", memory: 256M}
+        reservations: {cpus: "0.1", memory: 64M}
+      restart_policy: *restart-policy
+      update_config: *rolling-update
+    logging: *default-logging
+
+  candidate:
+    # A separate bundle by design. No staff-only route, no correct-answer flag
+    # and no question-bank code is ever compiled into this image.
+    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-candidate:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    build:
+      context: .
+      dockerfile: infra/docker/candidate.Dockerfile
+      target: runtime
+      args:
+        VITE_API_PUBLIC_URL: ${API_PUBLIC_URL}
+        VITE_COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL}
+    networks: [edge]
+    environment:
+      PORT: "3001"
+    <<: *hardened
+    tmpfs:
+      - /tmp:size=16m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3001/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    deploy:
+      replicas: 2
+      placement:
+        constraints: ["node.labels.hiring.role == app"]
+      resources:
+        limits: {cpus: "0.5", memory: 256M}
+        reservations: {cpus: "0.1", memory: 64M}
+      restart_policy: *restart-policy
+      update_config: *rolling-update
+    logging: *default-logging
+
+  # =========================================================================
+  # EXECUTION TIER — dedicated nodes, no credentials, no egress
+  # =========================================================================
+
+  piston:
+    image: ghcr.io/engineer-man/piston:latest@sha256:REPLACE_WITH_PINNED_DIGEST
+    # `exec` only, and `exec` is `internal: true`. There is no route from here
+    # to postgres, valkey, seaweedfs, the API, the collab service or the
+    # internet. Language runtimes are baked into the image at build time
+    # (infra/piston/install-runtimes.sh) precisely so that no egress is needed.
+    networks: [exec]
+    # NOTE: this service intentionally declares no `secrets:` and no `configs:`
+    # and references no *_FILE variable. An exec node holds no credential of
+    # any kind. If a future change adds one here, that change is wrong — see
+    # the header block and docs/02-HLD.md section 7.
+    privileged: true
+    environment:
+      PISTON_LOG_LEVEL: ${PISTON_LOG_LEVEL:-WARN}
+      PISTON_COMPILE_TIMEOUT: ${EXEC_WALL_TIME_MS:-10000}
+      PISTON_RUN_TIMEOUT: ${EXEC_WALL_TIME_MS:-10000}
+      PISTON_COMPILE_CPU_TIME: ${EXEC_CPU_TIME_MS:-10000}
+      PISTON_RUN_CPU_TIME: ${EXEC_CPU_TIME_MS:-5000}
+      PISTON_RUN_MEMORY_LIMIT: ${EXEC_MEMORY_MB_BYTES:-268435456}
+      PISTON_MAX_PROCESS_COUNT: ${EXEC_MAX_PROCESSES:-64}
+      PISTON_OUTPUT_MAX_SIZE: ${EXEC_MAX_OUTPUT_BYTES:-65536}
+      PISTON_DISABLE_NETWORKING: "true"
+    tmpfs:
+      - /tmp:exec,mode=1777,size=2g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2000/api/v2/runtimes || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      # Scale on queue depth. Sizing guidance is in docs/02-HLD.md section 6.
+      replicas: 4
+      placement:
+        constraints:
+          - "node.labels.hiring.role == exec"
+        # One Piston per exec node. Two sandboxes on one host share a kernel
+        # and a cgroup parent, which turns one escape into two compromised
+        # execution contexts and makes the CPU accounting per attempt a lie.
+        max_replicas_per_node: 1
+      resources:
+        limits: {cpus: "4.0", memory: 4G}
+        reservations: {cpus: "2.0", memory: 2G}
+      restart_policy: *restart-policy
+      update_config:
+        parallelism: 1
+        delay: 60s
+        order: stop-first
+        failure_action: pause
+        monitor: 90s
+    # Nodes are ephemeral and recycled. A long grace period lets an in-flight
+    # execution finish rather than scoring a candidate zero on a deploy.
+    stop_grace_period: 60s
+    logging: *default-logging
+
+  # =========================================================================
+  # DATA TIER
+  # =========================================================================
+  #
+  # Postgres is listed here for completeness of the topology. In a real
+  # deployment it is an HA pair with automatic failover managed outside this
+  # stack (docs/02-HLD.md section 10) — a single-container Postgres has no
+  # failover story and must not be what production runs on.
+  # TBD — owner: platform engineer, decide by 2026-11-27 (M2 exit): Patroni
+  # cluster versus managed Postgres. Whichever wins, RLS and the two-role split
+  # from ADR-010 are non-negotiable.
+
+  postgres:
+    image: postgres:16-alpine@sha256:REPLACE_WITH_PINNED_DIGEST
+    networks: [data]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hiring}
+      POSTGRES_DB: ${POSTGRES_DB:-hiring}
+      POSTGRES_PASSWORD_FILE: /run/secrets/hiring_postgres_password
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    secrets:
+      - hiring_postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Not read_only: Postgres writes its data directory, WAL and socket.
+    cap_drop: ["ALL"]
+    cap_add: ["CHOWN", "DAC_READ_SEARCH", "FOWNER", "SETGID", "SETUID"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiring} -d ${POSTGRES_DB:-hiring}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints: ["node.labels.hiring.role == data"]
+      resources:
+        limits: {cpus: "4.0", memory: 8G}
+        reservations: {cpus: "2.0", memory: 4G}
+      restart_policy: *restart-policy
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: pause
+    logging: *default-logging
+
+  valkey:
+    image: valkey/valkey:8-alpine@sha256:REPLACE_WITH_PINNED_DIGEST
+    networks: [data]
+    command:
+      - valkey-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory-policy
+      - noeviction
+    volumes:
+      - valkey_data:/data
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    deploy:
+      replicas: 1
+      placement:
+        constraints: ["node.labels.hiring.role == data"]
+      resources:
+        limits: {cpus: "2.0", memory: 4G}
+        reservations: {cpus: "0.5", memory: 1G}
+      restart_policy: *restart-policy
+    logging: *default-logging
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:3.68@sha256:REPLACE_WITH_PINNED_DIGEST
+    networks: [data]
+    command: >
+      server
+      -dir=/data
+      -s3
+      -s3.port=8333
+      -s3.config=/run/secrets/hiring_s3_config_json
+      -filer
+      -ip=seaweedfs
+    secrets:
+      - hiring_s3_config_json
+    volumes:
+      - seaweedfs_data:/data
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9333/cluster/status || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints: ["node.labels.hiring.role == data"]
+      resources:
+        limits: {cpus: "2.0", memory: 4G}
+        reservations: {cpus: "0.5", memory: 1G}
+      restart_policy: *restart-policy
+    logging: *default-logging
+
+  # =========================================================================
+  # OBSERVABILITY
+  # =========================================================================
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.109.0@sha256:REPLACE_WITH_PINNED_DIGEST
+    networks: [edge, data]
+    command: ["--config=/etc/otel/otel-collector.yaml"]
+    configs:
+      - source: otel_collector_config
+        target: /etc/otel/otel-collector.yaml
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      replicas: 2
+      placement:
+        constraints: ["node.labels.hiring.role == app"]
+      resources:
+        limits: {cpus: "1.0", memory: 512M}
+        reservations: {cpus: "0.25", memory: 128M}
+      restart_policy: *restart-policy
+      update_config: *rolling-update
+    logging: *default-logging
+
+  prometheus:
+    image: prom/prometheus:v2.54.1@sha256:REPLACE_WITH_PINNED_DIGEST
+    networks: [edge, data]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - prometheus_data:/prometheus
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints: ["node.labels.hiring.role == app"]
+      resources:
+        limits: {cpus: "2.0", memory: 4G}
+        reservations: {cpus: "0.5", memory: 1G}
+      restart_policy: *restart-policy
+    logging: *default-logging
