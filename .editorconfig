@@ -1,0 +1,48 @@
+; Assaybank — editor defaults. See CONTRIBUTING.md.
+; Prettier and ESLint are authoritative for TypeScript formatting; this file
+; exists so an editor gets it right before either has run.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
+[*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css,scss,html,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+; Trailing double-space is a hard line break in Markdown; do not strip it.
+trim_trailing_whitespace = false
+max_line_length = off
+
+[*.sql]
+indent_size = 2
+max_line_length = off
+
+[Makefile]
+; Recipe lines must begin with a literal tab.
+indent_style = tab
+indent_size = 4
+
+[{Dockerfile,*.Dockerfile,Dockerfile.*}]
+indent_style = space
+indent_size = 2
+
+[*.{sh,bash,zsh}]
+indent_style = space
+indent_size = 2
+
+[.env*]
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{svg,png,jpg,jpeg,gif,webp,ico,woff,woff2}]
+insert_final_newline = false
+trim_trailing_whitespace = false

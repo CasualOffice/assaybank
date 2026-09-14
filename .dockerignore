@@ -1,0 +1,103 @@
+# ---------------------------------------------------------------------------
+# Docker build context exclusions.
+#
+# Every Dockerfile in infra/docker/ builds from the repository root, because a
+# pnpm workspace needs its lockfile and every member manifest to resolve. That
+# makes this file load-bearing in two ways: it keeps the context small enough
+# that a build is fast, and it keeps things out of images that must never be in
+# one.
+#
+# The second is the important one. A .env file copied into a layer is still in
+# that layer after it is deleted in a later step, and an image is a file that
+# gets pushed to a registry.
+# ---------------------------------------------------------------------------
+
+# --- Secrets and local configuration --------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+infra/seaweedfs/s3_config.json
+
+# --- Version control -------------------------------------------------------
+.git
+.gitignore
+.gitattributes
+.github
+
+# --- Dependencies ----------------------------------------------------------
+# node_modules is excluded deliberately, not as an oversight. The image
+# installs from the lockfile inside the build, for the target platform. A
+# host's node_modules carries the host's architecture and its own binaries;
+# copying it in is how a build passes on a developer's laptop and fails on the
+# node.
+node_modules
+**/node_modules
+.pnpm-store
+.pnpm-debug.log*
+
+# --- Build output ----------------------------------------------------------
+dist
+build
+out
+**/dist
+**/build
+**/.next
+**/.turbo
+**/.vite
+*.tsbuildinfo
+
+# --- Test and coverage -----------------------------------------------------
+coverage
+**/coverage
+.nyc_output
+playwright-report
+test-results
+**/__snapshots__
+
+# --- Editor and OS ---------------------------------------------------------
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Documentation and project tracking ------------------------------------
+# Not needed to build a runnable image, and they change on nearly every commit,
+# which would invalidate the build cache for no reason.
+docs
+project
+*.md
+!README.md
+LICENSE
+
+# --- Infrastructure --------------------------------------------------------
+# Config that is mounted at runtime, never baked in. Mounting means a config
+# change is a restart rather than a rebuild and a registry push.
+docker-compose.yml
+docker-compose.prod.yml
+docker-compose.override.yml
+infra/caddy
+infra/otel
+infra/prometheus
+infra/grafana
+infra/postgres
+infra/seaweedfs
+
+# infra/docker and infra/piston are NOT excluded:
+#   infra/docker  — the Dockerfiles themselves must be in the context
+#   infra/piston  — packages.json and install-runtimes.sh are baked into the
+#                   Piston image at build time, because an exec node has no
+#                   egress and cannot fetch a runtime at boot
+
+# --- Local scratch ---------------------------------------------------------
+tmp
+.tmp
+*.log
+.cache
+.claude

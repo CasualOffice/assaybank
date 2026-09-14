@@ -1,0 +1,151 @@
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+.yarn/
+.npm/
+npm-debug.log*
+yarn-error.log*
+
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+dist/
+build/
+out/
+.output/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+storybook-static/
+
+# Vite / React app output
+.vite/
+apps/*/dist/
+packages/*/dist/
+
+# Generated API artefacts (regenerated from packages/contracts; never committed)
+packages/contracts/generated/
+openapi.generated.json
+
+# ---------------------------------------------------------------------------
+# Caches
+# ---------------------------------------------------------------------------
+.turbo/
+.cache/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.swc/
+.rollup.cache/
+
+# ---------------------------------------------------------------------------
+# Tests, coverage, Playwright
+# ---------------------------------------------------------------------------
+coverage/
+.nyc_output/
+*.lcov
+junit.xml
+test-results/
+playwright-report/
+playwright/.cache/
+blob-report/
+.vitest/
+
+# Load-test output (docs/07)
+load-test-results/
+*.jtl
+
+# ---------------------------------------------------------------------------
+# Environment and secrets
+#   .env is ignored; .env.example is committed on purpose.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# ---------------------------------------------------------------------------
+# Docker and local infrastructure state
+# ---------------------------------------------------------------------------
+docker-compose.override.yml
+.docker/
+infra/**/data/
+infra/postgres/data/
+infra/seaweedfs/data/
+infra/valkey/data/
+infra/piston/packages/
+*.pid
+
+# Database dumps taken locally
+*.dump
+*.sql.gz
+!docs/hiring_platform_schema.sql
+!infra/postgres/init/*.sql
+
+# ---------------------------------------------------------------------------
+# Object-store and media scratch
+# ---------------------------------------------------------------------------
+tmp/
+.tmp/
+uploads/
+proctor-media/
+session-recordings/
+
+# ---------------------------------------------------------------------------
+# Observability scratch
+# ---------------------------------------------------------------------------
+infra/prometheus/data/
+infra/grafana/data/
+*.heapsnapshot
+*.cpuprofile
+
+# ---------------------------------------------------------------------------
+# Supply chain
+#   SBOMs are release artefacts, published, not committed.
+# ---------------------------------------------------------------------------
+sbom/
+*.cdx.json
+*.spdx.json
+
+# ---------------------------------------------------------------------------
+# Editors and IDEs
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+.history/
+.fleet/
+
+# Claude Code: shared rules are committed, local overrides are not
+.claude/settings.local.json
+.claude/local/
+
+# ---------------------------------------------------------------------------
+# Operating system
+# ---------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+logs/
+*.log
