@@ -1,0 +1,124 @@
+# End-to-end suite (Playwright).
+#
+# ACTIVATES AT M1 — async MCQ, 2026-10-12 to 2026-10-30. Until the candidate app
+# and the attempt runner exist there is nothing to drive, so every job here reports
+# what it will do and exits 0. The workflow exists now so that the M1 pull request
+# that adds the first spec does not also have to invent the pipeline.
+#
+# Not on every pull request, by design. docs/06 §18 puts Chromium E2E in the
+# pull-request stage once it exists and Firefox and WebKit on merge to main; a full
+# three-browser run on every push costs more minutes than it catches bugs. The
+# scheduled run here is the nightly full-route pass, including the accessibility
+# sweep from docs/15.
+#
+# The flows that matter, in the order docs/06 §12 lists them:
+#   1. Author writes, reviews and publishes a coding question (M0 lifecycle)
+#   2. Candidate redeems an invitation and completes an MCQ assessment (M1)
+#   3. A refresh mid-attempt returns the same materialised question set (ADR-004)
+#   4. The countdown derives from server_time and survives a clock skew (ADR-006)
+#   5. Autosave, disconnect, reconnect — no work is lost (FR-9, R-15)
+
+name: E2E
+
+on:
+  schedule:
+    # 04:00 UTC nightly, after the security and licence runs.
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      browsers:
+        description: 'Browsers to run (chromium, firefox, webkit or all)'
+        required: false
+        default: 'chromium'
+        type: string
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Playwright
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hiring
+          POSTGRES_PASSWORD: hiring
+          POSTGRES_DB: hiring_e2e
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hiring -d hiring_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: ci
+      NODE_ENV: test
+      DATABASE_URL: postgres://hiring:hiring@localhost:5432/hiring_e2e
+      REDIS_URL: redis://localhost:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is there anything to drive yet
+        id: ready
+        run: |
+          if [ -d apps/candidate ] && [ -d apps/api ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=E2E not yet active::apps/candidate and apps/api do not exist. This suite activates at M1 (2026-10-12). Specified in docs/06-testing-strategy.md §12."
+          fi
+
+      - if: steps.ready.outputs.ready == 'true'
+        uses: pnpm/action-setup@v4
+
+      - if: steps.ready.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+
+      - if: steps.ready.outputs.ready == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Install browsers
+        if: steps.ready.outputs.ready == 'true'
+        run: pnpm exec playwright install --with-deps ${{ inputs.browsers == 'all' && '' || inputs.browsers }}
+
+      - name: Migrate and seed
+        if: steps.ready.outputs.ready == 'true'
+        run: |
+          pnpm run migrate
+          pnpm run seed -- --profile=dev
+
+      - name: Run end-to-end suite
+        if: steps.ready.outputs.ready == 'true'
+        run: pnpm run test:e2e
+
+      - name: Upload traces and report
+        if: always() && steps.ready.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14

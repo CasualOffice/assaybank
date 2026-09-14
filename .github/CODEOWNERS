@@ -1,0 +1,93 @@
+# Code owners — who is automatically requested for review on which paths.
+#
+# HOW THIS MAPS TO THE DOCUMENT REGISTRY. The handles below are the same roles as the
+# Owner column in docs/DOC-OWNERSHIP.md, one to one:
+#
+#   engineering lead          @assaybank/hiring-eng-lead
+#   backend lead              @assaybank/hiring-backend
+#   frontend lead             @assaybank/hiring-frontend
+#   infrastructure lead       @assaybank/hiring-infra
+#   security lead             @assaybank/hiring-security
+#   QA lead                   @assaybank/hiring-qa
+#   data protection officer   @assaybank/hiring-dpo
+#   legal counsel             @assaybank/hiring-legal
+#   product lead              @assaybank/hiring-product
+#   delivery lead             @assaybank/hiring-delivery
+#   design lead               @assaybank/hiring-design
+#
+# PLACEHOLDERS. These teams do not exist yet and no person is assigned to any role as
+# of 2026-09-15. GitHub silently ignores an unknown team in CODEOWNERS, so this file
+# is inert until the teams are created — which is the correct failure mode for a
+# single-contributor repository, but it means nobody should read a green pull request
+# as evidence that the named owner looked at it. Create the teams, then assign people
+# to the roles in docs/DOC-OWNERSHIP.md and here in the same change.
+#
+# Last matching rule wins, so the file runs general to specific.
+
+# ---------------------------------------------------------------- default
+*                                   @assaybank/hiring-eng-lead
+
+# ------------------------------------------------------- applications
+/apps/api/                          @assaybank/hiring-backend
+/apps/worker/                       @assaybank/hiring-backend
+/apps/collab/                       @assaybank/hiring-backend
+/apps/web/                          @assaybank/hiring-frontend
+/apps/candidate/                    @assaybank/hiring-frontend
+
+# ---------------------------------------------------------- packages
+/packages/contracts/                @assaybank/hiring-backend
+/packages/db/                       @assaybank/hiring-backend
+/packages/core-domain/              @assaybank/hiring-backend @assaybank/hiring-eng-lead
+/packages/grading/                  @assaybank/hiring-backend @assaybank/hiring-eng-lead
+/packages/exec-adapter/             @assaybank/hiring-security @assaybank/hiring-backend
+/packages/auth/                     @assaybank/hiring-security @assaybank/hiring-backend
+/packages/config/                   @assaybank/hiring-infra
+/packages/observability/            @assaybank/hiring-infra
+/packages/ui/                       @assaybank/hiring-frontend
+
+# ------------------------------------------------------ infrastructure
+/infra/                             @assaybank/hiring-infra
+/infra/piston/                      @assaybank/hiring-security @assaybank/hiring-infra
+/infra/postgres/init/03-rls.sql     @assaybank/hiring-security @assaybank/hiring-backend
+/docker-compose.yml                 @assaybank/hiring-infra
+/docker-compose.prod.yml            @assaybank/hiring-infra
+/.env.example                       @assaybank/hiring-infra
+/Makefile                           @assaybank/hiring-infra
+
+# ------------------------------------------------------------ pipeline
+/.github/                           @assaybank/hiring-infra @assaybank/hiring-delivery
+/.github/workflows/security.yml     @assaybank/hiring-security
+/.github/workflows/licences.yml     @assaybank/hiring-legal @assaybank/hiring-eng-lead
+/scripts/                           @assaybank/hiring-delivery
+/scripts/check-licences.mjs         @assaybank/hiring-legal @assaybank/hiring-delivery
+/.claude/                           @assaybank/hiring-eng-lead
+/.licence-allowlist.json            @assaybank/hiring-legal @assaybank/hiring-eng-lead
+
+# ---------------------------------------------------------- the design record
+/docs/                              @assaybank/hiring-eng-lead
+/docs/01-PRD.md                     @assaybank/hiring-product
+/docs/02-HLD.md                     @assaybank/hiring-eng-lead
+/docs/03-API-spec.md                @assaybank/hiring-backend
+/docs/04-ADRs.md                    @assaybank/hiring-eng-lead
+/docs/05-licensing-and-compliance.md @assaybank/hiring-legal
+/docs/06-testing-strategy.md        @assaybank/hiring-qa
+/docs/07-load-and-capacity-testing.md @assaybank/hiring-qa
+/docs/08-i18n-and-localisation.md   @assaybank/hiring-frontend
+/docs/09-ats-integration.md         @assaybank/hiring-backend
+/docs/10-certification-and-credentials.md @assaybank/hiring-backend
+/docs/11-data-retention-and-dpia.md @assaybank/hiring-dpo
+/docs/12-observability-and-runbooks.md @assaybank/hiring-infra
+/docs/13-environments-and-release.md @assaybank/hiring-infra
+/docs/14-threat-model.md            @assaybank/hiring-security
+/docs/15-accessibility-conformance.md @assaybank/hiring-frontend
+/docs/16-ai-usage-policy.md         @assaybank/hiring-eng-lead
+/docs/DOC-OWNERSHIP.md              @assaybank/hiring-delivery
+/docs/hiring_platform_schema.sql    @assaybank/hiring-backend
+
+# -------------------------------------------------------------- delivery state
+/project/                           @assaybank/hiring-delivery
+/project/DEFINITION-OF-DONE.md      @assaybank/hiring-eng-lead
+/project/GLOSSARY.md                @assaybank/hiring-product
+
+# ------------------------------------------------------------------- brand
+/brand/                             @assaybank/hiring-design

@@ -1,0 +1,33 @@
+# Blank issues are disabled deliberately. Each of the four forms asks for something a
+# triager would otherwise have to go and find — the document a bug contradicts, the
+# requirement a task traces to, the reversal condition an ADR needs, the decide-by
+# date an open question needs. A blank issue reliably omits all of them, and the cost
+# lands on whoever triages rather than whoever files.
+#
+# PLACEHOLDER HOST. The URLs assume `github.com/assaybank/hiring` on the `main` branch
+# (docs/13 §6.1: one long-lived branch, `main`, always releasable). There is no git
+# remote as of 2026-09-15 — correct the owner, repository and branch in this file in
+# the same change that creates the remote, or these links 404 on the first issue
+# anyone files.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Read the design record first
+    url: https://github.com/assaybank/hiring/blob/main/docs/README.md
+    about: The index, the reading order for each audience, and what is still genuinely open. Most "is this a bug" questions are answered here.
+
+  - name: Decision record
+    url: https://github.com/assaybank/hiring/blob/main/docs/04-ADRs.md
+    about: Read the existing ADRs before proposing a new one. Each states its own reversal conditions, and an accepted ADR is superseded rather than edited.
+
+  - name: Security vulnerability
+    url: https://github.com/assaybank/hiring/security/advisories/new
+    about: Report privately through a security advisory. Never in a public issue — not a sandbox escape, not a tenant-isolation failure, not anything that leaks question content — and never with a candidate identifier, token or attempt id attached.
+
+  - name: Candidate data incident
+    url: https://github.com/assaybank/hiring/blob/main/docs/11-data-retention-and-dpia.md
+    about: A suspected exposure of candidate PII or proctor media is an incident, not an issue. Follow the procedure and notify the data protection officer.
+
+  - name: Operational incident
+    url: https://github.com/assaybank/hiring/blob/main/docs/12-observability-and-runbooks.md
+    about: Something is broken in production right now. Start from the runbook for the alert, not from a new issue.

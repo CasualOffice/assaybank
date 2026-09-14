@@ -1,0 +1,137 @@
+name: ADR proposal
+description: Propose a decision that is expensive to reverse.
+title: 'ADR: '
+labels: ['adr', 'needs-decision']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **The test for whether this needs an ADR:** would undoing it in three months require a
+        data migration, a re-grade of historical attempts, a dependency swap, or a conversation
+        with legal? If none of those, it is a task, not an ADR.
+
+        Read `docs/04-ADRs.md` first. This form produces the shape a record takes there —
+        context, decision, consequences, reversal conditions. The accepted record is **appended,
+        never inserted, and never edited afterwards**. An accepted ADR that later turns out wrong
+        is superseded by a new one, with a link in both directions. The record of what we used to
+        believe is the useful part.
+
+  - type: input
+    id: title
+    attributes:
+      label: Decision title
+      description: 'Reads as the heading: "ADR-NNN — <this>". A statement, not a question.'
+      placeholder: Store proctor media in the object store rather than the database
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Proposed status
+      options:
+        - proposed
+        - accepted
+        - supersedes an existing ADR
+    validations:
+      required: true
+
+  - type: input
+    id: supersedes
+    attributes:
+      label: Supersedes
+      description: 'ADR number this replaces, if any. The old record is marked superseded in the same change, with links both ways.'
+      placeholder: ADR-0NN
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: |
+        What forces this decision now, and what breaks if it is not made. Name the constraints
+        rather than the preference — the licence policy, an exam window, a regulator, team size.
+        Someone reading this in two years was not in the room.
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Options considered
+      description: |
+        At least two, each with what it costs and why it was rejected. An ADR with one option is
+        a rationalisation, and it gives a future reader nothing to re-evaluate.
+      placeholder: |
+        - Store media as bytea in Postgres — rejected: backup size and restore time, and retention erasure becomes a VACUUM problem
+        - Third-party managed store — rejected: candidate media leaving our control is a DPIA change
+    validations:
+      required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: Proposed decision
+      description: One paragraph, present tense, stating what we do.
+    validations:
+      required: true
+
+  - type: textarea
+    id: consequences
+    attributes:
+      label: Consequences
+      description: |
+        What we give up, what gets harder, what we now have to operate, and what this makes
+        cheap. Be honest about the cost — a record that lists only benefits is worthless.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reversal
+    attributes:
+      label: Reversal conditions
+      description: |
+        What would have to become true for this to be revisited, concretely enough to recognise
+        when it happens. Every ADR in this repository states its own. "If requirements change"
+        is not a reversal condition.
+      placeholder: 'Reversal condition: object-store egress cost exceeds X per month, or a customer requires in-region storage we cannot provision.'
+    validations:
+      required: true
+
+  - type: textarea
+    id: invariants
+    attributes:
+      label: Does this add, change or remove a domain invariant?
+      description: |
+        `.claude/rules/invariants.md` lists the sixteen. If this touches one, say which and how,
+        and name the guarding test it needs. An accepted ADR that changes an invariant updates
+        that file in the same change.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: constraints
+    attributes:
+      label: Non-negotiable constraints
+      description: |
+        These are product constraints with legal exposure, not settings. Confirm the proposal
+        respects them. If it cannot, stop here: superseding ADR-007 or ADR-011 needs legal
+        involvement, not a reviewer's judgement (see project/RISKS.md R-17).
+      options:
+        - label: This introduces no automated rejection, voiding or down-scoring from a proctoring or integrity signal (ADR-007)
+          required: true
+        - label: This places no model anywhere in the scoring or decision path (ADR-011)
+          required: true
+        - label: Any dependency this implies is MIT, Apache-2.0, BSD-2, BSD-3, ISC, MPL-2.0, PostgreSQL, Unlicense or CC0, transitively (ADR-001)
+          required: true
+
+  - type: textarea
+    id: affected
+    attributes:
+      label: Documents this decision makes wrong
+      description: |
+        Name them. An accepted ADR usually lands with edits to the HLD, the API spec or a policy
+        document in the same pull request.
+    validations:
+      required: false

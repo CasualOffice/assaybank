@@ -1,0 +1,127 @@
+name: Task
+description: A unit of engineering work, half a day to five days, that will get a tracker id.
+title: 'task: '
+labels: ['task', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Anything larger than five days is a milestone scope line in `project/MILESTONES.md`
+        and gets broken down before work starts. Anything with no reference to a requirement,
+        an ADR, a design section or a milestone exit criterion is either missing its reference
+        or is work this project did not agree to do.
+
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      description: Written as the tracker row will read it.
+      placeholder: Materialise option shuffle order at attempt start
+    validations:
+      required: true
+
+  - type: input
+    id: tracker
+    attributes:
+      label: Tracker id
+      description: |
+        Leave blank if not yet allocated. Ids are `H-NNN`, allocated in ascending order from the
+        highest id in `project/TRACKER.md`, never reused and never renumbered — they appear in
+        branch names, commit messages and ADR cross-references.
+      placeholder: H-
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - db
+        - api
+        - worker
+        - exec
+        - collab
+        - web
+        - candidate
+        - infra
+        - docs
+        - compliance
+    validations:
+      required: true
+
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: Milestone
+      description: 'M0 question bank · M1 async MCQ · M2 coding · M3 live interviews · M4 proctored'
+      options:
+        - 'M-1 — foundation'
+        - 'M0 — question bank (2026-09-21 to 2026-10-09)'
+        - 'M1 — async MCQ (2026-10-12 to 2026-10-30)'
+        - 'M2 — coding rounds (2026-11-02 to 2026-11-27)'
+        - 'M3 — live interviews (2026-11-30 to 2026-12-24)'
+        - 'M4 — proctored mode (2027-01-05 to 2027-01-30)'
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What needs doing
+      description: Enough that someone who is not you can start it.
+    validations:
+      required: true
+
+  - type: input
+    id: traces
+    attributes:
+      label: Traces to
+      description: 'An `FR-n` from docs/01-PRD.md §7, an `ADR-n`, a section of the HLD or API spec, or a milestone exit criterion.'
+      placeholder: FR-9, ADR-004, HLD §3.3
+    validations:
+      required: true
+
+  - type: input
+    id: depends
+    attributes:
+      label: Depends on
+      description: Tracker ids that must be done first, or "—".
+      placeholder: H-031, H-034
+    validations:
+      required: false
+
+  - type: dropdown
+    id: estimate
+    attributes:
+      label: Estimate
+      options:
+        - 'S — up to half a day'
+        - 'M — one to two days'
+        - 'L — three to five days'
+    validations:
+      required: true
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Done means
+      description: |
+        The base checklist in `project/DEFINITION-OF-DONE.md` applies to everything. List only
+        what is specific to this task — the test that must exist, the document that must change,
+        the evidence a milestone exit criterion needs.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: flags
+    attributes:
+      label: Does this task touch any of these
+      description: Ticking a box does not block the work; it decides who reviews it.
+      options:
+        - label: A schema change or a migration
+        - label: A candidate-facing response shape
+        - label: Authentication, authorisation, or a trust boundary
+        - label: Scoring, grading or the attempt state machine
+        - label: A new dependency
+        - label: Candidate PII, proctor media, or a retention clock

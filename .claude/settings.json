@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-edit-reminder.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-doc-check.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(file:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(sed -n:*)",
+      "Bash(diff:*)",
+      "Bash(tree:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote -v)",
+      "Bash(node --version)",
+      "Bash(node scripts/check-doc-freshness.mjs:*)",
+      "Bash(node scripts/check-links.mjs:*)",
+      "Bash(node scripts/check-licences.mjs:*)",
+      "Bash(node scripts/gen-code-graph.mjs:*)",
+      "Bash(make help)",
+      "Bash(make docs-check)",
+      "Bash(make graph)",
+      "Bash(make licences)",
+      "Bash(make check-env)",
+      "Bash(docker compose config:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(pnpm --version)"
+    ]
+  }
+}

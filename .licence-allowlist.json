@@ -1,0 +1,24 @@
+{
+  "_comment": [
+    "Reviewed exceptions to the dependency licence policy in docs/05-licensing-and-compliance.md section 1.",
+    "An entry here means a human read the licence text and accepted the risk in writing. It is not a way to",
+    "silence the gate: scripts/check-licences.mjs rejects an entry that is missing a reason, an approver or an",
+    "approval date, and rejects a reason short enough to be a placeholder.",
+    "",
+    "Entry shape:",
+    "  package     exact npm package name, e.g. \"some-package\" or \"@scope/some-package\"",
+    "  version     optional exact version; omit to allow every version of the package",
+    "  licence     the declared licence being excepted, as it appears in the package's package.json",
+    "  reason      why this dependency is acceptable despite the policy, in enough detail that someone",
+    "              who was not in the conversation can re-evaluate it",
+    "  approver    who accepted the risk — a person, never a team",
+    "  approved_on absolute YYYY-MM-DD date of the approval",
+    "  expires_on  optional absolute YYYY-MM-DD date by which the exception is re-reviewed or removed",
+    "",
+    "AGPL, SSPL and BSL/BUSL dependencies are not expected to appear here at all. If one does, it is a",
+    "product-level decision with legal involvement and it needs an ADR, not an allowlist row (ADR-001).",
+    "",
+    "Zero entries as of 2026-09-15, and the shorter this file stays the better."
+  ],
+  "entries": []
+}

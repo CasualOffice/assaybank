@@ -1,0 +1,114 @@
+name: Bug
+description: Something behaves differently from what the design record says it should.
+title: 'bug: '
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A bug report is most useful when it names the document the behaviour contradicts.
+        If nothing in `docs/` says what should happen, this may be a task rather than a bug —
+        and the missing sentence is itself worth fixing.
+
+  - type: input
+    id: summary
+    attributes:
+      label: One-line summary
+      description: What is wrong, in the words you would use to tell a colleague.
+      placeholder: Attempt timer restarts from full duration after a page refresh
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - db — schema, migrations, RLS
+        - api — Fastify HTTP and SSE surface, contracts, auth
+        - worker — BullMQ jobs, grading, sweeps, imports
+        - exec — execution adapter and sandbox behaviour
+        - collab — y-websocket and CRDT
+        - web — staff console
+        - candidate — candidate app
+        - infra — docker, CI, nodes, storage, networking
+        - docs — written deliverables
+        - compliance — licence, retention, fairness, accessibility
+        - not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: |
+        Candidate-affecting means a real person sitting a real assessment is affected right now.
+      options:
+        - 'S1 — candidate-affecting, in progress, unrecoverable (work lost, attempt voided, wrong score)'
+        - 'S2 — candidate-affecting, recoverable'
+        - 'S3 — staff-affecting'
+        - 'S4 — cosmetic or internal'
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen, and which document says so
+      description: Quote the sentence and link the document. This is the part that makes a bug report actionable.
+      placeholder: |
+        docs/04-ADRs.md ADR-006: "Deadlines are computed server-side at attempt start and enforced server-side at every write."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happens
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered, from a known starting state. Include the seed profile if a fixture is involved.
+      placeholder: |
+        1. make up && make seed
+        2. Start attempt as candidate fixture c-002
+        3. Refresh the page after 4 minutes
+        4. Observe the timer
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Where you saw it
+      options: [local, ci, dev, staging, production]
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Trace id, attempt id, logs
+      description: |
+        A trace id turns an hour of investigation into a minute of reading.
+        Never paste candidate answers, tokens, PII or proctor media into an issue.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: invariants
+    attributes:
+      label: Does this violate a domain invariant?
+      description: See `.claude/rules/invariants.md`. Any box ticked here raises the priority regardless of severity.
+      options:
+        - label: A published question version changed, or a draw was recomputed after start (1, 2)
+        - label: A re-grade produced a different score (3)
+        - label: Hidden content reached a candidate (7)
+        - label: A row from another organisation was visible (8)
+        - label: A signal changed a score, a status or a decision (6)
+        - label: A candidate was finalised at a score a failed job produced (14)

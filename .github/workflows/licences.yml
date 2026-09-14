@@ -1,0 +1,119 @@
+# Dependency licence gate and release SBOM (ADR-001, docs/05-licensing-and-compliance.md §1).
+#
+# ARMED NOW. scripts/check-licences.mjs degrades honestly: with neither
+# pnpm-lock.yaml nor node_modules it reports that it is armed and exits 0, so this
+# workflow sits in CI from day one and starts enforcing on the first pull request
+# that installs a dependency at M0 (2026-09-21). A licence gate added after the
+# dependency tree exists is a gate that has already failed once.
+#
+# Permitted: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, PostgreSQL,
+# Unlicense, CC0. Prohibited, including transitively: GPL, LGPL where static linking
+# applies, AGPL, SSPL, BSL/BUSL, Commons Clause, and anything with a field-of-use
+# restriction. Reviewed exceptions live in .licence-allowlist.json and require a
+# reason and a named approver.
+#
+# The SBOM job runs on a published release, per docs/13 §6.3 step 4.
+
+name: Licences
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  schedule:
+    # 03:40 UTC daily — the nightly dependency and licence audit from docs/06 §18.
+    - cron: '40 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: licences-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Licence gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies if a lockfile exists
+        id: install
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile --ignore-scripts
+            echo "installed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "installed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=No lockfile::No pnpm-lock.yaml. The gate reports as armed and passes. It enforces from M0."
+          fi
+
+      - name: Check licences
+        run: node scripts/check-licences.mjs
+
+      - name: Licence report (JSON)
+        if: always()
+        run: node scripts/check-licences.mjs --json > licence-report.json || true
+
+      - name: Upload licence report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: licence-report
+          path: licence-report.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  sbom:
+    name: CycloneDX SBOM
+    if: github.event_name == 'release'
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write # attach the SBOM to the release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Generate SBOM
+        id: sbom
+        run: |
+          if [ ! -f pnpm-lock.yaml ]; then
+            echo "::notice title=SBOM skipped::No dependency tree yet. An SBOM per release becomes meaningful at M0."
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          corepack enable
+          pnpm install --frozen-lockfile --ignore-scripts
+          mkdir -p sbom
+          pnpm dlx @cyclonedx/cyclonedx-npm --output-file "sbom/hiring-${{ github.event.release.tag_name }}.cdx.json"
+          echo "generated=true" >> "$GITHUB_OUTPUT"
+
+      - name: Attach SBOM to the release
+        if: steps.sbom.outputs.generated == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" sbom/*.cdx.json --clobber
+
+      - name: Upload SBOM artefact
+        if: steps.sbom.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/
+          retention-days: 90

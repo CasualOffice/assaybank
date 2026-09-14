@@ -1,0 +1,194 @@
+# Security checks.
+#
+# Four jobs with deliberately different cadences, because they cost deliberately
+# different amounts:
+#
+#   dependency-review  per pull request   — free, catches a known-vulnerable or
+#                                           prohibited dependency before it lands
+#   secret-scan        per pull request   — seconds, catches the mistake that cannot
+#                                           be undone by a revert
+#   codeql             per pull request   — minutes, static analysis of the workspace
+#   sandbox-suite      nightly            — needs a dedicated node with a real Piston
+#
+# WHY THE SANDBOX SUITE IS NOT PER-PULL-REQUEST. docs/06 §14 specifies fork bombs,
+# memory bombs, output floods, filesystem escapes and network egress attempts run
+# through the real execution path with real kernel limits and a real network policy.
+# A mocked sandbox test asserts that the mock is a mock. Running it requires a node
+# where Piston is installed with privileged cgroup and seccomp configuration, which
+# a shared pull-request runner is not, and a fork bomb on a shared runner degrades
+# every other job on it. So it runs nightly and pre-release on a dedicated runner.
+# Any failure blocks the release and opens an incident against R-02 — it is the one
+# suite where a single failure has that standing (docs/06 §14, HLD §7).
+#
+# GITHUB-NATIVE CONTROLS, which are repository settings rather than workflow code and
+# must be enabled by an administrator — this workflow does not substitute for them:
+#   - Secret scanning: on
+#   - Push protection: on (blocks the commit rather than reporting it afterwards)
+#   - Dependabot alerts and security updates: on
+#   - Private vulnerability reporting: on
+# The scan below is a backstop for patterns GitHub's detectors do not cover and for
+# forks where push protection does not apply.
+
+name: Security
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # 02:30 UTC nightly — sandbox suite and the full static analysis pass.
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is there a dependency tree yet
+        id: tree
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Dependency review skipped::No pnpm-lock.yaml yet. Activates at M0 (2026-09-21)."
+          fi
+
+      # deny-licenses mirrors docs/05 §1. scripts/check-licences.mjs is the
+      # authoritative gate — this is a second, earlier signal on the diff itself.
+      - name: Review changed dependencies
+        if: steps.tree.outputs.present == 'true'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: >-
+            GPL-2.0, GPL-3.0, LGPL-2.1, LGPL-3.0, AGPL-1.0, AGPL-3.0,
+            SSPL-1.0, BUSL-1.1, Elastic-2.0, CC-BY-NC-4.0
+          comment-summary-in-pr: on-failure
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Narrow, high-confidence patterns only. A scanner with false positives is a
+      # scanner people learn to ignore, and this one must never be ignored:
+      # CLAUDE.md rule 10 is that secrets never enter the repository, because a
+      # revert does not un-publish a credential — rotation does, and rotation of
+      # TOKEN_PEPPER is a two-phase release (docs/13 §5).
+      - name: Scan for committed credentials
+        run: |
+          set -u
+          patterns='-----BEGIN [A-Z ]*PRIVATE KEY-----
+          AKIA[0-9A-Z]{16}
+          ghp_[A-Za-z0-9]{36}
+          github_pat_[A-Za-z0-9_]{60,}
+          xox[abprs]-[A-Za-z0-9-]{10,}
+          glpat-[A-Za-z0-9_-]{20}
+          sk-[A-Za-z0-9]{32,}
+          AIza[0-9A-Za-z_-]{35}'
+          found=0
+          while IFS= read -r pattern; do
+            pattern="$(printf '%s' "$pattern" | sed 's/^[[:space:]]*//')"
+            [ -n "$pattern" ] || continue
+            # No path is excluded, deliberately: an exclusion is a blind spot, and
+            # the patterns are written so that this file does not match itself.
+            if git grep -nIE "$pattern" -- . > /tmp/hits.txt 2>/dev/null; then
+              echo "::error title=Possible committed credential::pattern: $pattern"
+              cat /tmp/hits.txt
+              found=1
+            fi
+          done <<< "$patterns"
+
+          # A committed .env is a credential file by definition. .env.example is
+          # placeholders only and is expected to be tracked.
+          if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+            echo "::error title=.env is tracked::.env holds real values and is ignored by .gitignore for a reason. Remove it from the index and rotate everything it contained."
+            found=1
+          fi
+
+          if [ "$found" -ne 0 ]; then
+            echo "Rotate the credential first, then remove it from the history. Reverting the commit is not sufficient."
+            exit 1
+          fi
+          echo "No committed credentials matched."
+
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is there anything to analyse
+        id: code
+        run: |
+          if [ -f pnpm-workspace.yaml ] && [ -n "$(find apps packages -name '*.ts' -print -quit 2>/dev/null)" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=CodeQL skipped::No TypeScript sources yet. Activates at M0 (2026-09-21)."
+          fi
+
+      - if: steps.code.outputs.present == 'true'
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - if: steps.code.outputs.present == 'true'
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:javascript-typescript'
+
+  sandbox-suite:
+    name: Sandbox security suite (nightly)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # PLACEHOLDER — activates at M2 (coding rounds, 2026-11-02 to 2026-11-27),
+      # when packages/exec-adapter and the Piston wiring exist. At that point the
+      # runs-on line above changes to the dedicated execution runner; see the
+      # comment at the top of this file for why a shared runner cannot host it.
+      - name: Explain what will run here
+        run: |
+          echo "::notice title=Sandbox suite not yet implemented::Activates at M2 (2026-11-02). Specified in docs/06-testing-strategy.md §14."
+          cat <<'NOTE'
+          The sandbox security suite runs seven attacks through the real execution
+          path against a real Piston with real kernel limits:
+
+            fork bomb, network egress, memory bomb, output flood,
+            filesystem escape, CPU spin, zombie and orphan processes
+
+          plus two structural assertions (task H-066): the execution node holds no
+          secrets, no database credentials and no cloud role, and the exec-adapter
+          payload carries no question id, no attempt id and no expectation.
+
+          It needs a dedicated runner with privileged cgroup and seccomp
+          configuration, so it runs nightly and pre-release rather than per pull
+          request. A failure blocks the release and opens an incident against R-02.
+          NOTE

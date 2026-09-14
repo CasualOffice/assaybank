@@ -1,0 +1,92 @@
+name: Open question
+description: Something genuinely undecided that is blocking or will block work.
+title: 'Q: '
+labels: ['open-question']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An open question is not a task with a question mark on it. It is something where the
+        answer changes what gets built, nobody has decided, and the decision is not engineering's
+        to make alone. Live ones are tracked in `project/OPEN-QUESTIONS.md` with a decider and an
+        absolute decide-by date, and an answered one is **deleted from that file** — the answer
+        moves into the document that owns the subject, and into an ADR if it is load-bearing. A
+        file that only grows is a file nobody reads.
+
+        If you already know the answer and just need agreement, open a Task or an ADR proposal.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: The question
+      description: As a question, in one sentence.
+      placeholder: Do we collect demographic data for adverse-impact monitoring, and on what lawful basis?
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters — what is blocked or at risk while this is open
+      description: |
+        Be specific about the work. "It affects the design" is not an answer; "the seed shape
+        encodes the ownership model, so the taxonomy cannot be seeded until this is settled" is.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: decider
+    attributes:
+      label: Who decides
+      description: A role, and later a person. Engineering should not answer a business question by default.
+      options:
+        - product lead
+        - engineering lead
+        - delivery lead
+        - legal counsel
+        - data protection officer
+        - security lead
+        - People / talent lead
+        - company leadership
+    validations:
+      required: true
+
+  - type: input
+    id: by
+    attributes:
+      label: Decide by (absolute date, YYYY-MM-DD)
+      description: '"Next week" is not a date. Work backwards from the milestone that needs the answer.'
+      placeholder: '2026-11-13'
+    validations:
+      required: true
+
+  - type: input
+    id: blocks
+    attributes:
+      label: What this blocks
+      description: Tracker ids, a milestone, or a milestone entry criterion.
+      placeholder: 'M4 entry, H-0NN'
+    validations:
+      required: false
+
+  - type: textarea
+    id: default
+    attributes:
+      label: What happens if nobody decides
+      description: |
+        The default that holds until someone chooses otherwise, and what it costs. State it
+        plainly — a default nobody wrote down is an assumption, and an assumption that binds the
+        company is worse than a decision somebody disagrees with.
+      placeholder: |
+        Default: we do not collect it. Cost: it cannot be collected retroactively, so if an audit
+        needs a baseline later, no baseline exists.
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Options, with what each commits us to
+      description: One line each. Include the option nobody likes.
+    validations:
+      required: false

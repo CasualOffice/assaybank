@@ -1,0 +1,156 @@
+# Load and capacity scenarios (k6).
+#
+# ACTIVATES BEFORE THE FIRST CAMPUS DRIVE, and earlier for the milestone exit
+# scenarios: `mcq-50-concurrent` is M1 exit evidence (2026-10-30) and
+# `coding-100-inflight` is M2 exit evidence (2026-11-27). The scenarios themselves,
+# the workload model and the pass thresholds are in docs/07-load-and-capacity-testing.md;
+# the `load/` directory it specifies does not exist yet, so this workflow reports
+# what it will do and exits 0 until it does.
+#
+# NEVER RUNS AGAINST PRODUCTION, and never on a pull request. It runs manually
+# against staging, which carries production-shaped synthetic data (docs/13 §3), or
+# on the pre-exam-window schedule. A load generator pointed at production during an
+# exam window is indistinguishable from an outage.
+#
+# LICENCE NOTE, because this is the one place an AGPL tool appears in the pipeline.
+# Grafana k6 is AGPL-3.0, which docs/05 §1 prohibits. It is admissible here under
+# the boundary docs/07 §4.1 states explicitly: k6 runs as an unmodified standalone
+# binary against a running system, is never linked into an artefact, never appears
+# in pnpm-lock.yaml or in a release SBOM, and is installed only in the load-runner
+# image, which is never part of a production deployment. scripts/check-licences.mjs
+# scans the workspace dependency tree and therefore never sees it — which is the
+# point of the boundary, not a gap in the gate.
+#
+# Creating `load/` is a structural change: it needs a code-graph.json update and a
+# `node scripts/gen-code-graph.mjs` run in the same commit.
+
+name: Load
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Scenario from docs/07 §5'
+        required: true
+        default: 'mcq-50-concurrent'
+        type: choice
+        options:
+          - mcq-50-concurrent
+          - coding-100-inflight
+          - steady-500
+          - peak-1000
+          - deadline-stampede
+          - exec-saturation
+          - autosave-storm
+          - sse-fanout
+          - collab-session-scale
+          - cold-cache
+          - start-blast
+          - soak-4h
+      environment:
+        description: 'Target environment. staging only — production is not selectable on purpose.'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+  schedule:
+    # 01:00 UTC on Sundays — the weekly regression run against staging, so that a
+    # capacity regression is found by a schedule rather than by a cohort.
+    - cron: '0 1 * * 0'
+
+concurrency:
+  # Never two load runs at once: a second generator against the same target makes
+  # both results meaningless.
+  group: load-${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  load:
+    name: k6 — ${{ inputs.scenario || 'weekly regression' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    environment: ${{ inputs.environment || 'staging' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is the load suite written yet
+        id: ready
+        run: |
+          if [ -d load/scenarios ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Load suite not yet written::load/ does not exist. Specified in docs/07-load-and-capacity-testing.md §4.3. First scenario is due for M1 exit (2026-10-30)."
+          fi
+
+      - name: What this will run
+        if: steps.ready.outputs.ready != 'true'
+        run: |
+          cat <<'NOTE'
+          Twelve scenarios, each named for what it is trying to break:
+
+            mcq-50-concurrent     M1 exit evidence — 50 candidates, 30 questions
+            coding-100-inflight   M2 exit evidence — 100 concurrent submissions, p95 < 8 s
+            steady-500            the sustained NFR from PRD §8
+            peak-1000             the campus profile, including the start blast
+            deadline-stampede     the named failure mode: everyone submits at once
+            exec-saturation       deliberately past the limit, to replace assumed
+                                  execution costs with measurements
+            autosave-storm        autosave failure rate must be zero — a stop condition,
+                                  not a metric to tune (FR-9, R-15)
+            sse-fanout            result streams held open at scale
+            collab-session-scale  M3, the y-websocket tier
+            cold-cache            first request after a deploy
+            start-blast           simultaneous attempt starts
+            soak-4h               slow leaks that a 20-minute run cannot show
+
+          Pass thresholds are declared inside each script and imported from
+          load/lib/thresholds.js, so a scenario is its own gate rather than a graph
+          somebody interprets. dropped_iterations is itself a threshold: if the
+          generator could not keep up, the run is void rather than green.
+          NOTE
+
+      - name: Install k6
+        if: steps.ready.outputs.ready == 'true'
+        run: |
+          # Installed as a standalone binary — see the licence note at the top.
+          curl -fsSL https://github.com/grafana/k6/releases/latest/download/k6-linux-amd64.tar.gz \
+            | tar -xz --strip-components=1 -C /usr/local/bin '*/k6'
+          k6 version
+
+      - name: Confirm the target is not production
+        if: steps.ready.outputs.ready == 'true'
+        env:
+          TARGET_URL: ${{ secrets.LOAD_TARGET_URL }}
+        run: |
+          case "$TARGET_URL" in
+            *staging*) echo "Target accepted: $TARGET_URL" ;;
+            *)         echo "::error title=Refusing to run::LOAD_TARGET_URL does not name a staging host. This suite never runs against production."; exit 1 ;;
+          esac
+
+      - name: Run scenario
+        if: steps.ready.outputs.ready == 'true'
+        env:
+          TARGET_URL: ${{ secrets.LOAD_TARGET_URL }}
+          K6_PROMETHEUS_RW_SERVER_URL: ${{ secrets.LOAD_PROMETHEUS_RW_URL }}
+        run: |
+          k6 run \
+            --out experimental-prometheus-rw \
+            --summary-export "k6-summary-${{ inputs.scenario }}.json" \
+            "load/scenarios/${{ inputs.scenario }}.js"
+
+      - name: Upload result
+        if: always() && steps.ready.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-${{ inputs.scenario }}
+          path: k6-summary-*.json
+          if-no-files-found: ignore
+          # Milestone exit evidence is committed to the repository as well; this
+          # copy is for the runs that are not exit evidence.
+          retention-days: 90

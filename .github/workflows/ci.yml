@@ -1,0 +1,233 @@
+# Build and test pipeline.
+#
+# MILESTONE GATING — read this before wondering why a job says "skipped".
+# As of 2026-09-15 this repository contains documentation and scaffolding and no
+# application code. Every job below detects the absence of the pnpm workspace and
+# exits 0 with a notice rather than failing. The workflow is here from day one so
+# that the first pull request that adds code arrives into a pipeline that already
+# exists, instead of the pipeline being retro-fitted around code that already works
+# on somebody's laptop.
+#
+#   lint / typecheck / build   turn on at M0 (workspace bootstrap, 2026-09-21)
+#   unit                       turns on at M0 (packages/core-domain, packages/grading)
+#   integration                turns on at M0 (RLS negative matrix, docs/06 §5.3)
+#
+# The suites themselves are specified in docs/06-testing-strategy.md; §18 "What runs
+# when" is the authority for which stage runs which suite. Note that docs/06 §5.1
+# specifies testcontainers for the integration layer. CI provides the same engine
+# versions as service containers instead, and the suite reads DATABASE_URL and
+# REDIS_URL, so the same tests run against either. The versions here and in
+# docker-compose.yml must stay in step: Postgres 16 and Valkey 8, never Redis above
+# 7.2 (ADR-015, docs/05 §1).
+#
+# Actions are referenced by major tag today. From M0 they are pinned by commit SHA
+# along with the container digests, per docs/13 §6.3.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  APP_ENV: ci
+
+jobs:
+  detect:
+    name: Detect workspace
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      workspace: ${{ steps.check.outputs.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: check
+        name: Is there a pnpm workspace yet
+        run: |
+          if [ -f pnpm-workspace.yaml ] && [ -f package.json ]; then
+            echo "workspace=true" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Workspace present::Running the full pipeline."
+          else
+            echo "workspace=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=No workspace yet::pnpm-workspace.yaml is absent. Build and test jobs will skip. They activate at M0 (2026-09-21) — see project/MILESTONES.md."
+          fi
+
+  lint:
+    name: Lint
+    needs: detect
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: needs.detect.outputs.workspace != 'true'
+        run: echo "::notice title=lint skipped::No workspace. This job activates at M0."
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: pnpm/action-setup@v4
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm run lint
+
+  typecheck:
+    name: Typecheck
+    needs: detect
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: needs.detect.outputs.workspace != 'true'
+        run: echo "::notice title=typecheck skipped::No workspace. This job activates at M0."
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: pnpm/action-setup@v4
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm exec tsc --noEmit
+
+  unit:
+    name: Unit tests
+    needs: detect
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: needs.detect.outputs.workspace != 'true'
+        run: echo "::notice title=unit skipped::No workspace. Activates at M0 with packages/core-domain and packages/grading."
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: pnpm/action-setup@v4
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm run test:unit
+
+  integration:
+    name: Integration tests
+    needs: detect
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # Postgres 16 and Valkey 8, matching docker-compose.yml. The RLS negative
+    # matrix (docs/06 §5.3) is the reason this job exists and is the one suite
+    # that may never be quarantined.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: hiring
+          POSTGRES_PASSWORD: hiring
+          POSTGRES_DB: hiring_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hiring -d hiring_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://hiring:hiring@localhost:5432/hiring_test
+      DATABASE_APP_ROLE: hiring_app
+      DATABASE_JOB_ROLE: hiring_job
+      REDIS_URL: redis://localhost:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: needs.detect.outputs.workspace != 'true'
+        run: echo "::notice title=integration skipped::No workspace. Activates at M0 with packages/db and the RLS negative matrix."
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: pnpm/action-setup@v4
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply migrations
+        if: needs.detect.outputs.workspace == 'true'
+        run: pnpm run migrate
+
+      - name: Integration suite
+        if: needs.detect.outputs.workspace == 'true'
+        run: pnpm run test:integration
+
+  build:
+    name: Build
+    needs: [detect, lint, typecheck]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - if: needs.detect.outputs.workspace != 'true'
+        run: echo "::notice title=build skipped::No workspace. Activates at M0; image builds from infra/docker/ follow at M0 close."
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: pnpm/action-setup@v4
+
+      - if: needs.detect.outputs.workspace == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm run build
