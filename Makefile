@@ -105,7 +105,7 @@ migrate: ## Apply Drizzle migrations to the local database
 		printf '         Schema and migrations live in packages/db. The runnable reference schema\n'; \
 		printf '         is docs/hiring_platform_schema.sql until then.\n'; \
 	else \
-		$(PKG_MANAGER) --filter @hiring/db migrate; \
+		$(PKG_MANAGER) --filter @assaybank/db migrate; \
 	fi
 
 migrate-new: ## Generate a new migration (N=add_question_stats)
@@ -113,7 +113,7 @@ migrate-new: ## Generate a new migration (N=add_question_stats)
 	@if [ ! -d packages/db ]; then \
 		printf 'migrate-new: not implemented until M0 (question bank, 2026-09-21 to 2026-10-11).\n'; \
 	else \
-		$(PKG_MANAGER) --filter @hiring/db generate -- --name "$(N)"; \
+		$(PKG_MANAGER) --filter @assaybank/db db:generate -- --name "$(N)"; \
 		printf '\nMigrations are expand-contract only: add nullable, backfill, switch reads, drop old,\n'; \
 		printf 'across separate deploys. A destructive migration breaks whatever exam window is running.\n'; \
 	fi
@@ -124,7 +124,7 @@ seed: ## Load skills, roles and a starter question set
 		printf '      Seed data is skills, job roles, role-to-skill weights and an imported\n'; \
 		printf '      starter bank, each row carrying its source_license (docs/05 section 2).\n'; \
 	else \
-		$(PKG_MANAGER) --filter @hiring/db seed; \
+		$(PKG_MANAGER) --filter @assaybank/db seed; \
 	fi
 
 psql: ## Open a psql shell on the local database

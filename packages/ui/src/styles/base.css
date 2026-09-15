@@ -1,0 +1,175 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* The accessibility baseline, as CSS.
+ *
+ * Every screen built from P2 onward inherits this file. The three things it exists to
+ * guarantee — a focus indicator that is never removed, motion that respects the user's
+ * stated preference, and sticky chrome that cannot hide a focused control — are the
+ * ones docs/15-accessibility-conformance.md §9.3, §10 and §2.3 name as retrofit
+ * disasters. They are cheap here and expensive across thirty screens.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* SC 2.4.11 Focus Not Obscured. Sticky chrome sets --ab-sticky-top / -bottom to its
+     own height; the browser then keeps a scrolled-to element clear of it. A component
+     that adds sticky chrome without setting these is the bug this line is here to make
+     impossible to write accidentally. */
+  scroll-padding-top: var(--ab-sticky-top, 0px);
+  scroll-padding-bottom: var(--ab-sticky-bottom, 0px);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--ab-surface);
+  color: var(--ab-text);
+  font-family: var(--ab-font-sans);
+  font-size: var(--ab-text-base);
+  line-height: var(--ab-leading);
+  /* No synthetic smoothing tricks: they reduce effective contrast, which is exactly what
+     SC 1.4.3 is measuring. */
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  line-height: var(--ab-leading-tight);
+  font-weight: 650;
+}
+
+p {
+  margin: 0;
+}
+
+/* A heading that receives programmatic focus on route change (docs/15 §9.1) is focusable
+   but not in the tab order. It still gets the ring — a keyboard user needs to see where
+   focus landed. */
+[tabindex='-1']:focus {
+  outline: none;
+}
+
+/* ---------------------------------------------------------------- focus indicator */
+
+/* SC 2.4.7 Focus Visible, SC 1.4.11 Non-text Contrast.
+ *
+ * Two-tone on purpose. A single-colour ring cannot clear 3:1 on every surface in the
+ * system — in the light theme --ab-focus is the same ink as an inverse header — so the
+ * indicator is an outline in --ab-focus with an adjacent ring in --ab-focus-offset.
+ * Those two are ink and paper, 17.3:1 apart, so one of them always contrasts.
+ *
+ * `outline: none` without a replacement is a review-blocking defect (docs/15 §9.3).
+ * There is no rule in this package that removes an outline, and there must never be one.
+ */
+:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--ab-focus-offset);
+}
+
+/* Windows High Contrast replaces author colours wholesale. Falling back to the system
+   highlight keeps the ring rather than losing it to a colour that no longer exists. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 3px solid Highlight;
+    box-shadow: none;
+  }
+}
+
+/* ---------------------------------------------------------------- reduced motion */
+
+/* docs/15 §10. Reduced motion is SC 2.3.3, which is AAA and therefore not required; it
+ * is honoured anyway, because a pulsing countdown in front of someone with a vestibular
+ * disorder during a timed exam is a cruelty the standard happens not to mandate.
+ *
+ * Zeroing the duration tokens is what lets a component animate without ever writing the
+ * media query itself. The blanket rule below catches anything that animated without
+ * using the tokens.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ab-duration-fast: 0ms;
+    --ab-duration: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------- primitives */
+
+/* Visually hidden, still in the accessibility tree. The clip-path pair is the form that
+   survives a text-only zoom and does not collapse an inline element to zero width in the
+   way `display: none` or `visibility: hidden` would — those remove it from the
+   accessibility tree, which is the opposite of the intent. */
+.ab-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* The skip link. First in the DOM, off-screen until focused, and then unmissable.
+   It is not `display: none` when unfocused, because a link that is not rendered is a
+   link that is not in the tab order. */
+.ab-skip-link {
+  position: absolute;
+  top: var(--ab-space-2);
+  left: var(--ab-space-2);
+  z-index: 100;
+  transform: translateY(calc(-100% - var(--ab-space-4)));
+  display: inline-block;
+  padding: var(--ab-space-2) var(--ab-space-4);
+  min-height: var(--ab-target-min);
+  border-radius: var(--ab-radius);
+  background-color: var(--ab-surface-raised);
+  color: var(--ab-text);
+  border: 2px solid var(--ab-border-strong);
+  font-weight: 600;
+  text-decoration: underline;
+  transition: transform var(--ab-duration) var(--ab-ease);
+}
+
+.ab-skip-link:focus-visible,
+.ab-skip-link:focus {
+  transform: translateY(0);
+}
+
+/* The live regions. Present from first paint and empty, per docs/15 §5.1 — a region
+   inserted at the moment its content changes is frequently not announced at all. They
+   are visually hidden rather than absent for the same reason. */
+.ab-live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

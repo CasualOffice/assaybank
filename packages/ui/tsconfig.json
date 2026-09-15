@@ -1,0 +1,21 @@
+// The lint and typecheck project: no emit, and it sees the test files and the tool
+// configuration alongside src/ so ESLint's type-aware rules have a program for every
+// file it lints.
+//
+// tsconfig.build.json is the emit project. It is a separate file because `composite`
+// and `noEmit` are mutually exclusive, and because dist/ must not contain test code.
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "vitest.config.ts"]
+}

@@ -1,0 +1,19 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* The one stylesheet an application imports:
+ *
+ *     import '@assaybank/ui/styles.css';
+ *
+ * Plain CSS, no build step and no Tailwind dependency, so it is correct whatever the
+ * consumer's bundler does. Applications that also want the tokens as Tailwind utilities
+ * import '@assaybank/ui/theme.css' after '@import "tailwindcss"'.
+ *
+ * Order matters: tokens define the custom properties, base consumes them for the
+ * accessibility baseline, components consume them for the controls.
+ */
+
+@import './tokens.css';
+@import './base.css';
+@import './components.css';

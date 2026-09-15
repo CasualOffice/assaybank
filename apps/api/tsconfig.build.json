@@ -1,0 +1,18 @@
+// The emit project. Dependencies resolve through package exports to their built
+// dist/ ("paths": {} clears the source mapping in tsconfig.base.json); turbo's
+// `dependsOn: ["^build"]` guarantees they are built first.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "paths": {}
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test-support.ts", "test/**"]
+}

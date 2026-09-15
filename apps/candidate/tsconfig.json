@@ -1,0 +1,34 @@
+// The lint and typecheck project: no emit, and it sees the test files and the tool
+// configuration alongside src/ so ESLint's type-aware rules have a program for every
+// file it lints.
+//
+// There is no tsconfig.build.json here, unlike the Node workspaces: Vite owns the emit
+// for a browser bundle, and this project exists only to typecheck. `apps/candidate` is
+// never imported by anything (CODE-GRAPH L1 and L4), so it publishes no declarations.
+//
+// `vite/client` is in `types` for the CSS side-effect import in main.tsx. It also brings
+// `import.meta.env`, which this workspace must treat with care: anything read from it is
+// inlined into a bundle served to an untrusted browser, so only VITE_-prefixed public
+// values may ever be read, and never a secret (see scripts/check-bundle.mjs).
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node", "vite/client"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "test/**/*.ts",
+    "test/**/*.tsx",
+    "vitest.config.ts",
+    "vite.config.ts"
+  ]
+}

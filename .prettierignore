@@ -1,0 +1,22 @@
+node_modules/
+dist/
+coverage/
+.turbo/
+pnpm-lock.yaml
+
+# Generated, or owned by a tool that formats it its own way.
+code-graph.json
+CODE-GRAPH.md
+brand/
+infra/
+.github/
+scripts/
+
+# Prose and configuration are governed by .editorconfig and docs/17, not Prettier.
+# Reformatting the specification set would produce a diff nobody asked for.
+*.md
+*.yml
+*.yaml
+LICENSE
+Makefile
+.env.example

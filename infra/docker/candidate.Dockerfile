@@ -17,7 +17,7 @@
 # "Hidden by a route guard in one bundle" is not a security boundary; "never
 # compiled into the artifact" is. docs/02-HLD.md section 1.
 #
-# The `--filter @hiring/candidate...` below is the enforcement point. If a
+# The `--filter @assaybank/candidate...` below is the enforcement point. If a
 # staff-only package ever appears in this file's COPY list, that is the bug.
 # ---------------------------------------------------------------------------
 
@@ -41,7 +41,7 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/config/package.json ./packages/config/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --offline \
-      --filter @hiring/candidate... \
+      --filter @assaybank/candidate... \
       --filter .
 
 FROM deps AS dev
@@ -51,7 +51,7 @@ EXPOSE 5174
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
   CMD wget -q -O /dev/null http://localhost:5174/ || exit 1
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["pnpm", "--filter", "@hiring/candidate", "dev", "--host", "0.0.0.0", "--port", "5174"]
+CMD ["pnpm", "--filter", "@assaybank/candidate", "dev", "--host", "0.0.0.0", "--port", "5174"]
 
 FROM deps AS build
 ARG VITE_API_PUBLIC_URL
@@ -60,8 +60,8 @@ ENV NODE_ENV=production \
     VITE_API_PUBLIC_URL=${VITE_API_PUBLIC_URL} \
     VITE_COLLAB_PUBLIC_URL=${VITE_COLLAB_PUBLIC_URL}
 COPY . .
-RUN pnpm turbo run build --filter @hiring/candidate...
-RUN pnpm --filter @hiring/candidate --prod deploy --legacy /deploy \
+RUN pnpm turbo run build --filter @assaybank/candidate...
+RUN pnpm --filter @assaybank/candidate --prod deploy --legacy /deploy \
  && rm -rf /deploy/src /deploy/node_modules/.cache
 
 FROM base AS runtime

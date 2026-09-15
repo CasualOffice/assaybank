@@ -1,0 +1,176 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* The staff console's own layout.
+ *
+ * Everything below builds on the token layer in @assaybank/ui, which main.tsx imports
+ * first. No colour is written here: a hex value in this file would be a colour outside the
+ * contrast test in packages/ui, which is the one place a contrast failure is caught.
+ *
+ * Tailwind is imported for the utilities the console's future screens will use. The
+ * components it imports from @assaybank/ui do not depend on it — they carry their own
+ * plain CSS, so an application that misconfigures Tailwind's content scanning gets a
+ * broken layout rather than unstyled, contrast-failing controls.
+ */
+
+@import 'tailwindcss';
+@import '@assaybank/ui/theme.css';
+
+/* ------------------------------------------------------------------ the shell */
+
+.ab-console {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.ab-console__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ab-space-4) var(--ab-space-8);
+  padding: var(--ab-space-3) var(--ab-space-6);
+  background-color: var(--ab-surface-raised);
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.ab-console__brand {
+  display: flex;
+  align-items: center;
+}
+
+/* The lockup inherits currentColor from here, which is the page text colour, which is ink
+   in the light theme and paper in the dark one. One asset, both themes. */
+.ab-console__lockup {
+  display: block;
+  height: 2rem;
+  width: auto;
+  color: var(--ab-text);
+}
+
+.ab-console__nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-console__nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--ab-control-height);
+  padding: 0 var(--ab-space-3);
+  border-radius: var(--ab-radius);
+  /* The 3px transparent border is reserved here rather than added on the current item, so
+     the label does not shift by three pixels when it becomes current. */
+  border-bottom: 3px solid transparent;
+  color: var(--ab-text-muted);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.ab-console__nav-link:hover {
+  color: var(--ab-text);
+  background-color: var(--ab-surface-sunken);
+}
+
+/* The current item is marked three ways, because one of them is a colour and colour is
+   never the only carrier of meaning (SC 1.4.1): aria-current="page" for assistive
+   technology, a weight and colour change for everyone, and an underline rule that survives
+   a colour-vision deficiency and forced-colors mode alike. */
+.ab-console__nav-link--current,
+.ab-console__nav-link[aria-current='page'] {
+  color: var(--ab-accent-text);
+  border-bottom-color: var(--ab-accent);
+  background-color: transparent;
+}
+
+.ab-console__main {
+  padding: var(--ab-space-8) var(--ab-space-6);
+  max-width: 72rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.ab-console__footer {
+  padding: var(--ab-space-4) var(--ab-space-6);
+  border-top: 1px solid var(--ab-border);
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-sm);
+}
+
+.ab-console__footer p {
+  max-width: 60ch;
+}
+
+/* ------------------------------------------------------------------ a page */
+
+.ab-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-6);
+}
+
+.ab-page__heading {
+  font-size: var(--ab-text-2xl);
+}
+
+.ab-page__summary {
+  max-width: 62ch;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-lg);
+}
+
+.ab-page__sketch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-3);
+  padding: var(--ab-space-6);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background-color: var(--ab-surface-raised);
+}
+
+/* ------------------------------------------------------------------ errors */
+
+.ab-error-boundary {
+  padding: var(--ab-space-8) var(--ab-space-6);
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+.ab-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ab-space-4);
+}
+
+.ab-error__heading {
+  font-size: var(--ab-text-xl);
+}
+
+.ab-error__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--ab-space-2) var(--ab-space-4);
+  margin: 0;
+  font-size: var(--ab-text-sm);
+}
+
+.ab-error__facts dt {
+  color: var(--ab-text-muted);
+}
+
+.ab-error__facts dd {
+  margin: 0;
+}
+
+.ab-error__facts code {
+  font-family: var(--ab-font-mono);
+  /* Selectable and legible: this is the string a user reads out to support. */
+  user-select: all;
+}

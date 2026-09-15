@@ -606,7 +606,7 @@ After ANY restore to a point-in-time earlier than the last completed retention r
   1. Keep the restored instance closed to traffic. No API, no worker, no mail.
   2. Read the exported erasure ledger from compliance/erasure-ledger/ for the window
      [restore_point, now].
-  3. Run  pnpm --filter @hiring/worker retention:reconcile --since <restore_point>
+  3. Run  pnpm --filter @assaybank/worker retention:reconcile --since <restore_point>
      which replays every ledger entry — anonymisation, purge, media delete — against
      the restored database, idempotently.
   4. Run  retention:verify  (§5.9). It must return zero assertions failed.

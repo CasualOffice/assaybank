@@ -79,11 +79,17 @@ jobs:
       - name: Is there anything to drive yet
         id: ready
         run: |
-          if [ -d apps/candidate ] && [ -d apps/api ]; then
+          # The gate is the existence of a spec directory, not of the apps. P0
+          # created apps/candidate and apps/api as skeletons with no attempt
+          # runner behind them, which made the old directory test true while
+          # there was still nothing to drive — and no tests/e2e, no test:e2e
+          # script and no Playwright to drive it with. The suite arrives at M1
+          # (2026-10-12) as tests/e2e; this turns on by itself when it does.
+          if [ -d tests/e2e ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=E2E not yet active::apps/candidate and apps/api do not exist. This suite activates at M1 (2026-10-12). Specified in docs/06-testing-strategy.md §12."
+            echo "::notice title=E2E not yet active::tests/e2e does not exist. This suite activates at M1 (2026-10-12). Specified in docs/06-testing-strategy.md §12."
           fi
 
       - if: steps.ready.outputs.ready == 'true'

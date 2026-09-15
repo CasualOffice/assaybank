@@ -1,0 +1,45 @@
+{
+  "name": "@assaybank/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "test:unit": "vitest run --passWithNoTests src/",
+    "test:integration": "vitest run --passWithNoTests test/integration/",
+    "clean": "rm -rf dist coverage .turbo *.tsbuildinfo",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@assaybank/auth": "workspace:*",
+    "@assaybank/config": "workspace:*",
+    "@assaybank/contracts": "workspace:*",
+    "@assaybank/core-domain": "workspace:*",
+    "@assaybank/db": "workspace:*",
+    "@assaybank/grading": "workspace:*",
+    "@assaybank/observability": "workspace:*",
+    "@fastify/cors": "^11.3.0",
+    "@fastify/helmet": "^13.1.1",
+    "@fastify/rate-limit": "^11.2.0",
+    "@fastify/sensible": "^6.0.5",
+    "bullmq": "^6.3.6",
+    "fastify": "^5.12.4",
+    "ioredis": "^6.0.0"
+  }
+}

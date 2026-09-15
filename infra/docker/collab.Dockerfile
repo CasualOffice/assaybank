@@ -31,7 +31,7 @@ COPY packages/config/package.json ./packages/config/
 COPY packages/observability/package.json ./packages/observability/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --offline \
-      --filter @hiring/collab... \
+      --filter @assaybank/collab... \
       --filter .
 
 FROM deps AS dev
@@ -41,13 +41,13 @@ EXPOSE 8081
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
   CMD wget -q -O /dev/null http://localhost:8081/healthz || exit 1
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["pnpm", "--filter", "@hiring/collab", "dev"]
+CMD ["pnpm", "--filter", "@assaybank/collab", "dev"]
 
 FROM deps AS build
 ENV NODE_ENV=production
 COPY . .
-RUN pnpm turbo run build --filter @hiring/collab...
-RUN pnpm --filter @hiring/collab --prod deploy --legacy /deploy
+RUN pnpm turbo run build --filter @assaybank/collab...
+RUN pnpm --filter @assaybank/collab --prod deploy --legacy /deploy
 
 FROM base AS runtime
 ENV NODE_ENV=production \

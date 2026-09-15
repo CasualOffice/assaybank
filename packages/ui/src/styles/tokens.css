@@ -1,0 +1,177 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* The token layer.
+ *
+ * Transcribed from ../tokens/palette.ts, which is the source of truth. palette.test.ts
+ * parses this file and fails if the two disagree in either direction — a colour added
+ * here and not there, or changed there and not here, is a failing test rather than a
+ * theme that is half-applied.
+ *
+ * Colours are OKLCH because brand/README.md authors them that way: a lightness ramp in a
+ * perceptually uniform space looks like a ramp, and every derived value in the palette is
+ * a lightness move away from a brand hue.
+ *
+ * Both themes live in one declaration each, via light-dark(). One declaration per token
+ * is the point: a dark theme maintained as a duplicated block is a dark theme that
+ * drifts, and the drift is always in the direction of a contrast failure nobody looked
+ * at. The theme is selected by color-scheme, so:
+ *
+ *   - no attribute            follow the operating system (prefers-color-scheme)
+ *   - data-ab-theme="light"   force light
+ *   - data-ab-theme="dark"    force dark
+ *
+ * The accent is interactive state only — focus, selection, active navigation — and it
+ * never appears in the mark. See ../tokens/palette.ts for why that is a rule and not a
+ * preference.
+ */
+
+/* @ab-tokens light-dark */
+:root {
+  color-scheme: light dark;
+
+  /* Brand constants (brand/README.md). Theme-invariant, and referenced by the mark
+     rather than by a screen. */
+  --ab-ink: oklch(18% 0.006 250);
+  --ab-paper: oklch(98% 0.004 95);
+  --ab-signal: oklch(55% 0.13 245);
+
+  /* Surfaces, back to front. */
+  --ab-surface: light-dark(oklch(98% 0.004 95), oklch(18% 0.006 250));
+  --ab-surface-raised: light-dark(oklch(100% 0 95), oklch(23% 0.006 250));
+  --ab-surface-sunken: light-dark(oklch(95% 0.004 95), oklch(14% 0.006 250));
+  --ab-surface-inverse: light-dark(oklch(18% 0.006 250), oklch(98% 0.004 95));
+
+  /* Text. */
+  --ab-text: light-dark(oklch(18% 0.006 250), oklch(98% 0.004 95));
+  --ab-text-muted: light-dark(oklch(46% 0.008 250), oklch(76% 0.008 250));
+  --ab-text-inverse: light-dark(oklch(98% 0.004 95), oklch(18% 0.006 250));
+
+  /* Lines. --ab-border is decorative; --ab-border-strong is a control boundary and
+     clears SC 1.4.11 at 3:1 against every ordinary surface. */
+  --ab-border: light-dark(oklch(90% 0.004 95), oklch(30% 0.006 250));
+  --ab-border-strong: light-dark(oklch(62% 0.008 250), oklch(58% 0.008 250));
+
+  /* The accent. Interactive state only, and never body text: --ab-accent is the
+     indicator value and --ab-accent-text is the readable one for a link or an active
+     nav label. */
+  --ab-accent: light-dark(oklch(55% 0.13 245), oklch(72% 0.13 245));
+  --ab-accent-text: light-dark(oklch(48% 0.13 245), oklch(78% 0.11 245));
+
+  /* The focus indicator (SC 2.4.7). Two-tone: an outline in --ab-focus with an adjacent
+     ring in --ab-focus-offset, so the indicator survives on any surface including an
+     inverse one, where neither colour alone would. */
+  --ab-focus: light-dark(oklch(55% 0.13 245), oklch(75% 0.13 245));
+  --ab-focus-offset: light-dark(oklch(98% 0.004 95), oklch(18% 0.006 250));
+
+  /* Status. Colour is redundant reinforcement here; every component that uses these
+     also renders a text label for the state (SC 1.4.1, docs/15 §6.3). --ab-warning
+     marks something for a human to look at and never a decision the system made
+     (ADR-007). */
+  --ab-danger: light-dark(oklch(48% 0.19 27), oklch(80% 0.11 27));
+  --ab-danger-surface: light-dark(oklch(96% 0.025 27), oklch(28% 0.07 27));
+  --ab-success: light-dark(oklch(46% 0.12 150), oklch(80% 0.11 150));
+  --ab-success-surface: light-dark(oklch(96% 0.03 150), oklch(27% 0.06 150));
+  --ab-warning: light-dark(oklch(48% 0.11 75), oklch(83% 0.11 75));
+  --ab-warning-surface: light-dark(oklch(96% 0.04 75), oklch(28% 0.06 75));
+  --ab-info: light-dark(oklch(48% 0.13 245), oklch(80% 0.09 245));
+  --ab-info-surface: light-dark(oklch(96% 0.03 245), oklch(28% 0.06 245));
+}
+/* @ab-tokens end */
+
+/* An explicit choice overrides the system preference in both directions. Setting
+   color-scheme rather than re-declaring the colours is what keeps the block above the
+   only place a value is written. */
+:root[data-ab-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-ab-theme='dark'] {
+  color-scheme: dark;
+}
+
+/* Fallback for engines that have oklch() but not light-dark() — a real window, since the
+   two shipped about a year apart. It degrades to the light theme rather than to an
+   unstyled page: every custom property above resolves to nothing in such a browser, and a
+   token layer that resolves to nothing is a white-on-white screen. palette.test.ts
+   asserts this block matches LIGHT_PALETTE exactly, so it cannot rot. */
+@supports not (color: light-dark(#000000, #ffffff)) {
+  /* @ab-tokens fallback-light */
+  :root {
+    --ab-surface: oklch(98% 0.004 95);
+    --ab-surface-raised: oklch(100% 0 95);
+    --ab-surface-sunken: oklch(95% 0.004 95);
+    --ab-surface-inverse: oklch(18% 0.006 250);
+    --ab-text: oklch(18% 0.006 250);
+    --ab-text-muted: oklch(46% 0.008 250);
+    --ab-text-inverse: oklch(98% 0.004 95);
+    --ab-border: oklch(90% 0.004 95);
+    --ab-border-strong: oklch(62% 0.008 250);
+    --ab-accent: oklch(55% 0.13 245);
+    --ab-accent-text: oklch(48% 0.13 245);
+    --ab-focus: oklch(55% 0.13 245);
+    --ab-focus-offset: oklch(98% 0.004 95);
+    --ab-danger: oklch(48% 0.19 27);
+    --ab-danger-surface: oklch(96% 0.025 27);
+    --ab-success: oklch(46% 0.12 150);
+    --ab-success-surface: oklch(96% 0.03 150);
+    --ab-warning: oklch(48% 0.11 75);
+    --ab-warning-surface: oklch(96% 0.04 75);
+    --ab-info: oklch(48% 0.13 245);
+    --ab-info-surface: oklch(96% 0.03 245);
+  }
+  /* @ab-tokens end */
+}
+
+/* Non-colour tokens. No theme dimension, so no light-dark() and nothing for the palette
+   drift test to check. */
+:root {
+  /* Type. A system stack: no web font, so no network dependency, no layout shift and no
+     font licence — the same reasoning brand/README.md applies to the wordmark. */
+  --ab-font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --ab-font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --ab-text-xs: 0.75rem;
+  --ab-text-sm: 0.875rem;
+  --ab-text-base: 1rem;
+  --ab-text-lg: 1.125rem;
+  --ab-text-xl: 1.375rem;
+  --ab-text-2xl: 1.75rem;
+
+  /* 1.5 minimum, so SC 1.4.12's user stylesheet does not have to fight the design. */
+  --ab-leading: 1.55;
+  --ab-leading-tight: 1.3;
+
+  --ab-space-1: 0.25rem;
+  --ab-space-2: 0.5rem;
+  --ab-space-3: 0.75rem;
+  --ab-space-4: 1rem;
+  --ab-space-6: 1.5rem;
+  --ab-space-8: 2rem;
+  --ab-space-12: 3rem;
+
+  --ab-radius-sm: 4px;
+  --ab-radius: 8px;
+  --ab-radius-lg: 14px;
+
+  /* SC 2.5.8 Target Size (Minimum) is 24px. docs/15 §2.3 commits the candidate app to
+     44px, and the console to a 40px control height that clears the criterion with room
+     for a focus ring. */
+  --ab-control-height: 2.5rem;
+  --ab-target-min: 24px;
+
+  /* SC 2.4.11 Focus Not Obscured. Sticky chrome sets this to its own height and
+     base.css feeds it to scroll-padding, so a focused control never lands underneath a
+     fixed header. */
+  --ab-sticky-top: 0px;
+  --ab-sticky-bottom: 0px;
+
+  /* Motion. base.css collapses these to zero under prefers-reduced-motion, so a
+     component may animate without knowing about the media query. */
+  --ab-duration-fast: 90ms;
+  --ab-duration: 160ms;
+  --ab-ease: cubic-bezier(0.2, 0, 0.2, 1);
+}

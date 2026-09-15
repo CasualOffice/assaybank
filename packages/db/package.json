@@ -1,0 +1,42 @@
+{
+  "name": "@assaybank/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "migrations"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "test:unit": "vitest run --passWithNoTests src/",
+    "test:integration": "vitest run --passWithNoTests tests/",
+    "db:generate": "drizzle-kit generate",
+    "clean": "rm -rf dist coverage .turbo out *.tsbuildinfo",
+    "migrate": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@assaybank/config": "workspace:*",
+    "@assaybank/contracts": "workspace:*",
+    "drizzle-orm": "^0.45.2",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^12.1.0",
+    "drizzle-kit": "^0.31.10",
+    "testcontainers": "^12.1.0"
+  }
+}

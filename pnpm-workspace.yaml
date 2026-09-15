@@ -1,0 +1,10 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# The fourteen workspaces of CODE-GRAPH.md. Adding a directory under apps/ or
+# packages/ is all that is needed: turbo, eslint, vitest and typecheck pick it up
+# with no further wiring (P0 step 1).
+packages:
+  - 'apps/*'
+  - 'packages/*'

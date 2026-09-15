@@ -1,0 +1,65 @@
+// The compiler settings every workspace inherits.
+//
+// The strict flags are turned on in P0 step 1, when there is no code to fix, because
+// they are a one-way door: noUncheckedIndexedAccess in particular is miserable to
+// adopt later and catches a whole class of bug in the scoring and draw-resolution
+// code that P2 and P3 will write (docs/17 §1).
+//
+// React workspaces (packages/ui, apps/web, apps/candidate) override module,
+// moduleResolution, lib and jsx in their own tsconfig.json. jsx does not belong here.
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "moduleDetection": "force",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "useUnknownInCatchVariables": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    // Nothing ambient is pulled in implicitly. A workspace names the type packages it
+    // needs, so a stray global cannot appear in a package that should not have one.
+    "types": [],
+
+    // Typecheck resolves a workspace dependency to its TypeScript source, so
+    // `pnpm -r typecheck` is correct on a clean clone without a prior build, and
+    // go-to-definition lands in the source rather than in a .d.ts.
+    //
+    // tsconfig.build.json clears this ("paths": {}) so the emit path resolves through
+    // package exports to the dependency's dist/ instead; turbo's `dependsOn: ["^build"]`
+    // guarantees that dist/ exists by then.
+    //
+    // The five apps are deliberately absent: an app is never imported, by a package
+    // (L1) or by another app (L4), and leaving them unmapped makes that a type error
+    // as well as a lint error.
+    "paths": {
+      "@assaybank/contracts": ["./packages/contracts/src/index.ts"],
+      "@assaybank/config": ["./packages/config/src/index.ts"],
+      "@assaybank/observability": ["./packages/observability/src/index.ts"],
+      "@assaybank/db": ["./packages/db/src/index.ts"],
+      "@assaybank/core-domain": ["./packages/core-domain/src/index.ts"],
+      "@assaybank/grading": ["./packages/grading/src/index.ts"],
+      "@assaybank/exec-adapter": ["./packages/exec-adapter/src/index.ts"],
+      "@assaybank/auth": ["./packages/auth/src/index.ts"],
+      "@assaybank/ui": ["./packages/ui/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "coverage"]
+}

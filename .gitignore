@@ -149,3 +149,10 @@ desktop.ini
 # ---------------------------------------------------------------------------
 logs/
 *.log
+
+# ---------------------------------------------------------------------------
+# Layering fixture scratch (tests/fixtures/layering.test.ts)
+#   Written and removed inside a single test. Ignored so a hard kill mid-test
+#   cannot leave a deliberate layering violation committed to the tree.
+# ---------------------------------------------------------------------------
+packages/*/src/layering-fixture.generated.ts

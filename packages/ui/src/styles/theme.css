@@ -1,0 +1,54 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* Tailwind v4 bridge. Optional, and only useful in an application that has already
+ * imported Tailwind:
+ *
+ *     @import 'tailwindcss';
+ *     @import '@assaybank/ui/styles.css';
+ *     @import '@assaybank/ui/theme.css';
+ *
+ * `@theme inline` registers the token custom properties under Tailwind's colour
+ * namespace, so `bg-surface-raised`, `text-muted` and `border-strong` resolve to the same
+ * values the components use. `inline` matters: it emits `var(--ab-…)` into the utility
+ * rather than copying the value, so a utility and a component class cannot disagree, and
+ * a theme switch moves both at once.
+ *
+ * This file adds utilities. It never adds a colour: every value here is a reference to
+ * ./tokens.css, which is itself a transcription of ../tokens/palette.ts. There is exactly
+ * one place a hex value is written in this package.
+ */
+
+@theme inline {
+  --color-surface: var(--ab-surface);
+  --color-surface-raised: var(--ab-surface-raised);
+  --color-surface-sunken: var(--ab-surface-sunken);
+  --color-surface-inverse: var(--ab-surface-inverse);
+
+  --color-ink: var(--ab-text);
+  --color-muted: var(--ab-text-muted);
+  --color-inverse: var(--ab-text-inverse);
+
+  --color-line: var(--ab-border);
+  --color-strong: var(--ab-border-strong);
+
+  --color-accent: var(--ab-accent);
+  --color-accent-text: var(--ab-accent-text);
+
+  --color-danger: var(--ab-danger);
+  --color-danger-surface: var(--ab-danger-surface);
+  --color-success: var(--ab-success);
+  --color-success-surface: var(--ab-success-surface);
+  --color-warning: var(--ab-warning);
+  --color-warning-surface: var(--ab-warning-surface);
+  --color-info: var(--ab-info);
+  --color-info-surface: var(--ab-info-surface);
+
+  --font-sans: var(--ab-font-sans);
+  --font-mono: var(--ab-font-mono);
+
+  --radius-sm: var(--ab-radius-sm);
+  --radius-DEFAULT: var(--ab-radius);
+  --radius-lg: var(--ab-radius-lg);
+}

@@ -53,7 +53,7 @@ COPY packages/config/package.json ./packages/config/
 COPY packages/observability/package.json ./packages/observability/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --offline \
-      --filter @hiring/api... \
+      --filter @assaybank/api... \
       --filter .
 
 # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
   CMD wget -q -O /dev/null http://localhost:8080/healthz || exit 1
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["pnpm", "--filter", "@hiring/api", "dev"]
+CMD ["pnpm", "--filter", "@assaybank/api", "dev"]
 
 # ---------------------------------------------------------------------------
 # build — compile TypeScript for api and every package it depends on.
@@ -75,12 +75,12 @@ CMD ["pnpm", "--filter", "@hiring/api", "dev"]
 FROM deps AS build
 ENV NODE_ENV=production
 COPY . .
-RUN pnpm turbo run build --filter @hiring/api...
+RUN pnpm turbo run build --filter @assaybank/api...
 
 # `pnpm deploy` flattens the workspace into a self-contained directory with
 # only the production dependency closure — no symlinks into a sibling package,
 # no devDependencies, no source. That directory is what ships.
-RUN pnpm --filter @hiring/api --prod deploy --legacy /deploy
+RUN pnpm --filter @assaybank/api --prod deploy --legacy /deploy
 
 # ---------------------------------------------------------------------------
 # runtime — minimal, non-root, no toolchain.

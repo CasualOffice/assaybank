@@ -1,0 +1,240 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+/* Component styles, in plain CSS against the token layer.
+ *
+ * Deliberately not Tailwind utilities baked into the components. A component library
+ * whose markup carries utility classes only renders correctly when the consuming app has
+ * configured Tailwind's content scanning to reach into this package — a coupling that
+ * fails silently and produces an unstyled, and therefore contrast-failing, control.
+ * Applications still get the tokens as Tailwind utilities through ./theme.css; that is
+ * for the layout they write, not for the components they import.
+ *
+ * Every control here clears SC 2.5.8 Target Size at 24px, and the console's controls are
+ * 40px so the focus ring has somewhere to sit.
+ */
+
+/* ---------------------------------------------------------------------- button */
+
+.ab-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ab-space-2);
+  min-height: var(--ab-control-height);
+  min-width: var(--ab-target-min);
+  padding: 0 var(--ab-space-4);
+  border-radius: var(--ab-radius);
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 600;
+  line-height: var(--ab-leading-tight);
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color var(--ab-duration-fast) var(--ab-ease),
+    border-color var(--ab-duration-fast) var(--ab-ease);
+}
+
+.ab-button--primary {
+  background-color: var(--ab-surface-inverse);
+  color: var(--ab-text-inverse);
+  border-color: var(--ab-surface-inverse);
+}
+
+.ab-button--secondary {
+  background-color: var(--ab-surface-raised);
+  color: var(--ab-text);
+  border-color: var(--ab-border-strong);
+}
+
+.ab-button--danger {
+  background-color: var(--ab-surface-raised);
+  color: var(--ab-danger);
+  border-color: var(--ab-danger);
+}
+
+/* Disabled and busy read the same visually and differently to assistive technology: a
+   disabled control leaves the tab order, a busy one does not. Both carry text — the
+   busy label is written by the caller — so neither state is signalled by colour alone. */
+.ab-button:disabled,
+.ab-button[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* ---------------------------------------------------------------------- input */
+
+.ab-input {
+  display: block;
+  width: 100%;
+  min-height: var(--ab-control-height);
+  padding: var(--ab-space-2) var(--ab-space-3);
+  border-radius: var(--ab-radius);
+  /* --ab-border-strong, not --ab-border: a control boundary is a user-interface
+     component under SC 1.4.11 and owes 3:1, where a decorative rule does not. */
+  border: 1px solid var(--ab-border-strong);
+  background-color: var(--ab-surface-raised);
+  color: var(--ab-text);
+  font: inherit;
+  line-height: var(--ab-leading);
+}
+
+.ab-input::placeholder {
+  color: var(--ab-text-muted);
+  opacity: 1;
+}
+
+/* Invalid state. The ring is reinforcement; the error text below the control, wired by
+   aria-describedby, is what actually carries the information (SC 1.4.1, SC 3.3.1). */
+.ab-input[aria-invalid='true'] {
+  border-color: var(--ab-danger);
+  box-shadow: inset 0 0 0 1px var(--ab-danger);
+}
+
+.ab-input:disabled {
+  background-color: var(--ab-surface-sunken);
+  color: var(--ab-text-muted);
+  cursor: not-allowed;
+}
+
+.ab-textarea {
+  min-height: calc(var(--ab-control-height) * 3);
+  resize: vertical;
+}
+
+/* ---------------------------------------------------------------------- field */
+
+.ab-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+}
+
+.ab-field__label {
+  font-size: var(--ab-text-sm);
+  font-weight: 600;
+  color: var(--ab-text);
+}
+
+/* "(required)" is rendered as text rather than as a red asterisk: an asterisk is an
+   unlabelled glyph and a colour, which is SC 1.4.1 and SC 3.3.2 at once. */
+.ab-field__requirement {
+  font-weight: 400;
+  color: var(--ab-text-muted);
+}
+
+.ab-field__description {
+  font-size: var(--ab-text-sm);
+  color: var(--ab-text-muted);
+}
+
+.ab-field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ab-space-2);
+  font-size: var(--ab-text-sm);
+  font-weight: 600;
+  color: var(--ab-danger);
+}
+
+/* ---------------------------------------------------------------------- alert */
+
+.ab-alert {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-1);
+  padding: var(--ab-space-3) var(--ab-space-4);
+  border-radius: var(--ab-radius);
+  border: 1px solid;
+  border-left-width: 4px;
+}
+
+.ab-alert__tone {
+  font-size: var(--ab-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ab-alert__title {
+  font-size: var(--ab-text-base);
+  font-weight: 650;
+}
+
+.ab-alert--info {
+  background-color: var(--ab-info-surface);
+  border-color: var(--ab-info);
+  color: var(--ab-text);
+}
+
+.ab-alert--success {
+  background-color: var(--ab-success-surface);
+  border-color: var(--ab-success);
+  color: var(--ab-text);
+}
+
+.ab-alert--warning {
+  background-color: var(--ab-warning-surface);
+  border-color: var(--ab-warning);
+  color: var(--ab-text);
+}
+
+.ab-alert--danger {
+  background-color: var(--ab-danger-surface);
+  border-color: var(--ab-danger);
+  color: var(--ab-text);
+}
+
+.ab-alert--info .ab-alert__tone {
+  color: var(--ab-info);
+}
+
+.ab-alert--success .ab-alert__tone {
+  color: var(--ab-success);
+}
+
+.ab-alert--warning .ab-alert__tone {
+  color: var(--ab-warning);
+}
+
+.ab-alert--danger .ab-alert__tone {
+  color: var(--ab-danger);
+}
+
+/* ---------------------------------------------------------------------- skeleton */
+
+/* The shimmer is a decoration that carries no information, which is why the element is
+   aria-hidden and the loading state is announced by the caller instead. Under
+   prefers-reduced-motion base.css collapses the animation and this becomes a static
+   block (docs/15 §10). */
+.ab-skeleton {
+  display: block;
+  border-radius: var(--ab-radius-sm);
+  background-color: var(--ab-surface-sunken);
+  background-image: linear-gradient(
+    90deg,
+    var(--ab-surface-sunken) 0%,
+    var(--ab-border) 50%,
+    var(--ab-surface-sunken) 100%
+  );
+  background-size: 200% 100%;
+  animation: ab-skeleton-sweep 1.4s linear infinite;
+}
+
+@keyframes ab-skeleton-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ab-skeleton {
+    background-image: none;
+    animation: none;
+  }
+}

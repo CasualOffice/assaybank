@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The token layer sets `color-scheme: light dark` on :root, so the browser paints
+         form controls, scrollbars and the canvas in the user's theme rather than leaving a
+         white flash before the stylesheet applies. -->
+    <meta name="color-scheme" content="light dark" />
+    <title>Assaybank staff console</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- No <noscript> fallback content: the console is a staff tool behind a login and has
+         no server-rendered mode to fall back to. The candidate app, which a candidate
+         meets once and cannot choose a different tool for, is a different question and is
+         answered in P3. -->
+    <noscript>
+      The Assaybank staff console needs JavaScript. If it is blocked by policy, your administrator
+      can allow this origin.
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

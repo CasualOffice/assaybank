@@ -176,6 +176,9 @@ jobs:
     env:
       NODE_ENV: test
       DATABASE_URL: postgres://hiring:hiring@localhost:5432/hiring_test
+      # The migration runner connects as the object owner, not the application role
+      # (ADR-010). In CI the service container's superuser is both.
+      DATABASE_OWNER_URL: postgres://hiring:hiring@localhost:5432/hiring_test
       DATABASE_APP_ROLE: hiring_app
       DATABASE_JOB_ROLE: hiring_job
       REDIS_URL: redis://localhost:6379

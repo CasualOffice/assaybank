@@ -33,7 +33,7 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/config/package.json ./packages/config/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile --offline \
-      --filter @hiring/web... \
+      --filter @assaybank/web... \
       --filter .
 
 FROM deps AS dev
@@ -45,7 +45,7 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
 ENTRYPOINT ["/sbin/tini", "--"]
 # --host binds 0.0.0.0; without it the dev server is unreachable from outside
 # the container.
-CMD ["pnpm", "--filter", "@hiring/web", "dev", "--host", "0.0.0.0", "--port", "5173"]
+CMD ["pnpm", "--filter", "@assaybank/web", "dev", "--host", "0.0.0.0", "--port", "5173"]
 
 FROM deps AS build
 ARG VITE_API_PUBLIC_URL
@@ -54,12 +54,12 @@ ENV NODE_ENV=production \
     VITE_API_PUBLIC_URL=${VITE_API_PUBLIC_URL} \
     VITE_COLLAB_PUBLIC_URL=${VITE_COLLAB_PUBLIC_URL}
 COPY . .
-RUN pnpm turbo run build --filter @hiring/web...
+RUN pnpm turbo run build --filter @assaybank/web...
 
 # The static server is its own tiny workspace package (packages/… is not
 # involved). Deploying it separately keeps the runtime image free of Vite,
 # TypeScript and every other build-time dependency.
-RUN pnpm --filter @hiring/web --prod deploy --legacy /deploy \
+RUN pnpm --filter @assaybank/web --prod deploy --legacy /deploy \
  && rm -rf /deploy/src /deploy/node_modules/.cache
 
 # ---------------------------------------------------------------------------

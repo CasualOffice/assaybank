@@ -1,0 +1,39 @@
+<!doctype html>
+<!--
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      No maximum-scale and no user-scalable=no: pinch zoom to 200% is SC 1.4.4, and
+      disabling it is the single most common mobile accessibility failure.
+    -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- The candidate surface is never indexed: every URL here is a bearer credential. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="description" content="Assaybank assessment runner." />
+    <title>Assaybank — assessment</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      <!--
+        A candidate who has JavaScript disabled — by policy, by an extension, or by a
+        locked-down machine — must be told, in the document, rather than shown a blank
+        page and left to conclude the link is broken.
+      -->
+      <main>
+        <h1>This assessment needs JavaScript</h1>
+        <p>
+          Turn on JavaScript for this site and reload the page. If you cannot, reply to your
+          invitation email and we will arrange another way for you to take it.
+        </p>
+      </main>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
