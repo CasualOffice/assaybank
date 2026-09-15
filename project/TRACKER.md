@@ -108,7 +108,7 @@ and picking it up anyway is how two people end up editing the same file.
 | H-130 | P0 | Leak suite seeded as its own CI job: a candidate principal is denied every permission, and it grows an assertion whenever a candidate-facing response is added | api | M-1 | H-121, H-129 | FR-12, docs/06 | M | done | _unassigned_ |
 | H-131 | P0 | MPL-2.0 header gate `scripts/check-licence-headers.mjs`, wired into `docs.yml` and the Makefile | compliance | M-1 | H-001 | ADR-020 | S | done | _unassigned_ |
 | H-132 | P0 | CI switched from skip-if-no-workspace to enforcing; first `pnpm-lock.yaml`; first CycloneDX SBOM; branch protection on the ten required checks | infra | M-1 | H-112 | ADR-001 | M | done | _unassigned_ |
-| H-133 | P0 | Prove the licence gate fails: plant an AGPL dependency on a scratch branch and confirm CI blocks it (a gate nobody has seen fail is a gate nobody knows works) | compliance | M-1 | H-132 | ADR-001 | S | todo | _unassigned_ |
+| H-133 | P0 | Prove the licence gate fails: plant an AGPL dependency on a scratch branch and confirm CI blocks it (a gate nobody has seen fail is a gate nobody knows works) | compliance | M-1 | H-132 | ADR-001 | S | done | _unassigned_ |
 | H-134 | P1 | Measure and record RLS query-plan cost on seeded volume, so degradation is known at P0 rather than discovered at P7 | db | M-1 | H-120 | ADR-010, R-09 | M | done | _unassigned_ |
 | H-135 | P1 | Clean-clone test on a second machine: stack running and CI green in under ten minutes, timed, by someone who did not build it | infra | M-1 | H-132 | ROADMAP P0 exit | S | todo | _unassigned_ |
 
