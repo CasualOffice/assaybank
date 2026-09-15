@@ -232,6 +232,8 @@ already decided in ADR-012 and ADR-013 and is not reopened here.
 
 **Entry gate.** P0 signed.
 
+Step-by-step build order is in [`P1-TENANCY-PLAN.md`](P1-TENANCY-PLAN.md).
+
 **Workstreams.**
 
 1. **Tenancy.** `organizations`, the connection-pool hook that sets `app.current_org` per checkout,
