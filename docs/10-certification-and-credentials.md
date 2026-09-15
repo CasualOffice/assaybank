@@ -401,6 +401,13 @@ An attempt is eligible when all of the following hold. Each is checked at approv
 
 `certification_mode` is a new boolean on `assessments`, defaulting false, settable only by a user with `certificate.admin`.
 
+```sql
+ALTER TABLE assessments
+    ADD COLUMN certification_mode boolean NOT NULL DEFAULT false;
+```
+
+It is a column and not a row in a settings table because the eligibility predicate joins against it on every issuance check, and because a default of false is the safe default: an assessment does not become capable of issuing a public claim by accident.
+
 ---
 
 ## 6. Key management
@@ -766,16 +773,16 @@ Consumers are idempotent on `event_id`, as with every other event in §12 of the
 
 ## 14. Plan
 
-Credentials land in **M4 (weeks 15–18, 2026-12-28 to 2027-01-22)**, alongside proctored mode, because a credential is only meaningful with an assurance profile behind it and the assurance profile is what M4 builds. One preparatory task sits in M3.
+Credentials land in **M4**, alongside proctored mode, because a credential is only meaningful with an assurance profile behind it and the assurance profile is what M4 builds. One preparatory task sits in M3.
 
 | Phase | Window | Deliverable |
 |---|---|---|
-| C0 — prerequisites | 2026-12-21 to 2026-12-25 (M3 week 14) | Issuer identity decision (`did:web` host and path), key custody decision, legal sign-off on the §12.2 limitation text, consent-scope column agreed with the retention doc owner |
-| C1 — foundations | 2026-12-28 to 2027-01-01 (week 15) | Schema section 14 migration, `certification_mode` on assessments, `packages/credentials` with claim-set builder and JWS signing, signer process in `infra/docker`, key generation ceremony documented and performed |
-| C2 — issuance | 2027-01-04 to 2027-01-08 (week 16) | Eligibility predicate, approval queue in `apps/web`, approve/decline endpoints, claim-set freezing, audit and webhook wiring |
-| C3 — verification and revocation | 2027-01-11 to 2027-01-15 (week 17) | Public verification endpoints, DID document, verification page in `apps/candidate`, status list generation and publishing worker, revoke/suspend flows |
-| C4 — rendering and lifecycle | 2027-01-18 to 2027-01-22 (week 18) | Deterministic PDF pipeline with QR and embedded JWS, pre-signed delivery, expiry sweep, erasure tombstone path, holder links |
-| C5 — post-M4 | from 2027-01-26 | Data Integrity proof serialisation, wallet import testing, 1EdTech conformance if pursued, PNG/SVG badge artefacts, issuer directory |
+| C0 — prerequisites | see ROADMAP (M3 week 14) | Issuer identity decision (`did:web` host and path), key custody decision, legal sign-off on the §12.2 limitation text, consent-scope column agreed with the retention doc owner |
+| C1 — foundations | see ROADMAP (week 15) | Schema section 14 migration, `certification_mode` on assessments, `packages/credentials` with claim-set builder and JWS signing, signer process in `infra/docker`, key generation ceremony documented and performed |
+| C2 — issuance | see ROADMAP (week 16) | Eligibility predicate, approval queue in `apps/web`, approve/decline endpoints, claim-set freezing, audit and webhook wiring |
+| C3 — verification and revocation | see ROADMAP (week 17) | Public verification endpoints, DID document, verification page in `apps/candidate`, status list generation and publishing worker, revoke/suspend flows |
+| C4 — rendering and lifecycle | see ROADMAP (week 18) | Deterministic PDF pipeline with QR and embedded JWS, pre-signed delivery, expiry sweep, erasure tombstone path, holder links |
+| C5 — post-M4 | after the M4 gate | Data Integrity proof serialisation, wallet import testing, 1EdTech conformance if pursued, PNG/SVG badge artefacts, issuer directory |
 
 ### M4 exit criteria for this workstream
 

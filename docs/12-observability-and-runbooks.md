@@ -113,7 +113,7 @@ In the table, **P** marks a page-now alert and **T** a ticket. Thresholds marked
 
 | Metric | Type | Labels | What it tells you | Alert |
 |---|---|---|---|---|
-| `bullmq_queue_depth` | gauge | `queue` (`run`\|`submit`\|`finalise`\|`import`\|`webhook`\|`sweep`), `priority` (`interactive`\|`batch`), `state` (`waiting`\|`delayed`) | Backlog. The single most important number during an exam window. | **P** `queue="submit"` rising monotonically for 5 min *(exam window)*; **T** depth > 200 for 15 min |
+| `bullmq_queue_depth` | gauge | `queue` (`grading.run`\|`grading.submit`\|`webhooks.deliver`\|`notifications.email`\|`bank.jobs`\|`maintenance.cron`), `priority` (`interactive`\|`batch`), `state` (`waiting`\|`delayed`) | Backlog. The single most important number during an exam window. | **P** `queue="grading.submit"` rising monotonically for 5 min *(exam window)*; **T** depth > 200 for 15 min |
 | `bullmq_time_in_queue_seconds` | histogram | `queue`, `priority` | How long a job waits before a worker picks it up. Separates "not enough workers" from "workers are slow". | **P** p95 > 30s for 5 min *(exam window)* |
 | `bullmq_job_duration_seconds` | histogram | `queue`, `job_name` | How long the work itself takes. Rising here with flat queue depth means a slow question, not a capacity problem. | **T** p95 doubles week-over-week |
 | `bullmq_job_failed_total` | counter | `queue`, `job_name`, `reason` (`exec_unavailable`\|`timeout`\|`db_error`\|`validation`\|`unknown`) | Jobs that threw. Retries are counted here each time. | **T** rate > 1/min for 10 min |
@@ -326,7 +326,7 @@ Domain identifiers (`attempt_id`, `submission_id`, `question_version_id`, `org_i
 | **Credentials and secrets** | `password`, `password_hash`, `secret`, `token`, `attempt_token`, `invitation_token`, `ws_ticket`, `ticket`, `api_key`, `session`, `session_secret`, `TOKEN_PEPPER`, `SESSION_SECRET`, `S3_SECRET_ACCESS_KEY`, `S3_ACCESS_KEY_ID`, `OIDC_CLIENT_SECRET`, `LIVEKIT_API_SECRET`, `WEBHOOK_SIGNING_SECRET`, `DATABASE_URL` (contains the password), `REDIS_URL`, `SMTP_URL` |
 | **Headers** | `authorization`, `cookie`, `set-cookie`, `x-signature`, `proxy-authorization` |
 | **Candidate answers** | `answers.text_answer`, `answers.selected_option_ids`, `submissions.source_code`, `submissions.compile_stderr`, `submission_results.actual_stdout`, `submission_results.stderr` — stdout and stderr routinely contain the candidate's own source or data |
-| **Question secrets** | `mcq_options.is_correct`, `short_answer_keys.*`, `test_cases.expected_stdout`, `test_cases.stdin` where `is_hidden`, `coding_specs.reference_solution`, and anything under a `hidden` key. HLD §1: *"Nothing the candidate must not see ever reaches the client"* — a log aggregator that recruiters can read is a client |
+| **Question secrets** | `mcq_options.is_correct`, `short_answer_keys.*`, `test_cases.expected_stdout`, `test_cases.stdin` and `test_cases.expected_stdout` where `is_sample = false`, `coding_specs.solution_code`, and anything under a `hidden` key. HLD §1: *"Nothing the candidate must not see ever reaches the client"* — a log aggregator that recruiters can read is a client |
 | **Candidate PII** | `candidates.email`, `full_name`, `phone`, `resume_url`, `linkedin_url`, any `demographic_*` field (voluntarily collected, PRD §9, and the most sensitive data in the system), `proctor_media.*` object keys and any webcam or screen artefact reference |
 | **Signed URLs** | Any value matching a presigned-URL shape. The query string *is* the credential. Log the object key, never the URL |
 

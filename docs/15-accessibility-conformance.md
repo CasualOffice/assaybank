@@ -117,7 +117,7 @@ Three things follow, and stating them is the point of this section:
 
 **First, this is a conformance mechanism, not a product nicety.** It is the reason SC 2.2.1's Essential Exception is an honest claim rather than a loophole. A timed assessment with no adjustment path is a timed assessment that measures disability. A timed assessment with a recorded, server-applied, audited adjustment path measures the skill. If the accommodation mechanism regresses — if `extra_time_pct` stops being applied, or the request channel stops being answered — the conformance claim in §2.1 is no longer true, even though no WCAG success criterion changed state. That coupling is why the accommodation flow appears in the milestone gate table in §14 next to the axe results.
 
-**Second, the adjustment must be applied by the server and nowhere else.** A client-side timer that is told to run slower is not an accommodation; it is a bug that a candidate might discover and an auditor will certainly ask about. `deadline_at` is computed once, at `POST /attempt/start`, from `duration_seconds × (1 + extra_time_pct / 100)`, persisted, and never recomputed. The client countdown derives from `server_time` on every response and is display-only.
+**Second, the adjustment must be applied by the server and nowhere else.** A client-side timer that is told to run slower is not an accommodation; it is a bug that a candidate might discover and an auditor will certainly ask about. `deadline_at` is computed once, at `POST /attempt/start`, from `duration_seconds × (1 + extra_time_pct / 100)`, persisted, and never recomputed from client input. The one server-side adjustment permitted after start is a recorded `breaks_allowed` accommodation, which extends `deadline_at` by the paused interval through an audited server-side state transition — never by a client timer stop (ADR-006). The client countdown derives from `server_time` on every response and is display-only.
 
 **Third, extra time is not the only adjustment, and treating it as the only one is the common failure.** A candidate with a bladder condition needs stoppable breaks, not a longer continuous window. A candidate with a cognitive disability may need a longer window *and* fewer questions per screen. The catalogue in §14.4 is deliberately broader than a percentage.
 
@@ -409,7 +409,7 @@ On navigating from question 5 to question 6:
 4. `aria-current="step"` moves in the question navigator.
 5. Scroll position resets to the top of the question region, not the top of the page — the assessment chrome above is stable and does not need re-reading.
 
-Back navigation, where `assessment_sections.allow_back_nav` permits it, behaves identically. Where it does not, the forward-only constraint is stated in the instructions before the section begins and the disabled control carries `aria-disabled="true"` with an explanatory accessible description, rather than simply vanishing — a control that disappears is a control the candidate thinks they lost.
+Back navigation, where `assessments.allow_back_nav` permits it, behaves identically. Where it does not, the forward-only constraint is stated in the instructions before the section begins and the disabled control carries `aria-disabled="true"` with an explanatory accessible description, rather than simply vanishing — a control that disappears is a control the candidate thinks they lost.
 
 ### 9.2 Modal dialogs
 

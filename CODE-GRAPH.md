@@ -60,7 +60,7 @@ Two further constraints show up in this graph as *absent* edges, which is the on
 
 ## Graph at a glance
 
-Graph version 1.0.0, generated 2026-09-15. 5 applications, 9 packages, 3 datastores, 6 queues, 6 scheduled jobs, 7 external services. 54 runtime edges, 34 import edges.
+Graph version 1.0.0, generated 2026-09-15. 5 applications, 10 packages, 3 datastores, 6 queues, 6 scheduled jobs, 7 external services. 54 runtime edges, 36 import edges.
 
 ```mermaid
 flowchart LR
@@ -83,6 +83,7 @@ flowchart LR
     n_config(["config"])
     n_observability(["observability"])
     n_ui(["ui"])
+    n_credentials(["credentials"])
   end
   subgraph sg_datastore["Datastores"]
     direction TB
@@ -207,6 +208,8 @@ flowchart LR
   n_grading -. imports .-> n_contracts
   n_ui -. imports .-> n_contracts
   n_observability -. imports .-> n_config
+  n_api -. imports .-> n_credentials
+  n_worker -. imports .-> n_credentials
 ```
 
 Solid arrows are runtime calls, labelled by kind. Dotted arrows are compile-time workspace imports and always point down the layer order.
@@ -224,6 +227,7 @@ Solid arrows are runtime calls, labelled by kind. Dotted arrows are compile-time
 | `config` | config | package | M0 | planned | `packages/config` | Parses and validates the environment once at boot and exposes a typed, frozen configuration object. |
 | `contracts` | contracts | package | M0 | planned | `packages/contracts` | zod schemas, the generated OpenAPI 3.1 document and the error-code catalogue - the single source of truth for every request and response shape. |
 | `core-domain` | core-domain | package | M0 | planned | `packages/core-domain` | Pure domain logic: the attempt state machine, section-rule resolution and the question draw, weighted scoring aggregation and skill roll-up. |
+| `credentials` | credentials | package | M4 | planned | `packages/credentials` | Open Badges 3.0 claim-set construction, JWS signing and verification, status-list generation, and the deterministic PDF rendering of an issued credential (ADR-016). |
 | `db` | db | package | M0 | planned | `packages/db` | Drizzle schema, migrations, row-level-security policies and the seed data that mirror docs/hiring_platform_schema.sql. |
 | `exec-adapter` | exec-adapter | package | M2 | planned | `packages/exec-adapter` | Thin adapter over Piston behind execute(language, version, files, stdin, args, limits) so the sandbox stays swappable. |
 | `grading` | grading | package | M1 | planned | `packages/grading` | Pure comparison and weighted scoring: MCQ and short-answer matching, test-case comparison per grading mode, partial credit and optional negative marking. |
@@ -418,6 +422,23 @@ Invariants:
 - Refuses the transition to finalised unless every answer carries a non-null final_score.
 
 Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/04-ADRs.md`](docs/04-ADRs.md)
+
+#### `credentials` — credentials
+
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M4 · **Status:** planned
+
+Public surface:
+
+- Exported symbols: buildClaimSet(attempt, assessment, skills), signCredential(claimSet, key), verifyCredential(jws), buildStatusList(entries), renderPdf(credential)
+
+Invariants:
+
+- Only a finalised, non-voided attempt can produce a credential; issuance is an explicit human-approved action in certification mode.
+- The signing key never resides on an API or execution node; the package receives a signer handle, never raw key material.
+- A claim set is frozen at issuance - re-rendering an existing credential never recomputes its claims.
+- Verification output reveals no answers, no question set and no PII beyond what the holder consented to.
+
+Specified by: [`docs/10-certification-and-credentials.md`](docs/10-certification-and-credentials.md), [`docs/04-ADRs.md`](docs/04-ADRs.md)
 
 #### `db` — db
 
@@ -945,6 +966,8 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/13-environmen
 | `grading` | `contracts` | imports | workspace dependency (types only) | yes | M1 | Grading mode and result types only. |
 | `ui` | `contracts` | imports | workspace dependency (types only) | yes | M0 | Prop types for the components that render domain objects. |
 | `observability` | `config` | imports | workspace dependency | yes | M0 | LOG_LEVEL, OTEL_* settings and the service name. |
+| `api` | `credentials` | imports | in-process | yes | M4 | Issuance, verification and revocation endpoints build and sign claim sets through the credentials package. |
+| `worker` | `credentials` | imports | in-process | yes | M4 | Status-list publication and the deterministic PDF rendering job run in the worker. |
 
 ## Queues
 

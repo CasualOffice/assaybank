@@ -203,7 +203,13 @@ Locale columns on the rows that resolve or record a locale:
 
 ```sql
 -- Org default, assessment default, candidate preference, invitation override.
+ALTER TABLE users
+    ADD COLUMN locale text;          -- null = fall back to Accept-Language, then org default
+
 ALTER TABLE organizations      ADD COLUMN default_locale   text NOT NULL DEFAULT 'en';
+ALTER TABLE users
+    ADD COLUMN locale text;          -- null = fall back to Accept-Language, then org default
+
 ALTER TABLE organizations      ADD COLUMN enabled_locales  text[] NOT NULL DEFAULT '{en}';
 ALTER TABLE assessments        ADD COLUMN default_locale   text NOT NULL DEFAULT 'en';
 ALTER TABLE assessments        ADD COLUMN offered_locales  text[] NOT NULL DEFAULT '{en}';

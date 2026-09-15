@@ -422,16 +422,16 @@ Review cadence: every six months from the first review date, and immediately on 
 
 | Task | Milestone | Window |
 |---|---|---|
-| Question authoring guidance for AI-resistant questions (§7.2) in the authoring UI; in-house authoring as the default path | M0 | 2026-09-21 to 2026-10-09 |
-| `ai_policy` on assessments and sections; notice screen with acknowledgement; `attempts.ai_policy_shown_at` gate on `in_progress` | M1 | 2026-10-12 to 2026-10-30 |
-| Submit-time declaration UI and `attempts.ai_declaration`; reviewer context panel showing the declaration without scoring it | M1 | 2026-10-12 to 2026-10-30 |
-| Paste size and burst telemetry on coding questions; `paste_large`, `paste_burst`, `input_rate_anomaly` events; cohort-median context in the review UI | M2 | 2026-11-02 to 2026-11-27 |
-| Confirm no per-keystroke timing is collected anywhere; add a test asserting it (§5.3) | M2 | 2026-11-02 to 2026-11-27 |
-| `ai_interactions` table, consent flow, prompt record UI in the interview surface; screen-share consent via LiveKit | M3 | 2026-11-30 to 2026-12-25 |
-| `Tool-assisted engineering` scorecard template with the §8 anchors; "not applicable" as a first-class selection | M3 | 2026-11-30 to 2026-12-25 |
-| `blocked` profile end to end in certification mode; SEB integration; signals into the integrity review queue with evidence and base rates | M4 | 2026-12-28 to 2027-01-22 |
-| `assurance_profile.ai_policy` written onto issued credentials (`10-certification-and-credentials.md` §12.1) | M4 | 2026-12-28 to 2027-01-22 |
-| Retention sweep for `ai_interactions.delete_after`; DPIA section on prompt recording | M4 | 2026-12-28 to 2027-01-22 |
+| Question authoring guidance for AI-resistant questions (§7.2) in the authoring UI; in-house authoring as the default path | M0 | see ROADMAP |
+| `ai_policy` on assessments and sections; notice screen with acknowledgement; `attempts.ai_policy_shown_at` gate on `in_progress` | M1 | see ROADMAP |
+| Submit-time declaration UI and `attempts.ai_declaration`; reviewer context panel showing the declaration without scoring it | M1 | see ROADMAP |
+| Paste size and burst telemetry on coding questions; `paste_large`, `paste_burst`, `input_rate_anomaly` events; cohort-median context in the review UI | M2 | see ROADMAP |
+| Confirm no per-keystroke timing is collected anywhere; add a test asserting it (§5.3) | M2 | see ROADMAP |
+| `ai_interactions` table, consent flow, prompt record UI in the interview surface; screen-share consent via LiveKit | M3 | see ROADMAP |
+| `Tool-assisted engineering` scorecard template with the §8 anchors; "not applicable" as a first-class selection | M3 | see ROADMAP |
+| `blocked` profile end to end in certification mode; SEB integration; signals into the integrity review queue with evidence and base rates | M4 | see ROADMAP |
+| `assurance_profile.ai_policy` written onto issued credentials (`10-certification-and-credentials.md` §12.1) | M4 | see ROADMAP |
+| Retention sweep for `ai_interactions.delete_after`; DPIA section on prompt recording | M4 | see ROADMAP |
 | First AI baseline run over the published bank (§7.3) | Post-M4 | from 2027-02-26 |
 | Evaluate a hosted assistant pane, or decide against it (§9.1) | Post-M4 | decide by 2027-04-30 |
 

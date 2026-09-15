@@ -132,7 +132,7 @@ Rows carry a `because` referencing `FR-n`, an ADR, or a milestone exit criterion
 
 ### 4.2 Attempt state machine
 
-The machine in [`03-API-spec.md`](03-API-spec.md) §8 has seven states — `created`, `in_progress`, `submitted`, `expired`, `auto_graded`, `under_review`, `finalised`, `voided` — and a small event set. The test is the full `(state x event)` matrix with an expected result of either a target state or a named rejection, which means the table has an entry for every cell, including every illegal combination.
+The machine in [`03-API-spec.md`](03-API-spec.md) §8 has eight states — `created`, `in_progress`, `submitted`, `expired`, `auto_graded`, `under_review`, `finalised`, `voided` — and a small event set. The test is the full `(state x event)` matrix with an expected result of either a target state or a named rejection, which means the table has an entry for every cell, including every illegal combination.
 
 Rows that must exist and must be named as such:
 

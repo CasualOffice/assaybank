@@ -404,7 +404,7 @@ Lives in `apps/worker` as a set of BullMQ repeatable jobs. Runs as `DATABASE_JOB
 | `retention:candidate-pii` | Daily 03:30 UTC | `candidates` past `erase_after` | 500 candidates | 30 min |
 | `retention:attempt-purge` | Daily 03:45 UTC | `attempts` past `purge_after` | 200 attempts | 45 min |
 | `retention:audit-ip-truncate` | Daily 04:00 UTC | `audit_log.ip` older than 90 days | one partition | 10 min |
-| `retention:partitions` | Weekly, Sunday 04:30 UTC | Create next partitions, drop expired `session_events` / `proctor_events` / `audit_log` partitions | — | 10 min |
+| `retention:partitions` | Daily 01:00 UTC, acting only near the month boundary | Create next partitions, drop expired `session_events` / `proctor_events` / `audit_log` partitions | — | 10 min |
 | `retention:verify` | Daily 05:00 UTC | Assertion pass — see §5.9 | — | 5 min |
 
 Proctor media sweeps hourly rather than daily because it is the tightest ceiling and the most sensitive category: the difference between "deleted within 30 days" and "deleted within 30 days and up to 23 hours" is not a difference anyone should have to explain.
@@ -825,7 +825,7 @@ Consequences carried through this document: Article 9(2)(a) explicit consent as 
 
 **Automated evaluation informing an employment decision.** The scoring path is deterministic — a weighted sum over test-case results and option matches, with no model anywhere in it ([ADR-011](04-ADRs.md)). Whether a deterministic scorer falls inside the AI Act's definition is a question for counsel; [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md) §3 takes the position of building as if it does, and this DPIA adopts that position.
 
-Article 22 is the sharper edge. It gives a right not to be subject to a decision based *solely* on automated processing which produces legal or similarly significant effects, and not getting a job is squarely within "similarly significant". The platform's answer is structural rather than procedural: the decision is never solely automated, because the system has no mechanism to make it. There is no auto-reject endpoint, no score threshold that advances or rejects, no configuration that turns one on. [ADR-007](04-ADRs.md) calls this *"a product constraint, not a configuration option"* and task H-098 makes it a release-blocking test.
+Article 22 is the sharper edge. It gives a right not to be subject to a decision based *solely* on automated processing which produces legal or similarly significant effects, and not getting a job is squarely within "similarly significant". The platform's answer is structural rather than procedural: the decision is never solely automated, because the system has no mechanism to make it. There is no auto-reject endpoint, no score threshold that advances or rejects, no configuration that turns one on. [ADR-007](04-ADRs.md) calls this *"a product constraint, not a configurable setting"* and task H-098 makes it a release-blocking test.
 
 The honest caveat, which belongs in a DPIA rather than in marketing: **a human who rubber-stamps a ranked list has not made a decision.** Article 22's protection depends on meaningful human involvement, and a recruiter who advances the top 20 without looking has automated the decision using a human as a relay. The countermeasures are: the report leads with evidence rather than a ranked number, per-skill sub-scores rather than a single figure, the review queue showing the actual triggering evidence, and the audit log making a pattern of instant bulk decisions visible to whoever reviews it. TBD — owner: People lead, decide by 2027-01-30: whether to add a "reviewed in under N seconds" indicator to the audit review. It would be uncomfortable, which is the argument for it.
 
@@ -1049,6 +1049,22 @@ Extends [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md) §4. 
 | `email_hash` retained only on objection | Engineering | Quarterly | Count of anonymised candidates with a non-null hash, reconciled against objection records |
 
 ---
+
+
+### API delta
+
+This document introduces endpoints that [`03-API-spec.md`](03-API-spec.md) does not define. None of
+them exist there; they are the delta this document requires, and they are added to the spec when the
+work is scheduled rather than assumed to be already agreed:
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /candidates/{id}/personal-data` | Start a data-subject access export |
+| `GET /candidates/{id}/personal-data/{job_id}` | Collect the completed export |
+| `POST /candidates/{id}/legal-hold` | Suspend the retention clock pending a dispute or claim |
+| `DELETE /candidates/{id}/legal-hold` | Release the hold and resume the clock |
+| `POST /candidates/{id}/rectify` | Record a rectification against candidate-supplied fields |
+
 
 ## 19. Open items
 

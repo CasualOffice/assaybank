@@ -11,7 +11,7 @@ Nothing described here has been built or run. This document specifies the worklo
 
 ## 1. Why this document exists
 
-Three of the five milestone exit criteria in [`01-PRD.md`](01-PRD.md) §6 are load statements — 50 concurrent candidates, 100 concurrent submissions at p95 under 8 s, and the 500-sustained / 1000-peak figures in §8. None of them can be claimed without a written, repeatable scenario, and an exit criterion assessed by impression is not an exit criterion.
+Two of the five milestone exit criteria in [`01-PRD.md`](01-PRD.md) §6 are load statements — 50 concurrent candidates and 100 concurrent submissions at p95 under 8 s — and §8 adds the 500-sustained / 1000-peak figures the whole system is sized against. None of them can be claimed without a written, repeatable scenario, and an exit criterion assessed by impression is not an exit criterion.
 
 The second reason is sharper. [`02-HLD.md`](02-HLD.md) §9 names the property this system must hold above all others: **an infrastructure failure must never silently score a candidate as zero.** Load is the condition under which that property is tested for real. A queue that backs up, a connection pool that exhausts, an autosave that times out — each of these can turn into a candidate's score, and each only appears above a threshold nobody reaches by clicking around staging. HLD §10 says the same thing about environments: assessment bugs only appear under concurrency.
 

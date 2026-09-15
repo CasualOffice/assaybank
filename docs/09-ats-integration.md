@@ -25,10 +25,10 @@ The refinement that makes this work is that our webhook contract must be **good 
 
 | Capability | Lands | Notes |
 |---|---|---|
-| Outbound webhooks: subscription CRUD, signing, retry, DLQ, deliveries view | M1 (2026-10-12 → 2026-10-30) | `invitation.sent`, `attempt.started`, `attempt.submitted`, `attempt.finalised` |
+| Outbound webhooks: subscription CRUD, signing, retry, DLQ, deliveries view | M1 | `invitation.sent`, `attempt.started`, `attempt.submitted`, `attempt.finalised` |
 | Inbound REST: candidate, application, invitation creation with idempotency and `external_ref` | M1 | Same endpoints staff use, with a service credential |
-| Coding and integrity events on the same bus | M2 (2026-11-02 → 2026-11-27) | `attempt.flagged` becomes meaningful in M4 |
-| Session and scorecard events | M3 (2026-11-30 → 2026-12-25) | |
+| Coding and integrity events on the same bus | M2 | `attempt.flagged` becomes meaningful in M4 |
+| Session and scorecard events | M3 | |
 | First named connector | Post-M4, demand-driven | Separate deployable, see §11 |
 
 ---
@@ -188,6 +188,7 @@ X-Assaybank-Signature: v1=8f3c...a91d, v1=2b7e...ccf0
 - The scheme prefix exists so a future algorithm change is expressible without a new header.
 - `X-Assaybank-Delivery-Attempt` starts at 1 and is purely informational; it must never influence verification, and a consumer must not treat attempt 1 as more trustworthy than attempt 4.
 - `X-Assaybank-Event-Id` duplicates `event_id` in the body so a consumer can dedupe before parsing.
+- This header set supersedes the single `X-Signature` header named in [`03-API-spec.md`](03-API-spec.md) §12. That section predates this document and is the one that needs updating.
 
 ### 4.3 Tolerance window
 
@@ -277,7 +278,7 @@ A delivery succeeds on any 2xx. Everything else retries, inside a 24-hour window
 | 8 | 12 h | ~20.6 h |
 | — | give up at 24 h from first attempt | dead-letter |
 
-Full jitter of ±20% is applied to every delay so that a customer endpoint recovering from an outage does not receive a thundering herd of every queued delivery simultaneously. `QUEUE_MAX_ATTEMPTS` and `QUEUE_BACKOFF_MS` configure the BullMQ backoff; the schedule above is the intended shape, not a second independent implementation.
+Full jitter of ±20% is applied to every delay so that a customer endpoint recovering from an outage does not receive a thundering herd of every queued delivery simultaneously. The `webhooks.deliver` queue carries its own attempt limit of 8 and its own backoff curve, configured on that queue rather than from the global `QUEUE_MAX_ATTEMPTS` (3) and `QUEUE_BACKOFF_MS`, which govern grading jobs. A grading job and a webhook delivery have genuinely different retry economics: a candidate is waiting for one and nobody is waiting for the other.
 
 Response handling:
 
@@ -701,9 +702,9 @@ Candidate PII crossing into a third party is a processing event with legal conse
 
 ## 14. Phased plan
 
-Against the milestone calendar: M0 2026-09-21 → 2026-10-09, M1 2026-10-12 → 2026-10-30, M2 2026-11-02 → 2026-11-27, M3 2026-11-30 → 2026-12-25, M4 2026-12-28 → 2027-01-22.
+Against the milestone calendar: M0 see ROADMAP, M1 see ROADMAP, M2 see ROADMAP, M3 see ROADMAP, M4 see ROADMAP.
 
-### Phase 1 — Event spine (M1, 2026-10-12 → 2026-10-30)
+### Phase 1 — Event spine (M1)
 
 Nothing ships to a customer in this phase; it establishes the shape everything else hangs on.
 
@@ -717,7 +718,7 @@ Nothing ships to a customer in this phase; it establishes the shape everything e
 
 **Exit criteria:** a test consumer receives every event for a full invite-to-finalise cycle, verifies signatures with the §4.5 snippet unmodified, survives a 90-second endpoint outage with no event loss, and a subscription pointed at `169.254.169.254` is refused at creation and counted in `webhook_egress_blocked_total`.
 
-### Phase 2 — Inbound surface (M1 late, 2026-10-26 → 2026-10-30)
+### Phase 2 — Inbound surface (M1)
 
 - `api_keys` and `api_key_permissions`; bearer authentication in `packages/auth`.
 - `external_system` / `external_ref` columns and unique indexes across candidates, applications, job openings, invitations.
@@ -727,19 +728,19 @@ Nothing ships to a customer in this phase; it establishes the shape everything e
 
 **Exit criteria:** a script using only an API key creates a candidate, an application and an invitation, receives `attempt.finalised`, and opens the report link — and running that script twice produces exactly one candidate and one invitation.
 
-### Phase 3 — Coding and integrity events (M2, 2026-11-02 → 2026-11-27)
+### Phase 3 — Coding and integrity events (M2)
 
 - `attempt.auto_graded` and `attempt.regraded`, which only become meaningful once asynchronous grading exists.
 - Per-section and per-skill breakdown in `attempt.finalised` payloads.
 - `/webhooks/{id}/health`, the circuit breaker, and the delivery metrics in §6.
 - First real integration with a live pipeline, written by the customer against the generic surface. **This is the phase that produces the connector decision**, and the deliverable is the friction log from it, not a connector.
 
-### Phase 4 — Session and scorecard events (M3, 2026-11-30 → 2026-12-25)
+### Phase 4 — Session and scorecard events (M3)
 
 - `session.scheduled`, `session.started`, `session.ended`, `scorecard.submitted`.
 - `attempt.flagged` and `attempt.integrity_reviewed` wired but inert until M4 supplies proctoring signals.
 
-### Phase 5 — Connector, only on demand (post-2027-01-22)
+### Phase 5 — Connector, only on demand (post-M4)
 
 Entry conditions, all of which must hold:
 
@@ -757,8 +758,8 @@ Build order if it fires: Ashby or Teamtailor first, as the cheapest complete pro
 | Item | Owner | Decide by |
 |---|---|---|
 | Verify each vendor's auth model, current rate limits and partner-programme requirements against live documentation | connector owner | at connector kickoff |
-| Whether per-entity FIFO delivery is worth the throughput cost | engineering lead | 2026-11-27, end of M2 |
-| Signed report-link lifetime and whether it is single-use | product, with security review | 2026-10-30, end of M1 |
-| Whether `attempt.auto_graded` is exposed to customers at all, or kept internal to avoid ATSs acting on provisional scores | product | 2026-11-27, end of M2 |
+| Whether per-entity FIFO delivery is worth the throughput cost | engineering lead | end of M2 |
+| Signed report-link lifetime and whether it is single-use | product, with security review | end of M1 |
+| Whether `attempt.auto_graded` is exposed to customers at all, or kept internal to avoid ATSs acting on provisional scores | product | end of M2 |
 | Dead-letter payload retention of 30 days, pending the retention sign-off tracked in [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md) | legal, with engineering lead | 2026-11-27 |
-| Whether an org-level egress allowlist is offered as a customer-facing control or kept as an operator control | engineering lead | 2026-10-30, end of M1 |
+| Whether an org-level egress allowlist is offered as a customer-facing control or kept as an operator control | engineering lead | end of M1 |

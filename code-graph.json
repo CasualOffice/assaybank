@@ -39,7 +39,6 @@
       "layers": "allowed dependency directions and the forbidden pairs the generator enforces"
     }
   },
-
   "nodes": [
     {
       "id": "api",
@@ -65,7 +64,12 @@
         "Strips reference solutions, hidden expectations and correct-answer flags in the serialisation layer, not in the client.",
         "Sets app.current_org on every pooled connection so row-level security is active for every query (ADR-010)."
       ],
-      "docs": ["docs/02-HLD.md", "docs/03-API-spec.md", "docs/04-ADRs.md", "docs/hiring_platform_schema.sql"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/03-API-spec.md",
+        "docs/04-ADRs.md",
+        "docs/hiring_platform_schema.sql"
+      ]
     },
     {
       "id": "worker",
@@ -91,7 +95,11 @@
         "Writes bank tables only from the bank.jobs import, through the same packages/db repositories and the same validation the API uses; it has no private write path.",
         "Holds no candidate-facing HTTP surface; everything it produces reaches a client through Postgres or the API."
       ],
-      "docs": ["docs/02-HLD.md", "docs/03-API-spec.md", "docs/04-ADRs.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/03-API-spec.md",
+        "docs/04-ADRs.md"
+      ]
     },
     {
       "id": "collab",
@@ -115,7 +123,11 @@
         "Never resolves permissions itself beyond the ticket; role and org checks happen in the API before the ticket is issued.",
         "Never executes code; in-session runs go through the API and the grading queue."
       ],
-      "docs": ["docs/02-HLD.md", "docs/03-API-spec.md", "docs/04-ADRs.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/03-API-spec.md",
+        "docs/04-ADRs.md"
+      ]
     },
     {
       "id": "web",
@@ -136,7 +148,11 @@
         "Talks only to the API and the collaboration service; it never reaches Postgres, Valkey or the object store directly.",
         "Never ships in the candidate bundle and never shares a build output with apps/candidate."
       ],
-      "docs": ["docs/01-PRD.md", "docs/03-API-spec.md", "docs/15-accessibility-conformance.md"]
+      "docs": [
+        "docs/01-PRD.md",
+        "docs/03-API-spec.md",
+        "docs/15-accessibility-conformance.md"
+      ]
     },
     {
       "id": "candidate",
@@ -158,9 +174,12 @@
         "Buffers autosaves locally and replays them on reconnect; losing the network must not lose work.",
         "Emits proctoring signals as advisory telemetry only; it renders no integrity verdict (ADR-007)."
       ],
-      "docs": ["docs/01-PRD.md", "docs/03-API-spec.md", "docs/15-accessibility-conformance.md"]
+      "docs": [
+        "docs/01-PRD.md",
+        "docs/03-API-spec.md",
+        "docs/15-accessibility-conformance.md"
+      ]
     },
-
     {
       "id": "contracts",
       "name": "contracts",
@@ -180,7 +199,9 @@
         "Performs no I/O and reads no environment variable.",
         "Candidate-facing response schemas physically cannot express a hidden expectation or an is_correct flag; the type system is the first line of the leak defence."
       ],
-      "docs": ["docs/03-API-spec.md"]
+      "docs": [
+        "docs/03-API-spec.md"
+      ]
     },
     {
       "id": "db",
@@ -202,7 +223,11 @@
         "Exposes no raw connection that bypasses the app.current_org setting.",
         "The DATABASE_APP_ROLE and DATABASE_JOB_ROLE grants differ; the job role cannot read candidate PII columns it does not need."
       ],
-      "docs": ["docs/hiring_platform_schema.sql", "docs/02-HLD.md", "docs/04-ADRs.md"]
+      "docs": [
+        "docs/hiring_platform_schema.sql",
+        "docs/02-HLD.md",
+        "docs/04-ADRs.md"
+      ]
     },
     {
       "id": "core-domain",
@@ -222,7 +247,11 @@
         "The question draw is a function of (rules, candidate bank snapshot, seed); the same inputs always produce the same served set (ADR-004).",
         "Refuses the transition to finalised unless every answer carries a non-null final_score."
       ],
-      "docs": ["docs/02-HLD.md", "docs/03-API-spec.md", "docs/04-ADRs.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/03-API-spec.md",
+        "docs/04-ADRs.md"
+      ]
     },
     {
       "id": "exec-adapter",
@@ -244,7 +273,11 @@
         "Returns stdout and stderr already truncated to EXEC_MAX_OUTPUT_BYTES.",
         "Treats every result as untrusted input; a sandbox escape must not be able to influence a score through the adapter."
       ],
-      "docs": ["docs/02-HLD.md", "docs/04-ADRs.md", "docs/05-licensing-and-compliance.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/04-ADRs.md",
+        "docs/05-licensing-and-compliance.md"
+      ]
     },
     {
       "id": "grading",
@@ -265,7 +298,11 @@
         "Contains no model call, no heuristic ranking and no similarity scoring; nothing statistical touches the decision path (ADR-011).",
         "Comparison happens here and never inside the sandbox, so escaping the sandbox reveals nothing about hidden cases."
       ],
-      "docs": ["docs/02-HLD.md", "docs/04-ADRs.md", "docs/16-ai-usage-policy.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/04-ADRs.md",
+        "docs/16-ai-usage-policy.md"
+      ]
     },
     {
       "id": "auth",
@@ -286,7 +323,11 @@
         "WebSocket tickets are separate from attempt tokens, live 60 seconds and are single-use.",
         "Permission checks are per action and org-scoped; there is no ambient admin path."
       ],
-      "docs": ["docs/02-HLD.md", "docs/03-API-spec.md", "docs/14-threat-model.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/03-API-spec.md",
+        "docs/14-threat-model.md"
+      ]
     },
     {
       "id": "config",
@@ -306,7 +347,10 @@
         "The only module permitted to read process.env.",
         "Never logs a secret value; secrets are redacted in every dump of the config object."
       ],
-      "docs": [".env.example", "docs/13-environments-and-release.md"]
+      "docs": [
+        ".env.example",
+        "docs/13-environments-and-release.md"
+      ]
     },
     {
       "id": "observability",
@@ -326,7 +370,10 @@
         "Logs are structured and never contain candidate PII, token plaintext or submitted code.",
         "Metric names are stable; renaming one is a breaking change to the dashboards and alerts."
       ],
-      "docs": ["docs/02-HLD.md", "docs/12-observability-and-runbooks.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/12-observability-and-runbooks.md"
+      ]
     },
     {
       "id": "ui",
@@ -346,9 +393,35 @@
         "Imports no workspace package other than contracts (types only), so it can never drag server code into a client bundle.",
         "Every component meets the contrast and keyboard requirements in docs/15-accessibility-conformance.md."
       ],
-      "docs": ["docs/15-accessibility-conformance.md", "docs/08-i18n-and-localisation.md"]
+      "docs": [
+        "docs/15-accessibility-conformance.md",
+        "docs/08-i18n-and-localisation.md"
+      ]
     },
-
+    {
+      "id": "credentials",
+      "name": "credentials",
+      "type": "package",
+      "milestone": "M4",
+      "status": "planned",
+      "owner": "_unassigned_",
+      "owner_role": "backend lead",
+      "path": "packages/credentials",
+      "purpose": "Open Badges 3.0 claim-set construction, JWS signing and verification, status-list generation, and the deterministic PDF rendering of an issued credential (ADR-016).",
+      "public_surface": [
+        "Exported symbols: buildClaimSet(attempt, assessment, skills), signCredential(claimSet, key), verifyCredential(jws), buildStatusList(entries), renderPdf(credential)"
+      ],
+      "invariants": [
+        "Only a finalised, non-voided attempt can produce a credential; issuance is an explicit human-approved action in certification mode.",
+        "The signing key never resides on an API or execution node; the package receives a signer handle, never raw key material.",
+        "A claim set is frozen at issuance - re-rendering an existing credential never recomputes its claims.",
+        "Verification output reveals no answers, no question set and no PII beyond what the holder consented to."
+      ],
+      "docs": [
+        "docs/10-certification-and-credentials.md",
+        "docs/04-ADRs.md"
+      ]
+    },
     {
       "id": "postgres",
       "name": "PostgreSQL 16",
@@ -369,7 +442,10 @@
         "audit_log is append-only; no service holds UPDATE or DELETE on it outside the retention job.",
         "Reporting queries run against a read replica; the transactional path stays on the primary."
       ],
-      "docs": ["docs/hiring_platform_schema.sql", "docs/02-HLD.md"]
+      "docs": [
+        "docs/hiring_platform_schema.sql",
+        "docs/02-HLD.md"
+      ]
     },
     {
       "id": "valkey",
@@ -391,7 +467,10 @@
         "Valkey 8, not Redis above 7.2, because the latter is RSALv2/SSPL (docs/05-licensing-and-compliance.md).",
         "Queue persistence is enabled so an unexpected restart does not drop queued submissions."
       ],
-      "docs": ["docs/02-HLD.md", "docs/05-licensing-and-compliance.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/05-licensing-and-compliance.md"
+      ]
     },
     {
       "id": "object-store",
@@ -412,9 +491,12 @@
         "proctor/ objects carry a delete_after that the retention job enforces unconditionally.",
         "SeaweedFS, not MinIO, because MinIO is AGPL-3.0 and fails the licence policy."
       ],
-      "docs": ["docs/02-HLD.md", "docs/05-licensing-and-compliance.md", "docs/11-data-retention-and-dpia.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/05-licensing-and-compliance.md",
+        "docs/11-data-retention-and-dpia.md"
+      ]
     },
-
     {
       "id": "q-grading-submit",
       "name": "grading.submit",
@@ -426,12 +508,18 @@
       "path": "logical queue on Valkey",
       "backed_by": "valkey",
       "purpose": "Batch grading of scored coding submissions against the full hidden test-case set.",
-      "public_surface": ["Queue name grading.submit", "Dead letter grading.submit.dlq"],
+      "public_surface": [
+        "Queue name grading.submit",
+        "Dead letter grading.submit.dlq"
+      ],
       "invariants": [
         "One job per submission id; duplicate enqueues are collapsed by job id.",
         "A job that exhausts its retries lands in the dead-letter queue and moves the attempt to under_review."
       ],
-      "docs": ["docs/02-HLD.md", "docs/04-ADRs.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/04-ADRs.md"
+      ]
     },
     {
       "id": "q-grading-run",
@@ -444,12 +532,17 @@
       "path": "logical queue on Valkey",
       "backed_by": "valkey",
       "purpose": "Interactive trial runs against sample cases only, kept on a separate high-priority queue so a grading backlog never stalls the editor.",
-      "public_surface": ["Queue name grading.run", "Dead letter grading.run.dlq"],
+      "public_surface": [
+        "Queue name grading.run",
+        "Dead letter grading.run.dlq"
+      ],
       "invariants": [
         "Never writes a score; a trial run produces a transient result for display only.",
         "Subject to a per-attempt execution budget so one candidate cannot starve the execution pool."
       ],
-      "docs": ["docs/02-HLD.md"]
+      "docs": [
+        "docs/02-HLD.md"
+      ]
     },
     {
       "id": "q-webhooks",
@@ -462,12 +555,18 @@
       "path": "logical queue on Valkey",
       "backed_by": "valkey",
       "purpose": "At-least-once outbound delivery of org webhooks to the ATS.",
-      "public_surface": ["Queue name webhooks.deliver", "Dead letter webhooks.deliver.dlq"],
+      "public_surface": [
+        "Queue name webhooks.deliver",
+        "Dead letter webhooks.deliver.dlq"
+      ],
       "invariants": [
         "Every delivery carries a stable event_id so consumers can be idempotent.",
         "Retries stop at the 24-hour window; nothing retries forever."
       ],
-      "docs": ["docs/03-API-spec.md", "docs/09-ats-integration.md"]
+      "docs": [
+        "docs/03-API-spec.md",
+        "docs/09-ats-integration.md"
+      ]
     },
     {
       "id": "q-notifications",
@@ -480,12 +579,17 @@
       "path": "logical queue on Valkey",
       "backed_by": "valkey",
       "purpose": "Invitation, reminder and result e-mail delivery, off the request path.",
-      "public_surface": ["Queue name notifications.email", "Dead letter notifications.email.dlq"],
+      "public_surface": [
+        "Queue name notifications.email",
+        "Dead letter notifications.email.dlq"
+      ],
       "invariants": [
         "Carries a notification id, never a token plaintext; the worker re-reads what it needs.",
         "A failed send never rolls back the invitation row; resend is an explicit operator action."
       ],
-      "docs": ["docs/03-API-spec.md"]
+      "docs": [
+        "docs/03-API-spec.md"
+      ]
     },
     {
       "id": "q-bank-jobs",
@@ -498,12 +602,18 @@
       "path": "logical queue on Valkey",
       "backed_by": "valkey",
       "purpose": "Long-running bank operations: QTI and JSON import, dataset import, question and report export, candidate bulk CSV, org data export.",
-      "public_surface": ["Queue name bank.jobs", "Dead letter bank.jobs.dlq"],
+      "public_surface": [
+        "Queue name bank.jobs",
+        "Dead letter bank.jobs.dlq"
+      ],
       "invariants": [
         "An import is transactional per question; a malformed row is skipped and reported, never partially written.",
         "Licence provenance from an imported dataset is preserved on the question row."
       ],
-      "docs": ["docs/03-API-spec.md", "docs/05-licensing-and-compliance.md"]
+      "docs": [
+        "docs/03-API-spec.md",
+        "docs/05-licensing-and-compliance.md"
+      ]
     },
     {
       "id": "q-maintenance",
@@ -516,14 +626,18 @@
       "path": "logical queue on Valkey",
       "backed_by": "valkey",
       "purpose": "Repeatable-job carrier for every scheduled sweep, so schedules survive a worker restart and never run twice concurrently.",
-      "public_surface": ["Queue name maintenance.cron", "Dead letter maintenance.cron.dlq"],
+      "public_surface": [
+        "Queue name maintenance.cron",
+        "Dead letter maintenance.cron.dlq"
+      ],
       "invariants": [
         "Concurrency is 1 per job key; two workers must never run the same sweep at the same time.",
         "Every sweep is idempotent - a missed tick is caught up by the next one, not by a manual replay."
       ],
-      "docs": ["docs/12-observability-and-runbooks.md"]
+      "docs": [
+        "docs/12-observability-and-runbooks.md"
+      ]
     },
-
     {
       "id": "job-deadline-sweep",
       "name": "Deadline sweep",
@@ -535,12 +649,17 @@
       "path": "apps/worker/src/jobs/deadline-sweep.ts",
       "host": "worker",
       "purpose": "Transitions attempts whose deadline_at has passed to expired and grades whatever was autosaved.",
-      "public_surface": ["Repeatable job key maintenance.cron:deadline-sweep"],
+      "public_surface": [
+        "Repeatable job key maintenance.cron:deadline-sweep"
+      ],
       "invariants": [
         "expired is set by the server, never by a client (ADR-006).",
         "An expired attempt is graded on its autosaved answers; it is never scored zero for expiring."
       ],
-      "docs": ["docs/04-ADRs.md", "docs/03-API-spec.md"]
+      "docs": [
+        "docs/04-ADRs.md",
+        "docs/03-API-spec.md"
+      ]
     },
     {
       "id": "job-question-stats",
@@ -553,12 +672,17 @@
       "path": "apps/worker/src/jobs/question-stats.ts",
       "host": "worker",
       "purpose": "Recomputes question_stats - exposure count, p-value, discrimination and mean seconds - from attempt_questions and answers.",
-      "public_surface": ["Repeatable job key maintenance.cron:question-stats"],
+      "public_surface": [
+        "Repeatable job key maintenance.cron:question-stats"
+      ],
       "invariants": [
         "Statistics are recomputed from the record, never incremented at request time, so a replay cannot drift them.",
         "Produces evidence for retiring a question; it never retires one automatically."
       ],
-      "docs": ["docs/hiring_platform_schema.sql", "docs/03-API-spec.md"]
+      "docs": [
+        "docs/hiring_platform_schema.sql",
+        "docs/03-API-spec.md"
+      ]
     },
     {
       "id": "job-retention-erasure",
@@ -571,12 +695,17 @@
       "path": "apps/worker/src/jobs/retention-erasure.ts",
       "host": "worker",
       "purpose": "Erases candidate PII past candidates.erase_after and prunes attempt data, session recordings and archived partitions past their RETENTION_* ceilings.",
-      "public_surface": ["Repeatable job key maintenance.cron:retention-erasure"],
+      "public_surface": [
+        "Repeatable job key maintenance.cron:retention-erasure"
+      ],
       "invariants": [
         "PII is hard-deleted while de-identified scores and the audit log survive for their own retention periods.",
         "Every erasure writes an audit_log row; the fact of deletion is itself a record."
       ],
-      "docs": ["docs/11-data-retention-and-dpia.md", "docs/05-licensing-and-compliance.md"]
+      "docs": [
+        "docs/11-data-retention-and-dpia.md",
+        "docs/05-licensing-and-compliance.md"
+      ]
     },
     {
       "id": "job-webhook-reaper",
@@ -589,12 +718,17 @@
       "path": "apps/worker/src/jobs/webhook-reaper.ts",
       "host": "worker",
       "purpose": "Closes out deliveries that have exhausted the 24-hour retry window, marks them failed and surfaces the endpoint for operator attention.",
-      "public_surface": ["Repeatable job key maintenance.cron:webhook-reaper"],
+      "public_surface": [
+        "Repeatable job key maintenance.cron:webhook-reaper"
+      ],
       "invariants": [
         "A delivery leaves the queue in a terminal, visible state; it never disappears.",
         "A dead endpoint is flagged, not silently disabled; disabling an integration is an operator decision."
       ],
-      "docs": ["docs/03-API-spec.md", "docs/09-ats-integration.md"]
+      "docs": [
+        "docs/03-API-spec.md",
+        "docs/09-ats-integration.md"
+      ]
     },
     {
       "id": "job-proctor-media-deletion",
@@ -607,12 +741,17 @@
       "path": "apps/worker/src/jobs/proctor-media-deletion.ts",
       "host": "worker",
       "purpose": "Deletes proctor media objects and their rows once proctor_media.delete_after has passed.",
-      "public_surface": ["Repeatable job key maintenance.cron:proctor-media-deletion"],
+      "public_surface": [
+        "Repeatable job key maintenance.cron:proctor-media-deletion"
+      ],
       "invariants": [
         "The ceiling is hard: RETENTION_PROCTOR_MEDIA_DAYS applies even to an attempt still under review, and there is no extension path in the product (ADR-007).",
         "Deletes the object first, then the row, so a crash can never leave an orphaned biometric object."
       ],
-      "docs": ["docs/11-data-retention-and-dpia.md", "docs/04-ADRs.md"]
+      "docs": [
+        "docs/11-data-retention-and-dpia.md",
+        "docs/04-ADRs.md"
+      ]
     },
     {
       "id": "job-partition-roll",
@@ -625,14 +764,18 @@
       "path": "apps/worker/src/jobs/partition-roll.ts",
       "host": "worker",
       "purpose": "Creates next month's partitions for session_events and proctor_events and archives partitions older than 90 days to object storage.",
-      "public_surface": ["Repeatable job key maintenance.cron:partition-roll"],
+      "public_surface": [
+        "Repeatable job key maintenance.cron:partition-roll"
+      ],
       "invariants": [
         "Partitions exist before the month they cover; an insert must never fail for want of a partition.",
         "Archiving copies and verifies before dropping."
       ],
-      "docs": ["docs/02-HLD.md", "docs/11-data-retention-and-dpia.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/11-data-retention-and-dpia.md"
+      ]
     },
-
     {
       "id": "piston",
       "name": "Piston",
@@ -643,14 +786,21 @@
       "owner_role": "platform engineer",
       "path": "service: piston:2000 (PISTON_URL), self-hosted",
       "purpose": "MIT-licensed sandboxed code execution, self-hosted on dedicated network-isolated nodes.",
-      "public_surface": ["POST /api/v2/execute", "GET /api/v2/runtimes"],
+      "public_surface": [
+        "POST /api/v2/execute",
+        "GET /api/v2/runtimes"
+      ],
       "invariants": [
         "Holds no secret, no database credential and no cloud identity; it is assumed to be escapable (HLD section 7).",
         "No network egress, no route to the API or the database.",
         "Never co-located with the API, the worker or the database; nodes are ephemeral and recycled.",
         "Never sees a test-case expectation, a question id or a candidate identity."
       ],
-      "docs": ["docs/02-HLD.md", "docs/04-ADRs.md", "docs/14-threat-model.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/04-ADRs.md",
+        "docs/14-threat-model.md"
+      ]
     },
     {
       "id": "smtp",
@@ -662,12 +812,17 @@
       "owner_role": "platform engineer",
       "path": "service: mailpit SMTP :1025, UI :8025 (SMTP_URL)",
       "purpose": "Outbound mail transport for invitations, reminders and result notifications.",
-      "public_surface": ["SMTP on SMTP_URL, sender MAIL_FROM"],
+      "public_surface": [
+        "SMTP on SMTP_URL, sender MAIL_FROM"
+      ],
       "invariants": [
         "Dev and staging use Mailpit so no candidate can ever receive mail from a non-production environment.",
         "An invitation e-mail carries a single-use token link and nothing else about the assessment content."
       ],
-      "docs": ["docs/03-API-spec.md", "docs/13-environments-and-release.md"]
+      "docs": [
+        "docs/03-API-spec.md",
+        "docs/13-environments-and-release.md"
+      ]
     },
     {
       "id": "oidc",
@@ -679,12 +834,17 @@
       "owner_role": "backend engineer (security)",
       "path": "external: OIDC_ISSUER",
       "purpose": "Customer SSO for staff accounts via the authorisation-code flow.",
-      "public_surface": ["OIDC discovery, authorisation and token endpoints"],
+      "public_surface": [
+        "OIDC discovery, authorisation and token endpoints"
+      ],
       "invariants": [
         "Staff only; candidates never authenticate against the IdP.",
         "Group or role claims map to platform roles through explicit configuration, never implicitly by name."
       ],
-      "docs": ["docs/03-API-spec.md", "docs/14-threat-model.md"]
+      "docs": [
+        "docs/03-API-spec.md",
+        "docs/14-threat-model.md"
+      ]
     },
     {
       "id": "ats",
@@ -696,12 +856,17 @@
       "owner_role": "backend engineer (integrations)",
       "path": "external: customer-configured webhook endpoints",
       "purpose": "Receives signed webhooks for invitation, attempt, session and scorecard events.",
-      "public_surface": ["Customer HTTPS endpoint, HMAC-SHA256 signature in X-Signature"],
+      "public_surface": [
+        "Customer HTTPS endpoint, HMAC-SHA256 signature in X-Signature"
+      ],
       "invariants": [
         "Treated as untrusted and possibly slow; delivery is queued, never synchronous.",
         "Receives scores and skill breakdowns, never raw proctor media or hidden test-case content."
       ],
-      "docs": ["docs/03-API-spec.md", "docs/09-ats-integration.md"]
+      "docs": [
+        "docs/03-API-spec.md",
+        "docs/09-ats-integration.md"
+      ]
     },
     {
       "id": "livekit",
@@ -713,13 +878,18 @@
       "owner_role": "backend engineer (realtime)",
       "path": "service: self-hosted SFU (LIVEKIT_URL)",
       "purpose": "Apache-2.0 self-hosted SFU carrying audio and video for live interview rounds.",
-      "public_surface": ["WebRTC over WSS, room admin REST API"],
+      "public_surface": [
+        "WebRTC over WSS, room admin REST API"
+      ],
       "invariants": [
         "Room access tokens are minted by the API with a short TTL and a single room grant.",
         "Carries media only; no domain state and no code execution passes through it.",
         "Recording retention is bounded by RETENTION_SESSION_RECORDING_DAYS."
       ],
-      "docs": ["docs/02-HLD.md", "docs/11-data-retention-and-dpia.md"]
+      "docs": [
+        "docs/02-HLD.md",
+        "docs/11-data-retention-and-dpia.md"
+      ]
     },
     {
       "id": "seb",
@@ -731,12 +901,18 @@
       "owner_role": "backend engineer (security)",
       "path": "external: candidate-installed lockdown browser",
       "purpose": "Lockdown client for certification-mode exams; loads the candidate app under a signed configuration.",
-      "public_surface": ["SEB config file (.seb), Config Key and Browser Exam Key request headers"],
+      "public_surface": [
+        "SEB config file (.seb), Config Key and Browser Exam Key request headers"
+      ],
       "invariants": [
         "The API verifies the config key before allowing a certification attempt to start.",
         "Lockdown is a control, not a verdict: a failed key check blocks the start and raises a review item; it never voids or down-scores an attempt in flight (ADR-007)."
       ],
-      "docs": ["docs/01-PRD.md", "docs/10-certification-and-credentials.md", "docs/04-ADRs.md"]
+      "docs": [
+        "docs/01-PRD.md",
+        "docs/10-certification-and-credentials.md",
+        "docs/04-ADRs.md"
+      ]
     },
     {
       "id": "otel-collector",
@@ -748,107 +924,922 @@
       "owner_role": "platform engineer",
       "path": "service: otel-collector OTLP :4317 (OTEL_EXPORTER_OTLP_ENDPOINT)",
       "purpose": "Receives traces and metrics from every service and forwards them to Prometheus and the trace backend.",
-      "public_surface": ["OTLP/gRPC on 4317", "Prometheus scrape endpoint for the collector's own metrics"],
+      "public_surface": [
+        "OTLP/gRPC on 4317",
+        "Prometheus scrape endpoint for the collector's own metrics"
+      ],
       "invariants": [
         "Telemetry is best-effort; a collector outage degrades observability and must never fail a request or a job.",
         "Span attributes carry ids, never candidate PII or submitted code."
       ],
-      "docs": ["docs/12-observability-and-runbooks.md", "infra/README.md"]
+      "docs": [
+        "docs/12-observability-and-runbooks.md",
+        "infra/README.md"
+      ]
     }
   ],
-
   "edges": [
-    { "id": "web-api", "from": "web", "to": "api", "kind": "http", "protocol": "HTTPS/JSON", "sync": true, "milestone": "M0", "description": "Staff console requests carrying the session cookie; every payload is validated against a contracts schema on both ends." },
-    { "id": "candidate-api", "from": "candidate", "to": "api", "kind": "http", "protocol": "HTTPS/JSON", "sync": true, "milestone": "M1", "description": "Token redemption, attempt start, question fetch, autosave, heartbeat, submit, run and submit of code, batched proctor events." },
-    { "id": "api-candidate-sse", "from": "api", "to": "candidate", "kind": "http", "protocol": "SSE (text/event-stream)", "sync": false, "milestone": "M2", "description": "GET /attempt/submissions/{id}/stream pushes grading progress and the filtered final result; hidden cases carry pass/fail and a label only." },
-    { "id": "web-collab", "from": "web", "to": "collab", "kind": "ws", "protocol": "WSS / Yjs sync + awareness", "sync": false, "milestone": "M3", "description": "Interviewer joins the room document with a 60-second ticket; cursors and selections travel over awareness." },
-    { "id": "candidate-collab", "from": "candidate", "to": "collab", "kind": "ws", "protocol": "WSS / Yjs sync + awareness", "sync": false, "milestone": "M3", "description": "Candidate joins the same room document after POST /join/{room_code} returns a ticket." },
-    { "id": "api-postgres", "from": "api", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq via Drizzle", "sync": true, "milestone": "M0", "description": "All domain reads and writes, with app.current_org set on the pooled connection for row-level security." },
-    { "id": "worker-postgres", "from": "worker", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq via Drizzle", "sync": true, "milestone": "M1", "description": "Loads question versions, test cases and limits; writes submission_results, submission and answer scores, attempt transitions and question_stats." },
-    { "id": "collab-postgres", "from": "collab", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq via Drizzle", "sync": false, "milestone": "M3", "description": "Batched appends to session_events and a doc_state snapshot every COLLAB_SNAPSHOT_INTERVAL_MS. No other table is written." },
-    { "id": "api-valkey", "from": "api", "to": "valkey", "kind": "queue", "protocol": "RESP via BullMQ / ioredis", "sync": true, "milestone": "M0", "description": "BullMQ producer connection; the same instance carries rate-limit counters and the short-lived candidate session cache." },
-    { "id": "worker-valkey", "from": "worker", "to": "valkey", "kind": "queue", "protocol": "RESP via BullMQ / ioredis", "sync": true, "milestone": "M1", "description": "BullMQ consumer connection for every queue below, including the repeatable maintenance jobs." },
-    { "id": "api-q-submit", "from": "api", "to": "q-grading-submit", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M2", "description": "POST /attempt/questions/{aq_id}/submit inserts submissions(status='queued') then enqueues by submission id and returns 202." },
-    { "id": "api-q-run", "from": "api", "to": "q-grading-run", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M2", "description": "POST /attempt/questions/{aq_id}/run and POST /sessions/{id}/run enqueue a sample-case-only trial run." },
-    { "id": "api-q-webhooks", "from": "api", "to": "q-webhooks", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M1", "description": "Domain events are recorded and enqueued in the same transaction boundary as the state change that produced them." },
-    { "id": "api-q-notifications", "from": "api", "to": "q-notifications", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M1", "description": "Invitation send and resend, reminder and result notification requests." },
-    { "id": "api-q-bank", "from": "api", "to": "q-bank-jobs", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M0", "description": "Import, export and bulk CSV endpoints return 202 with a job id and hand the work over." },
-    { "id": "q-submit-worker", "from": "q-grading-submit", "to": "worker", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M2", "description": "Batch grading jobs are dequeued at QUEUE_SUBMIT_CONCURRENCY." },
-    { "id": "q-run-worker", "from": "q-grading-run", "to": "worker", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M2", "description": "Interactive runs are dequeued at QUEUE_RUN_CONCURRENCY ahead of batch work." },
-    { "id": "q-webhooks-worker", "from": "q-webhooks", "to": "worker", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M1", "description": "Delivery jobs with exponential backoff across a 24-hour window." },
-    { "id": "q-notifications-worker", "from": "q-notifications", "to": "worker", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M1", "description": "E-mail send jobs." },
-    { "id": "q-bank-worker", "from": "q-bank-jobs", "to": "worker", "kind": "queue", "protocol": "BullMQ", "sync": false, "milestone": "M0", "description": "Import, export and bulk candidate jobs, each streaming progress into the job row." },
-    { "id": "q-maint-deadline", "from": "q-maintenance", "to": "job-deadline-sweep", "kind": "queue", "protocol": "BullMQ repeatable", "sync": false, "milestone": "M1", "description": "Repeatable tick every 60 seconds." },
-    { "id": "q-maint-stats", "from": "q-maintenance", "to": "job-question-stats", "kind": "queue", "protocol": "BullMQ repeatable", "sync": false, "milestone": "M1", "description": "Repeatable tick nightly." },
-    { "id": "q-maint-retention", "from": "q-maintenance", "to": "job-retention-erasure", "kind": "queue", "protocol": "BullMQ repeatable", "sync": false, "milestone": "M1", "description": "Repeatable tick nightly." },
-    { "id": "q-maint-reaper", "from": "q-maintenance", "to": "job-webhook-reaper", "kind": "queue", "protocol": "BullMQ repeatable", "sync": false, "milestone": "M1", "description": "Repeatable tick every five minutes." },
-    { "id": "q-maint-media", "from": "q-maintenance", "to": "job-proctor-media-deletion", "kind": "queue", "protocol": "BullMQ repeatable", "sync": false, "milestone": "M4", "description": "Repeatable tick hourly." },
-    { "id": "q-maint-partition", "from": "q-maintenance", "to": "job-partition-roll", "kind": "queue", "protocol": "BullMQ repeatable", "sync": false, "milestone": "M3", "description": "Repeatable tick daily; acts only near the month boundary." },
-    { "id": "job-deadline-postgres", "from": "job-deadline-sweep", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq", "sync": true, "milestone": "M1", "description": "Selects attempts where status='in_progress' and deadline_at < now(), transitions them to expired and enqueues grading for autosaved answers." },
-    { "id": "job-stats-postgres", "from": "job-question-stats", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq", "sync": true, "milestone": "M1", "description": "Recomputes question_stats from attempt_questions, answers and submission_results." },
-    { "id": "job-retention-postgres", "from": "job-retention-erasure", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq", "sync": true, "milestone": "M1", "description": "Erases candidate PII past erase_after, prunes attempt data past RETENTION_ATTEMPT_DATA_MONTHS and writes the audit rows." },
-    { "id": "job-retention-s3", "from": "job-retention-erasure", "to": "object-store", "kind": "s3", "protocol": "S3 DeleteObject", "sync": true, "milestone": "M1", "description": "Deletes expired exports, replays and archived partitions." },
-    { "id": "job-reaper-postgres", "from": "job-webhook-reaper", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq", "sync": true, "milestone": "M1", "description": "Marks deliveries past the retry window as failed and flags the endpoint." },
-    { "id": "job-media-postgres", "from": "job-proctor-media-deletion", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq", "sync": true, "milestone": "M4", "description": "Deletes proctor_media rows once their object is gone." },
-    { "id": "job-media-s3", "from": "job-proctor-media-deletion", "to": "object-store", "kind": "s3", "protocol": "S3 DeleteObject", "sync": true, "milestone": "M4", "description": "Deletes proctor media objects past delete_after; the object goes first, the row second." },
-    { "id": "job-partition-postgres", "from": "job-partition-roll", "to": "postgres", "kind": "sql", "protocol": "TCP/libpq", "sync": true, "milestone": "M3", "description": "Creates next month's partitions for session_events and proctor_events and detaches partitions older than 90 days." },
-    { "id": "job-partition-s3", "from": "job-partition-roll", "to": "object-store", "kind": "s3", "protocol": "S3 PutObject", "sync": true, "milestone": "M3", "description": "Writes detached partitions to archive/ and verifies the copy before the drop." },
-    { "id": "worker-pubsub", "from": "worker", "to": "valkey", "kind": "pubsub", "protocol": "RESP PUBLISH", "sync": false, "milestone": "M2", "description": "Publishes grading progress and the final result on submission:{id}, and finalisation on attempt:{id}." },
-    { "id": "valkey-api-pubsub", "from": "valkey", "to": "api", "kind": "pubsub", "protocol": "RESP SUBSCRIBE", "sync": false, "milestone": "M2", "description": "The API subscribes per open SSE stream and relays the candidate-filtered payload; no polling of Postgres." },
-    { "id": "api-valkey-pubsub", "from": "api", "to": "valkey", "kind": "pubsub", "protocol": "RESP PUBLISH", "sync": false, "milestone": "M3", "description": "Publishes room lifecycle control messages on room:{room_code}:control when POST /sessions/{id}/end runs." },
-    { "id": "collab-valkey-pubsub", "from": "collab", "to": "valkey", "kind": "pubsub", "protocol": "RESP PUBLISH/SUBSCRIBE", "sync": false, "milestone": "M3", "description": "Cross-instance awareness and update fan-out so sticky routing by room code is an optimisation rather than a requirement." },
-    { "id": "valkey-collab-pubsub", "from": "valkey", "to": "collab", "kind": "pubsub", "protocol": "RESP SUBSCRIBE", "sync": false, "milestone": "M3", "description": "Delivers peer updates and the API's room control messages to every collaboration instance holding the room." },
-    { "id": "exec-piston", "from": "exec-adapter", "to": "piston", "kind": "http", "protocol": "HTTP/JSON", "sync": true, "milestone": "M2", "description": "POST /api/v2/execute with language, version, files, stdin, args and the EXEC_* limits. No question id, no expectation, no identity." },
-    { "id": "api-s3", "from": "api", "to": "object-store", "kind": "s3", "protocol": "S3 pre-sign", "sync": true, "milestone": "M0", "description": "Issues short-lived pre-signed GET and PUT URLs and records object keys; it never proxies object bytes." },
-    { "id": "worker-s3", "from": "worker", "to": "object-store", "kind": "s3", "protocol": "S3 PutObject/GetObject", "sync": true, "milestone": "M0", "description": "Writes export files, packaged session replays and oversized submission artefacts." },
-    { "id": "candidate-s3", "from": "candidate", "to": "object-store", "kind": "s3", "protocol": "HTTPS pre-signed PUT", "sync": true, "milestone": "M4", "description": "Proctor media and large artefacts upload directly against a pre-signed URL obtained from POST /attempt/proctor-media, so bytes never transit the API (HLD section 3.5)." },
-    { "id": "worker-smtp", "from": "worker", "to": "smtp", "kind": "smtp", "protocol": "SMTP", "sync": true, "milestone": "M1", "description": "Sends invitation, reminder and result mail from MAIL_FROM through SMTP_URL." },
-    { "id": "worker-ats", "from": "worker", "to": "ats", "kind": "webhook", "protocol": "HTTPS POST, HMAC-SHA256 in X-Signature", "sync": true, "milestone": "M1", "description": "At-least-once delivery of invitation.sent, attempt.started, attempt.submitted, attempt.finalised, attempt.flagged, session.ended and scorecard.submitted." },
-    { "id": "api-oidc", "from": "api", "to": "oidc", "kind": "http", "protocol": "OIDC authorisation code", "sync": true, "milestone": "M0", "description": "Staff SSO: POST /auth/oidc/start redirects, GET /auth/oidc/callback exchanges the code and establishes a session." },
-    { "id": "api-livekit", "from": "api", "to": "livekit", "kind": "http", "protocol": "HTTPS/JSON", "sync": true, "milestone": "M3", "description": "Mints short-lived room access tokens and issues room admin calls when a session ends." },
-    { "id": "web-livekit", "from": "web", "to": "livekit", "kind": "ws", "protocol": "WebRTC over WSS", "sync": false, "milestone": "M3", "description": "Interviewer audio and video for the live round." },
-    { "id": "candidate-livekit", "from": "candidate", "to": "livekit", "kind": "ws", "protocol": "WebRTC over WSS", "sync": false, "milestone": "M3", "description": "Candidate audio and video for the live round." },
-    { "id": "seb-candidate", "from": "seb", "to": "candidate", "kind": "http", "protocol": "HTTPS with Config Key headers", "sync": true, "milestone": "M4", "description": "Safe Exam Browser loads the candidate app under a signed configuration; the API verifies the config key before a certification attempt may start." },
-    { "id": "api-otel", "from": "api", "to": "otel-collector", "kind": "http", "protocol": "OTLP/gRPC", "sync": false, "milestone": "M0", "description": "Traces and metrics, sampled at OTEL_TRACES_SAMPLER_ARG." },
-    { "id": "worker-otel", "from": "worker", "to": "otel-collector", "kind": "http", "protocol": "OTLP/gRPC", "sync": false, "milestone": "M1", "description": "Traces adopted from the queue payload, so one trace spans request, queue and execution." },
-    { "id": "collab-otel", "from": "collab", "to": "otel-collector", "kind": "http", "protocol": "OTLP/gRPC", "sync": false, "milestone": "M3", "description": "Connection, reconnect and snapshot metrics." },
-
-    { "id": "i-api-contracts", "from": "api", "to": "contracts", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Request and response validation for every route." },
-    { "id": "i-api-db", "from": "api", "to": "db", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Schema, typed queries and the org-scoped connection helper." },
-    { "id": "i-api-core", "from": "api", "to": "core-domain", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Rule resolution, the question draw, state transitions and deadline computation." },
-    { "id": "i-api-grading", "from": "api", "to": "grading", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Inline MCQ and short-answer grading at submit; these are pure comparisons and need no queue." },
-    { "id": "i-api-auth", "from": "api", "to": "auth", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Sessions, OIDC, attempt tokens, WebSocket tickets and permission checks." },
-    { "id": "i-api-config", "from": "api", "to": "config", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Validated configuration at boot." },
-    { "id": "i-api-obs", "from": "api", "to": "observability", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Logger, tracer and metrics." },
-    { "id": "i-worker-contracts", "from": "worker", "to": "contracts", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Job payload schemas and the webhook event envelope." },
-    { "id": "i-worker-db", "from": "worker", "to": "db", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Its enumerated write-set plus read access to bank and attempt tables." },
-    { "id": "i-worker-core", "from": "worker", "to": "core-domain", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Attempt transitions, score aggregation and skill roll-up at finalisation." },
-    { "id": "i-worker-grading", "from": "worker", "to": "grading", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Test-case comparison and weighted scoring, executed in the worker and never in the sandbox." },
-    { "id": "i-worker-exec", "from": "worker", "to": "exec-adapter", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M2", "description": "The only consumer of execute(); the API never imports this package." },
-    { "id": "i-worker-config", "from": "worker", "to": "config", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Validated configuration at boot." },
-    { "id": "i-worker-obs", "from": "worker", "to": "observability", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Trace adoption from the job payload, logger and metrics." },
-    { "id": "i-collab-contracts", "from": "collab", "to": "contracts", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M3", "description": "Ticket claims and session event shapes." },
-    { "id": "i-collab-db", "from": "collab", "to": "db", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M3", "description": "Restricted to the session_events append and the doc_state snapshot." },
-    { "id": "i-collab-auth", "from": "collab", "to": "auth", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M3", "description": "verifyWsTicket() only; it performs no permission resolution of its own." },
-    { "id": "i-collab-config", "from": "collab", "to": "config", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M3", "description": "Validated configuration at boot." },
-    { "id": "i-collab-obs", "from": "collab", "to": "observability", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M3", "description": "Logger, tracer and metrics." },
-    { "id": "i-web-contracts", "from": "web", "to": "contracts", "kind": "imports", "protocol": "workspace dependency (types and schemas only)", "sync": true, "milestone": "M0", "description": "Typed API client and form validation shared with the server." },
-    { "id": "i-web-ui", "from": "web", "to": "ui", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Shared components and design tokens." },
-    { "id": "i-candidate-contracts", "from": "candidate", "to": "contracts", "kind": "imports", "protocol": "workspace dependency (candidate-facing schemas only)", "sync": true, "milestone": "M1", "description": "Candidate-facing schemas; staff schemas are a separate entry point that this bundle must not reach." },
-    { "id": "i-candidate-ui", "from": "candidate", "to": "ui", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M1", "description": "Shared components and design tokens." },
-    { "id": "i-auth-contracts", "from": "auth", "to": "contracts", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Token and session claim schemas." },
-    { "id": "i-auth-db", "from": "auth", "to": "db", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "Users, roles, permissions and invitation token hashes." },
-    { "id": "i-auth-config", "from": "auth", "to": "config", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "SESSION_SECRET, TOKEN_PEPPER and the OIDC settings." },
-    { "id": "i-db-config", "from": "db", "to": "config", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "DATABASE_URL, pool size and the role selection." },
-    { "id": "i-exec-contracts", "from": "exec-adapter", "to": "contracts", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M2", "description": "ExecRequest and ExecResult schemas." },
-    { "id": "i-exec-config", "from": "exec-adapter", "to": "config", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M2", "description": "PISTON_URL and the EXEC_* limits." },
-    { "id": "i-exec-obs", "from": "exec-adapter", "to": "observability", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M2", "description": "Execution latency histogram and timeout counters." },
-    { "id": "i-core-contracts", "from": "core-domain", "to": "contracts", "kind": "imports", "protocol": "workspace dependency (types only)", "sync": true, "milestone": "M0", "description": "Domain types only; contracts performs no I/O, so the purity rule holds." },
-    { "id": "i-grading-contracts", "from": "grading", "to": "contracts", "kind": "imports", "protocol": "workspace dependency (types only)", "sync": true, "milestone": "M1", "description": "Grading mode and result types only." },
-    { "id": "i-ui-contracts", "from": "ui", "to": "contracts", "kind": "imports", "protocol": "workspace dependency (types only)", "sync": true, "milestone": "M0", "description": "Prop types for the components that render domain objects." },
-    { "id": "i-obs-config", "from": "observability", "to": "config", "kind": "imports", "protocol": "workspace dependency", "sync": true, "milestone": "M0", "description": "LOG_LEVEL, OTEL_* settings and the service name." }
+    {
+      "id": "web-api",
+      "from": "web",
+      "to": "api",
+      "kind": "http",
+      "protocol": "HTTPS/JSON",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Staff console requests carrying the session cookie; every payload is validated against a contracts schema on both ends."
+    },
+    {
+      "id": "candidate-api",
+      "from": "candidate",
+      "to": "api",
+      "kind": "http",
+      "protocol": "HTTPS/JSON",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Token redemption, attempt start, question fetch, autosave, heartbeat, submit, run and submit of code, batched proctor events."
+    },
+    {
+      "id": "api-candidate-sse",
+      "from": "api",
+      "to": "candidate",
+      "kind": "http",
+      "protocol": "SSE (text/event-stream)",
+      "sync": false,
+      "milestone": "M2",
+      "description": "GET /attempt/submissions/{id}/stream pushes grading progress and the filtered final result; hidden cases carry pass/fail and a label only."
+    },
+    {
+      "id": "web-collab",
+      "from": "web",
+      "to": "collab",
+      "kind": "ws",
+      "protocol": "WSS / Yjs sync + awareness",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Interviewer joins the room document with a 60-second ticket; cursors and selections travel over awareness."
+    },
+    {
+      "id": "candidate-collab",
+      "from": "candidate",
+      "to": "collab",
+      "kind": "ws",
+      "protocol": "WSS / Yjs sync + awareness",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Candidate joins the same room document after POST /join/{room_code} returns a ticket."
+    },
+    {
+      "id": "api-postgres",
+      "from": "api",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq via Drizzle",
+      "sync": true,
+      "milestone": "M0",
+      "description": "All domain reads and writes, with app.current_org set on the pooled connection for row-level security."
+    },
+    {
+      "id": "worker-postgres",
+      "from": "worker",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq via Drizzle",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Loads question versions, test cases and limits; writes submission_results, submission and answer scores, attempt transitions and question_stats."
+    },
+    {
+      "id": "collab-postgres",
+      "from": "collab",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq via Drizzle",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Batched appends to session_events and a doc_state snapshot every COLLAB_SNAPSHOT_INTERVAL_MS. No other table is written."
+    },
+    {
+      "id": "api-valkey",
+      "from": "api",
+      "to": "valkey",
+      "kind": "queue",
+      "protocol": "RESP via BullMQ / ioredis",
+      "sync": true,
+      "milestone": "M0",
+      "description": "BullMQ producer connection; the same instance carries rate-limit counters and the short-lived candidate session cache."
+    },
+    {
+      "id": "worker-valkey",
+      "from": "worker",
+      "to": "valkey",
+      "kind": "queue",
+      "protocol": "RESP via BullMQ / ioredis",
+      "sync": true,
+      "milestone": "M1",
+      "description": "BullMQ consumer connection for every queue below, including the repeatable maintenance jobs."
+    },
+    {
+      "id": "api-q-submit",
+      "from": "api",
+      "to": "q-grading-submit",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M2",
+      "description": "POST /attempt/questions/{aq_id}/submit inserts submissions(status='queued') then enqueues by submission id and returns 202."
+    },
+    {
+      "id": "api-q-run",
+      "from": "api",
+      "to": "q-grading-run",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M2",
+      "description": "POST /attempt/questions/{aq_id}/run and POST /sessions/{id}/run enqueue a sample-case-only trial run."
+    },
+    {
+      "id": "api-q-webhooks",
+      "from": "api",
+      "to": "q-webhooks",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Domain events are recorded and enqueued in the same transaction boundary as the state change that produced them."
+    },
+    {
+      "id": "api-q-notifications",
+      "from": "api",
+      "to": "q-notifications",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Invitation send and resend, reminder and result notification requests."
+    },
+    {
+      "id": "api-q-bank",
+      "from": "api",
+      "to": "q-bank-jobs",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M0",
+      "description": "Import, export and bulk CSV endpoints return 202 with a job id and hand the work over."
+    },
+    {
+      "id": "q-submit-worker",
+      "from": "q-grading-submit",
+      "to": "worker",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M2",
+      "description": "Batch grading jobs are dequeued at QUEUE_SUBMIT_CONCURRENCY."
+    },
+    {
+      "id": "q-run-worker",
+      "from": "q-grading-run",
+      "to": "worker",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M2",
+      "description": "Interactive runs are dequeued at QUEUE_RUN_CONCURRENCY ahead of batch work."
+    },
+    {
+      "id": "q-webhooks-worker",
+      "from": "q-webhooks",
+      "to": "worker",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Delivery jobs with exponential backoff across a 24-hour window."
+    },
+    {
+      "id": "q-notifications-worker",
+      "from": "q-notifications",
+      "to": "worker",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M1",
+      "description": "E-mail send jobs."
+    },
+    {
+      "id": "q-bank-worker",
+      "from": "q-bank-jobs",
+      "to": "worker",
+      "kind": "queue",
+      "protocol": "BullMQ",
+      "sync": false,
+      "milestone": "M0",
+      "description": "Import, export and bulk candidate jobs, each streaming progress into the job row."
+    },
+    {
+      "id": "q-maint-deadline",
+      "from": "q-maintenance",
+      "to": "job-deadline-sweep",
+      "kind": "queue",
+      "protocol": "BullMQ repeatable",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Repeatable tick every 60 seconds."
+    },
+    {
+      "id": "q-maint-stats",
+      "from": "q-maintenance",
+      "to": "job-question-stats",
+      "kind": "queue",
+      "protocol": "BullMQ repeatable",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Repeatable tick nightly."
+    },
+    {
+      "id": "q-maint-retention",
+      "from": "q-maintenance",
+      "to": "job-retention-erasure",
+      "kind": "queue",
+      "protocol": "BullMQ repeatable",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Repeatable tick nightly."
+    },
+    {
+      "id": "q-maint-reaper",
+      "from": "q-maintenance",
+      "to": "job-webhook-reaper",
+      "kind": "queue",
+      "protocol": "BullMQ repeatable",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Repeatable tick every five minutes."
+    },
+    {
+      "id": "q-maint-media",
+      "from": "q-maintenance",
+      "to": "job-proctor-media-deletion",
+      "kind": "queue",
+      "protocol": "BullMQ repeatable",
+      "sync": false,
+      "milestone": "M4",
+      "description": "Repeatable tick hourly."
+    },
+    {
+      "id": "q-maint-partition",
+      "from": "q-maintenance",
+      "to": "job-partition-roll",
+      "kind": "queue",
+      "protocol": "BullMQ repeatable",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Repeatable tick daily; acts only near the month boundary."
+    },
+    {
+      "id": "job-deadline-postgres",
+      "from": "job-deadline-sweep",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Selects attempts where status='in_progress' and deadline_at < now(), transitions them to expired and enqueues grading for autosaved answers."
+    },
+    {
+      "id": "job-stats-postgres",
+      "from": "job-question-stats",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Recomputes question_stats from attempt_questions, answers and submission_results."
+    },
+    {
+      "id": "job-retention-postgres",
+      "from": "job-retention-erasure",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Erases candidate PII past erase_after, prunes attempt data past RETENTION_ATTEMPT_DATA_MONTHS and writes the audit rows."
+    },
+    {
+      "id": "job-retention-s3",
+      "from": "job-retention-erasure",
+      "to": "object-store",
+      "kind": "s3",
+      "protocol": "S3 DeleteObject",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Deletes expired exports, replays and archived partitions."
+    },
+    {
+      "id": "job-reaper-postgres",
+      "from": "job-webhook-reaper",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Marks deliveries past the retry window as failed and flags the endpoint."
+    },
+    {
+      "id": "job-media-postgres",
+      "from": "job-proctor-media-deletion",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq",
+      "sync": true,
+      "milestone": "M4",
+      "description": "Deletes proctor_media rows once their object is gone."
+    },
+    {
+      "id": "job-media-s3",
+      "from": "job-proctor-media-deletion",
+      "to": "object-store",
+      "kind": "s3",
+      "protocol": "S3 DeleteObject",
+      "sync": true,
+      "milestone": "M4",
+      "description": "Deletes proctor media objects past delete_after; the object goes first, the row second."
+    },
+    {
+      "id": "job-partition-postgres",
+      "from": "job-partition-roll",
+      "to": "postgres",
+      "kind": "sql",
+      "protocol": "TCP/libpq",
+      "sync": true,
+      "milestone": "M3",
+      "description": "Creates next month's partitions for session_events and proctor_events and detaches partitions older than 90 days."
+    },
+    {
+      "id": "job-partition-s3",
+      "from": "job-partition-roll",
+      "to": "object-store",
+      "kind": "s3",
+      "protocol": "S3 PutObject",
+      "sync": true,
+      "milestone": "M3",
+      "description": "Writes detached partitions to archive/ and verifies the copy before the drop."
+    },
+    {
+      "id": "worker-pubsub",
+      "from": "worker",
+      "to": "valkey",
+      "kind": "pubsub",
+      "protocol": "RESP PUBLISH",
+      "sync": false,
+      "milestone": "M2",
+      "description": "Publishes grading progress and the final result on submission:{id}, and finalisation on attempt:{id}."
+    },
+    {
+      "id": "valkey-api-pubsub",
+      "from": "valkey",
+      "to": "api",
+      "kind": "pubsub",
+      "protocol": "RESP SUBSCRIBE",
+      "sync": false,
+      "milestone": "M2",
+      "description": "The API subscribes per open SSE stream and relays the candidate-filtered payload; no polling of Postgres."
+    },
+    {
+      "id": "api-valkey-pubsub",
+      "from": "api",
+      "to": "valkey",
+      "kind": "pubsub",
+      "protocol": "RESP PUBLISH",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Publishes room lifecycle control messages on room:{room_code}:control when POST /sessions/{id}/end runs."
+    },
+    {
+      "id": "collab-valkey-pubsub",
+      "from": "collab",
+      "to": "valkey",
+      "kind": "pubsub",
+      "protocol": "RESP PUBLISH/SUBSCRIBE",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Cross-instance awareness and update fan-out so sticky routing by room code is an optimisation rather than a requirement."
+    },
+    {
+      "id": "valkey-collab-pubsub",
+      "from": "valkey",
+      "to": "collab",
+      "kind": "pubsub",
+      "protocol": "RESP SUBSCRIBE",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Delivers peer updates and the API's room control messages to every collaboration instance holding the room."
+    },
+    {
+      "id": "exec-piston",
+      "from": "exec-adapter",
+      "to": "piston",
+      "kind": "http",
+      "protocol": "HTTP/JSON",
+      "sync": true,
+      "milestone": "M2",
+      "description": "POST /api/v2/execute with language, version, files, stdin, args and the EXEC_* limits. No question id, no expectation, no identity."
+    },
+    {
+      "id": "api-s3",
+      "from": "api",
+      "to": "object-store",
+      "kind": "s3",
+      "protocol": "S3 pre-sign",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Issues short-lived pre-signed GET and PUT URLs and records object keys; it never proxies object bytes."
+    },
+    {
+      "id": "worker-s3",
+      "from": "worker",
+      "to": "object-store",
+      "kind": "s3",
+      "protocol": "S3 PutObject/GetObject",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Writes export files, packaged session replays and oversized submission artefacts."
+    },
+    {
+      "id": "candidate-s3",
+      "from": "candidate",
+      "to": "object-store",
+      "kind": "s3",
+      "protocol": "HTTPS pre-signed PUT",
+      "sync": true,
+      "milestone": "M4",
+      "description": "Proctor media and large artefacts upload directly against a pre-signed URL obtained from POST /attempt/proctor-media, so bytes never transit the API (HLD section 3.5)."
+    },
+    {
+      "id": "worker-smtp",
+      "from": "worker",
+      "to": "smtp",
+      "kind": "smtp",
+      "protocol": "SMTP",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Sends invitation, reminder and result mail from MAIL_FROM through SMTP_URL."
+    },
+    {
+      "id": "worker-ats",
+      "from": "worker",
+      "to": "ats",
+      "kind": "webhook",
+      "protocol": "HTTPS POST, HMAC-SHA256 in X-Signature",
+      "sync": true,
+      "milestone": "M1",
+      "description": "At-least-once delivery of invitation.sent, attempt.started, attempt.submitted, attempt.finalised, attempt.flagged, session.ended and scorecard.submitted."
+    },
+    {
+      "id": "api-oidc",
+      "from": "api",
+      "to": "oidc",
+      "kind": "http",
+      "protocol": "OIDC authorisation code",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Staff SSO: POST /auth/oidc/start redirects, GET /auth/oidc/callback exchanges the code and establishes a session."
+    },
+    {
+      "id": "api-livekit",
+      "from": "api",
+      "to": "livekit",
+      "kind": "http",
+      "protocol": "HTTPS/JSON",
+      "sync": true,
+      "milestone": "M3",
+      "description": "Mints short-lived room access tokens and issues room admin calls when a session ends."
+    },
+    {
+      "id": "web-livekit",
+      "from": "web",
+      "to": "livekit",
+      "kind": "ws",
+      "protocol": "WebRTC over WSS",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Interviewer audio and video for the live round."
+    },
+    {
+      "id": "candidate-livekit",
+      "from": "candidate",
+      "to": "livekit",
+      "kind": "ws",
+      "protocol": "WebRTC over WSS",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Candidate audio and video for the live round."
+    },
+    {
+      "id": "seb-candidate",
+      "from": "seb",
+      "to": "candidate",
+      "kind": "http",
+      "protocol": "HTTPS with Config Key headers",
+      "sync": true,
+      "milestone": "M4",
+      "description": "Safe Exam Browser loads the candidate app under a signed configuration; the API verifies the config key before a certification attempt may start."
+    },
+    {
+      "id": "api-otel",
+      "from": "api",
+      "to": "otel-collector",
+      "kind": "http",
+      "protocol": "OTLP/gRPC",
+      "sync": false,
+      "milestone": "M0",
+      "description": "Traces and metrics, sampled at OTEL_TRACES_SAMPLER_ARG."
+    },
+    {
+      "id": "worker-otel",
+      "from": "worker",
+      "to": "otel-collector",
+      "kind": "http",
+      "protocol": "OTLP/gRPC",
+      "sync": false,
+      "milestone": "M1",
+      "description": "Traces adopted from the queue payload, so one trace spans request, queue and execution."
+    },
+    {
+      "id": "collab-otel",
+      "from": "collab",
+      "to": "otel-collector",
+      "kind": "http",
+      "protocol": "OTLP/gRPC",
+      "sync": false,
+      "milestone": "M3",
+      "description": "Connection, reconnect and snapshot metrics."
+    },
+    {
+      "id": "i-api-contracts",
+      "from": "api",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Request and response validation for every route."
+    },
+    {
+      "id": "i-api-db",
+      "from": "api",
+      "to": "db",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Schema, typed queries and the org-scoped connection helper."
+    },
+    {
+      "id": "i-api-core",
+      "from": "api",
+      "to": "core-domain",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Rule resolution, the question draw, state transitions and deadline computation."
+    },
+    {
+      "id": "i-api-grading",
+      "from": "api",
+      "to": "grading",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Inline MCQ and short-answer grading at submit; these are pure comparisons and need no queue."
+    },
+    {
+      "id": "i-api-auth",
+      "from": "api",
+      "to": "auth",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Sessions, OIDC, attempt tokens, WebSocket tickets and permission checks."
+    },
+    {
+      "id": "i-api-config",
+      "from": "api",
+      "to": "config",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Validated configuration at boot."
+    },
+    {
+      "id": "i-api-obs",
+      "from": "api",
+      "to": "observability",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Logger, tracer and metrics."
+    },
+    {
+      "id": "i-worker-contracts",
+      "from": "worker",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Job payload schemas and the webhook event envelope."
+    },
+    {
+      "id": "i-worker-db",
+      "from": "worker",
+      "to": "db",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Its enumerated write-set plus read access to bank and attempt tables."
+    },
+    {
+      "id": "i-worker-core",
+      "from": "worker",
+      "to": "core-domain",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Attempt transitions, score aggregation and skill roll-up at finalisation."
+    },
+    {
+      "id": "i-worker-grading",
+      "from": "worker",
+      "to": "grading",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Test-case comparison and weighted scoring, executed in the worker and never in the sandbox."
+    },
+    {
+      "id": "i-worker-exec",
+      "from": "worker",
+      "to": "exec-adapter",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M2",
+      "description": "The only consumer of execute(); the API never imports this package."
+    },
+    {
+      "id": "i-worker-config",
+      "from": "worker",
+      "to": "config",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Validated configuration at boot."
+    },
+    {
+      "id": "i-worker-obs",
+      "from": "worker",
+      "to": "observability",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Trace adoption from the job payload, logger and metrics."
+    },
+    {
+      "id": "i-collab-contracts",
+      "from": "collab",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M3",
+      "description": "Ticket claims and session event shapes."
+    },
+    {
+      "id": "i-collab-db",
+      "from": "collab",
+      "to": "db",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M3",
+      "description": "Restricted to the session_events append and the doc_state snapshot."
+    },
+    {
+      "id": "i-collab-auth",
+      "from": "collab",
+      "to": "auth",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M3",
+      "description": "verifyWsTicket() only; it performs no permission resolution of its own."
+    },
+    {
+      "id": "i-collab-config",
+      "from": "collab",
+      "to": "config",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M3",
+      "description": "Validated configuration at boot."
+    },
+    {
+      "id": "i-collab-obs",
+      "from": "collab",
+      "to": "observability",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M3",
+      "description": "Logger, tracer and metrics."
+    },
+    {
+      "id": "i-web-contracts",
+      "from": "web",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency (types and schemas only)",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Typed API client and form validation shared with the server."
+    },
+    {
+      "id": "i-web-ui",
+      "from": "web",
+      "to": "ui",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Shared components and design tokens."
+    },
+    {
+      "id": "i-candidate-contracts",
+      "from": "candidate",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency (candidate-facing schemas only)",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Candidate-facing schemas; staff schemas are a separate entry point that this bundle must not reach."
+    },
+    {
+      "id": "i-candidate-ui",
+      "from": "candidate",
+      "to": "ui",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Shared components and design tokens."
+    },
+    {
+      "id": "i-auth-contracts",
+      "from": "auth",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Token and session claim schemas."
+    },
+    {
+      "id": "i-auth-db",
+      "from": "auth",
+      "to": "db",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Users, roles, permissions and invitation token hashes."
+    },
+    {
+      "id": "i-auth-config",
+      "from": "auth",
+      "to": "config",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "SESSION_SECRET, TOKEN_PEPPER and the OIDC settings."
+    },
+    {
+      "id": "i-db-config",
+      "from": "db",
+      "to": "config",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "DATABASE_URL, pool size and the role selection."
+    },
+    {
+      "id": "i-exec-contracts",
+      "from": "exec-adapter",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M2",
+      "description": "ExecRequest and ExecResult schemas."
+    },
+    {
+      "id": "i-exec-config",
+      "from": "exec-adapter",
+      "to": "config",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M2",
+      "description": "PISTON_URL and the EXEC_* limits."
+    },
+    {
+      "id": "i-exec-obs",
+      "from": "exec-adapter",
+      "to": "observability",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M2",
+      "description": "Execution latency histogram and timeout counters."
+    },
+    {
+      "id": "i-core-contracts",
+      "from": "core-domain",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency (types only)",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Domain types only; contracts performs no I/O, so the purity rule holds."
+    },
+    {
+      "id": "i-grading-contracts",
+      "from": "grading",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency (types only)",
+      "sync": true,
+      "milestone": "M1",
+      "description": "Grading mode and result types only."
+    },
+    {
+      "id": "i-ui-contracts",
+      "from": "ui",
+      "to": "contracts",
+      "kind": "imports",
+      "protocol": "workspace dependency (types only)",
+      "sync": true,
+      "milestone": "M0",
+      "description": "Prop types for the components that render domain objects."
+    },
+    {
+      "id": "i-obs-config",
+      "from": "observability",
+      "to": "config",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "LOG_LEVEL, OTEL_* settings and the service name."
+    },
+    {
+      "id": "api-credentials",
+      "from": "api",
+      "to": "credentials",
+      "kind": "imports",
+      "protocol": "in-process",
+      "sync": true,
+      "milestone": "M4",
+      "description": "Issuance, verification and revocation endpoints build and sign claim sets through the credentials package."
+    },
+    {
+      "id": "worker-credentials",
+      "from": "worker",
+      "to": "credentials",
+      "kind": "imports",
+      "protocol": "in-process",
+      "sync": true,
+      "milestone": "M4",
+      "description": "Status-list publication and the deterministic PDF rendering job run in the worker."
+    }
   ],
-
   "queues": [
     {
       "name": "grading.submit",
@@ -935,14 +1926,16 @@
       "notes": "Carries every scheduled job in the table below."
     }
   ],
-
   "scheduled_jobs": [
     {
       "node": "job-deadline-sweep",
       "name": "Deadline sweep",
       "cadence": "every 60 seconds",
       "milestone": "M1",
-      "specified_by": ["docs/04-ADRs.md", "docs/03-API-spec.md"],
+      "specified_by": [
+        "docs/04-ADRs.md",
+        "docs/03-API-spec.md"
+      ],
       "invariant_protected": "No attempt stays in_progress past deadline_at. The server sets expired, not the client, and whatever was autosaved is graded (ADR-006)."
     },
     {
@@ -950,7 +1943,10 @@
       "name": "Nightly question stats",
       "cadence": "daily at 02:30 UTC",
       "milestone": "M1",
-      "specified_by": ["docs/hiring_platform_schema.sql", "docs/03-API-spec.md"],
+      "specified_by": [
+        "docs/hiring_platform_schema.sql",
+        "docs/03-API-spec.md"
+      ],
       "invariant_protected": "Exposure, p-value, discrimination and mean time are recomputed from the record rather than incremented at request time, so they cannot drift and a re-grade cannot distort them."
     },
     {
@@ -958,7 +1954,10 @@
       "name": "Retention erasure",
       "cadence": "daily at 03:30 UTC",
       "milestone": "M1",
-      "specified_by": ["docs/11-data-retention-and-dpia.md", "docs/05-licensing-and-compliance.md"],
+      "specified_by": [
+        "docs/11-data-retention-and-dpia.md",
+        "docs/05-licensing-and-compliance.md"
+      ],
       "invariant_protected": "Candidate PII disappears on the clock set by RETENTION_CANDIDATE_PII_MONTHS and candidates.erase_after, while de-identified scores and the audit log survive their own periods."
     },
     {
@@ -966,7 +1965,10 @@
       "name": "Webhook retry reaper",
       "cadence": "every 5 minutes",
       "milestone": "M1",
-      "specified_by": ["docs/03-API-spec.md", "docs/09-ats-integration.md"],
+      "specified_by": [
+        "docs/03-API-spec.md",
+        "docs/09-ats-integration.md"
+      ],
       "invariant_protected": "At-least-once delivery inside a bounded 24-hour window. Every delivery reaches a terminal, visible state; none is retried forever and none vanishes."
     },
     {
@@ -974,7 +1976,10 @@
       "name": "Proctor media deletion",
       "cadence": "hourly",
       "milestone": "M4",
-      "specified_by": ["docs/11-data-retention-and-dpia.md", "docs/04-ADRs.md"],
+      "specified_by": [
+        "docs/11-data-retention-and-dpia.md",
+        "docs/04-ADRs.md"
+      ],
       "invariant_protected": "Biometric media carries a hard ceiling of RETENTION_PROCTOR_MEDIA_DAYS that applies even to an attempt under review; deletion is unconditional and has no extension path (ADR-007)."
     },
     {
@@ -982,16 +1987,32 @@
       "name": "Monthly partition roll",
       "cadence": "daily at 01:00 UTC, acting only near the month boundary",
       "milestone": "M3",
-      "specified_by": ["docs/02-HLD.md", "docs/11-data-retention-and-dpia.md"],
+      "specified_by": [
+        "docs/02-HLD.md",
+        "docs/11-data-retention-and-dpia.md"
+      ],
       "invariant_protected": "session_events and proctor_events always have a partition to land in, and partitions older than 90 days are archived to object storage before they are dropped."
     }
   ],
-
   "layers": {
     "description": "Dependency direction is one-way and enforced by the generator's validation pass, by the workspace dependency graph, and by a lint rule once code exists.",
-    "order": ["apps (composition roots)", "impure packages (db, auth, exec-adapter, observability, config, ui)", "pure packages (core-domain, grading)", "contracts (root)"],
-    "pure_packages": ["core-domain", "grading"],
-    "io_packages": ["db", "auth", "exec-adapter", "observability", "config"],
+    "order": [
+      "apps (composition roots)",
+      "impure packages (db, auth, exec-adapter, observability, config, ui)",
+      "pure packages (core-domain, grading)",
+      "contracts (root)"
+    ],
+    "pure_packages": [
+      "core-domain",
+      "grading"
+    ],
+    "io_packages": [
+      "db",
+      "auth",
+      "exec-adapter",
+      "observability",
+      "config"
+    ],
     "rules": [
       {
         "id": "L1",
@@ -1031,30 +2052,126 @@
       }
     ],
     "forbidden_imports": [
-      { "from": "candidate", "to": "db", "reason": "L5 - bank and answer-key access must not exist in the candidate bundle" },
-      { "from": "candidate", "to": "auth", "reason": "L5 - server-side token minting must not exist in a browser bundle" },
-      { "from": "candidate", "to": "core-domain", "reason": "L5 - the question draw and state machine are server decisions" },
-      { "from": "candidate", "to": "grading", "reason": "L5 - scoring rules in the client are a leak of correct answers" },
-      { "from": "candidate", "to": "exec-adapter", "reason": "L5 - candidates never address the sandbox directly" },
-      { "from": "web", "to": "db", "reason": "L5 - the console talks to the API, never to Postgres" },
-      { "from": "web", "to": "exec-adapter", "reason": "L6 - execution goes through the API and the queue" },
-      { "from": "ui", "to": "db", "reason": "L5 - shared components are presentation only" },
-      { "from": "ui", "to": "auth", "reason": "L5 - shared components are presentation only" },
-      { "from": "ui", "to": "core-domain", "reason": "L5 - shared components are presentation only" },
-      { "from": "ui", "to": "grading", "reason": "L5 - shared components are presentation only" },
-      { "from": "api", "to": "exec-adapter", "reason": "L6 - the API must not execute code on the request path" },
-      { "from": "collab", "to": "exec-adapter", "reason": "L6 - in-session runs go through the API and grading.run" },
-      { "from": "collab", "to": "grading", "reason": "the collaboration service holds no scoring logic" },
-      { "from": "core-domain", "to": "db", "reason": "L2 - purity" },
-      { "from": "core-domain", "to": "auth", "reason": "L2 - purity" },
-      { "from": "core-domain", "to": "exec-adapter", "reason": "L2 - purity" },
-      { "from": "core-domain", "to": "observability", "reason": "L2 - purity; callers instrument, the domain does not" },
-      { "from": "core-domain", "to": "config", "reason": "L2 - configuration is passed in as arguments" },
-      { "from": "grading", "to": "db", "reason": "L2 - purity" },
-      { "from": "grading", "to": "auth", "reason": "L2 - purity" },
-      { "from": "grading", "to": "exec-adapter", "reason": "L2 - the grader compares expectations; it never runs code" },
-      { "from": "grading", "to": "observability", "reason": "L2 - purity" },
-      { "from": "grading", "to": "config", "reason": "L2 - limits and weights are passed in as arguments" }
+      {
+        "from": "candidate",
+        "to": "db",
+        "reason": "L5 - bank and answer-key access must not exist in the candidate bundle"
+      },
+      {
+        "from": "candidate",
+        "to": "auth",
+        "reason": "L5 - server-side token minting must not exist in a browser bundle"
+      },
+      {
+        "from": "candidate",
+        "to": "core-domain",
+        "reason": "L5 - the question draw and state machine are server decisions"
+      },
+      {
+        "from": "candidate",
+        "to": "grading",
+        "reason": "L5 - scoring rules in the client are a leak of correct answers"
+      },
+      {
+        "from": "candidate",
+        "to": "exec-adapter",
+        "reason": "L5 - candidates never address the sandbox directly"
+      },
+      {
+        "from": "web",
+        "to": "db",
+        "reason": "L5 - the console talks to the API, never to Postgres"
+      },
+      {
+        "from": "web",
+        "to": "exec-adapter",
+        "reason": "L6 - execution goes through the API and the queue"
+      },
+      {
+        "from": "ui",
+        "to": "db",
+        "reason": "L5 - shared components are presentation only"
+      },
+      {
+        "from": "ui",
+        "to": "auth",
+        "reason": "L5 - shared components are presentation only"
+      },
+      {
+        "from": "ui",
+        "to": "core-domain",
+        "reason": "L5 - shared components are presentation only"
+      },
+      {
+        "from": "ui",
+        "to": "grading",
+        "reason": "L5 - shared components are presentation only"
+      },
+      {
+        "from": "api",
+        "to": "exec-adapter",
+        "reason": "L6 - the API must not execute code on the request path"
+      },
+      {
+        "from": "collab",
+        "to": "exec-adapter",
+        "reason": "L6 - in-session runs go through the API and grading.run"
+      },
+      {
+        "from": "collab",
+        "to": "grading",
+        "reason": "the collaboration service holds no scoring logic"
+      },
+      {
+        "from": "core-domain",
+        "to": "db",
+        "reason": "L2 - purity"
+      },
+      {
+        "from": "core-domain",
+        "to": "auth",
+        "reason": "L2 - purity"
+      },
+      {
+        "from": "core-domain",
+        "to": "exec-adapter",
+        "reason": "L2 - purity"
+      },
+      {
+        "from": "core-domain",
+        "to": "observability",
+        "reason": "L2 - purity; callers instrument, the domain does not"
+      },
+      {
+        "from": "core-domain",
+        "to": "config",
+        "reason": "L2 - configuration is passed in as arguments"
+      },
+      {
+        "from": "grading",
+        "to": "db",
+        "reason": "L2 - purity"
+      },
+      {
+        "from": "grading",
+        "to": "auth",
+        "reason": "L2 - purity"
+      },
+      {
+        "from": "grading",
+        "to": "exec-adapter",
+        "reason": "L2 - the grader compares expectations; it never runs code"
+      },
+      {
+        "from": "grading",
+        "to": "observability",
+        "reason": "L2 - purity"
+      },
+      {
+        "from": "grading",
+        "to": "config",
+        "reason": "L2 - limits and weights are passed in as arguments"
+      }
     ]
   }
 }
