@@ -50,6 +50,24 @@ an `attempt_question_id` belongs is both easy and catastrophic.
 
 ---
 
+## 1a. Licence headers
+
+Every source file opens with the MPL-2.0 Exhibit A notice (ADR-020), in the comment syntax of its
+language. `scripts/check-licence-headers.mjs` enforces it and `--fix` adds it. This is not
+ceremony: MPL is copyleft at file granularity, so the header is what marks a file as Covered
+Software, and a file without one has an ambiguous status that surfaces during someone's legal
+review rather than during ours.
+
+```ts
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+```
+
+A file deliberately kept outside the licence — third-party vendored code, or a proprietary
+extension — is added to the skip list in the script with a comment explaining why, so the exception
+is visible rather than implicit.
+
 ## 2. Module boundaries and layering
 
 The directions are declared in [`../CODE-GRAPH.md`](../CODE-GRAPH.md) and enforced by lint, not by

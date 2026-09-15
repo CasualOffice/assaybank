@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 # PostToolUse hook: after a file is written or edited, name the maintenance rule
 # that applies to that path. It reminds; it never blocks. Silent when no rule
 # matches, because a hook that always says something is a hook people stop reading.

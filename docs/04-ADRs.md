@@ -331,3 +331,28 @@ What it buys is that every integration is possible on day one rather than only t
 The reversal condition is concrete and deliberately low: **two customers asking for the same ATS.** At that point the connector has a real API to be designed against, a named owner, and evidence that the work pays for itself. One request is an anecdote and produces an adapter shaped by a single installation's configuration. The target system is tracked as OQ-013 in [`../project/OPEN-QUESTIONS.md`](../project/OPEN-QUESTIONS.md), and it is unanswerable until recruiting names the system in use.
 
 The event catalogue, payload schemas, signature scheme, retry and replay semantics, and the connector adapter interface are in [`09-ats-integration.md`](09-ats-integration.md).
+
+---
+
+## ADR-020 — The project is licensed MPL-2.0, without Exhibit B
+
+**Status:** accepted
+**Depends on:** ADR-001
+
+**Context.** ADR-001 governs what comes *in*: every dependency must be permissive, and CI fails on GPL, AGPL, SSPL or BSL. It says nothing about what goes *out*, because until now nothing went out — the repository had no `LICENSE` file at all, which means no grant, which means nobody outside the organisation may legally use, modify or redistribute any of it. That is a decision by omission, and it is the most restrictive one available.
+
+Inbound and outbound licensing are separate questions and are routinely conflated. ADR-001's reasoning — copyleft dependencies create source-disclosure obligations that constrain commercialisation — applies to code we did not write and cannot relicense. It does not follow that our own code must be permissive.
+
+The outbound options split three ways. A permissive licence (MIT, Apache-2.0) maximises adoption and allows anyone, including a competitor, to take the work proprietary and sell a hosted version of it. Strong copyleft (AGPL-3.0) prevents that but triggers on network use, poisons the well for any customer wanting to embed the product, and is on our own prohibited list — adopting outbound what we reject inbound is a position that will not survive a customer's legal review. MPL-2.0 sits between them: copyleft at *file* granularity, triggered by distribution rather than network use.
+
+**Decision.** The project is licensed **MPL-2.0**. The full text is in [`../LICENSE`](../LICENSE), taken verbatim from the canonical Mozilla source. Every source file carries the Exhibit A notice, enforced by `scripts/check-licence-headers.mjs` in CI rather than by review.
+
+**Exhibit B is deliberately not applied.** Omitting it leaves the code GPL-compatible: a downstream recipient may combine it into a larger GPL, LGPL or AGPL work and distribute that combination under those terms, while our files remain MPL. Applying Exhibit B would block that. Blocking it buys nothing for a self-hosted product and costs compatibility with a large body of software our users may already run, so the default stands. This is stated explicitly because Exhibit B is trivially easy to add later and effectively impossible to remove once third parties have relied on its absence.
+
+**Consequences.** Anyone may use, self-host, modify and commercialise this software, including a competitor. What they may not do is take an MPL-covered file, improve it, and keep the improvement closed — modifications to covered files must be published under MPL when distributed. Combining our files with proprietary code in a larger work is permitted and does not infect that code, which is the property that makes MPL safe for a customer to embed and the reason it survives procurement review where AGPL does not.
+
+The obligation is real for us too: a fork we ship to a customer carries the same disclosure duty. And file-level granularity means the boundary is drawn by which file code lives in, so a proprietary extension belongs in its own file rather than as an edit to a covered one. That is a discipline, and it is why the header check is a gate.
+
+This leaves ADR-001 untouched and non-contradictory: we still refuse copyleft *dependencies*, because those constrain what we may do with code we do not own. We accept a weak-copyleft *grant* on code we do own, because we can relicense it at will — the copyright is ours, and MPL binds recipients, not the copyright holder.
+
+**Revisit if** the product is confirmed as a commercial closed offering where any source disclosure is unacceptable (then a proprietary licence with a separate open core), or if adoption evidence shows MPL is deterring contributors who would accept Apache-2.0. Relicensing away from MPL requires the agreement of every copyright holder, so contributor sign-off should be collected from the first external contribution, not retrofitted.

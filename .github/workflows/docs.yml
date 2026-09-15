@@ -91,6 +91,10 @@ jobs:
         if: always()
         run: node scripts/gen-code-graph.mjs --check
 
+      - name: Licence headers (ADR-020)
+        if: always()
+        run: node scripts/check-licence-headers.mjs
+
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4

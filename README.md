@@ -151,6 +151,18 @@ make seed                     # load skills, roles and a starter question set (f
 | Prometheus | http://localhost:9090 | Scrapes API, worker and collab |
 | Grafana | http://localhost:3030 | Dashboards; login from `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` in `.env` |
 
+## Licence
+
+MPL-2.0 — see [`LICENSE`](LICENSE) and [ADR-020](docs/04-ADRs.md). Weak copyleft at file
+granularity: self-host it, modify it, sell a service built on it, combine it with proprietary code.
+Modifications to MPL-covered files must be published when you distribute them; running it as a
+service triggers nothing. Exhibit B is not applied, so the code stays GPL-compatible.
+
+Every source file carries the Exhibit A notice and CI enforces it. Separately, every *dependency*
+must be MIT, Apache-2.0, BSD, ISC or MPL-2.0, and the build fails on GPL, AGPL, SSPL or BSL — see
+[`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md). Those are two
+different rules for two different directions.
+
 ## Documentation
 
 ### Design and specification — [`docs/`](docs/README.md)

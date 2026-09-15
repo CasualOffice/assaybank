@@ -7,13 +7,34 @@
 
 ---
 
-Two separate concerns that get conflated. **Software licensing** governs the code you build on. **Content licensing** governs the questions in your bank. A third, **regulatory compliance**, governs the fact that this system participates in employment decisions.
+Four separate concerns that get conflated. **Outbound licensing** governs what other people may do with the code we write. **Inbound dependency licensing** governs the code we build on. **Content licensing** governs the questions in the bank. **Regulatory compliance** governs the fact that this system participates in employment decisions.
+
+The first two are routinely treated as one question and are not. We refuse copyleft *dependencies* because we cannot relicense code we do not own, and an obligation attached to it constrains what we may do. We grant a weak-copyleft *licence* on our own code because the copyright is ours and MPL binds recipients, not the holder. Both positions can hold at once, and §0 and §1 below are why.
 
 All three need owners. None of this is legal advice — get counsel to review before you go live, particularly §3.
 
 ---
 
-## 1. Software dependency licensing
+## 0. Outbound licence — what others may do with this code
+
+**The project is licensed MPL-2.0** ([`../LICENSE`](../LICENSE), ADR-020). Exhibit B is deliberately not applied, which leaves the code GPL-compatible.
+
+| Question | Answer |
+|---|---|
+| May someone self-host this commercially? | Yes, including a competitor |
+| May someone modify it? | Yes |
+| Must they publish their modifications? | Only to MPL-covered **files**, and only on distribution — not on network use |
+| May they combine it with proprietary code? | Yes. MPL does not reach the larger work |
+| May they combine it into a GPL/AGPL work? | Yes. Exhibit B is not applied, so MPL files may be distributed as part of such a combination |
+| Does running it as a service trigger disclosure? | No. That is AGPL's trigger, not MPL's |
+
+File-level granularity is the practical consequence to understand: the licence boundary is drawn by which file code sits in. A proprietary extension belongs in its own file, not as an edit to a covered one. Every source file carries the Exhibit A notice, enforced by `scripts/check-licence-headers.mjs` in CI rather than by review, because a file without the notice has an ambiguous licence status.
+
+Relicensing away from MPL later would require the agreement of every copyright holder, so contributor sign-off is collected from the first external contribution rather than retrofitted.
+
+---
+
+## 1. Inbound dependency licensing
 
 ### Policy
 

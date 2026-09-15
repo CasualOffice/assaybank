@@ -217,6 +217,9 @@ sbom: ## Produce a CycloneDX SBOM for the current dependency tree
 # Documentation
 # -----------------------------------------------------------------------------
 
+licence-headers: ## Check every source file carries the MPL-2.0 notice (ADR-020)
+	@node scripts/check-licence-headers.mjs
+
 docs-check: ## Check doc freshness and relative links
 	@ok=1; \
 	if [ -f scripts/check-doc-freshness.mjs ]; then node scripts/check-doc-freshness.mjs || ok=0; \
