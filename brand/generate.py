@@ -57,11 +57,6 @@ def svg(vb,w,h,body,title):
 def write(n,s): open(os.path.join(OUT,n),'w').write(s)
 
 # --- marks: display (>=32px) and compact (<32px, reduced differential)
-write('assaybank-mark.svg',        svg('0 0 100 100',256,256,mark(18,8),'Assaybank'))
-write('assaybank-mark-compact.svg',svg('0 0 100 100',32,32,mark(17,12),'Assaybank'))
-write('favicon.svg',               svg('0 0 100 100',32,32,mark(17,12,col=INK),'Assaybank'))
-write('assaybank-mark-ink.svg',    svg('0 0 100 100',256,256,mark(18,8,col=INK),'Assaybank'))
-write('assaybank-mark-paper.svg',  svg('0 0 100 100',256,256,mark(18,8,col=PAPER),'Assaybank'))
 # --- wordmark
 pad=10; vbw=f'{-pad} {ASC-pad} {WW+2*pad} {DESC-ASC+2*pad}'
 write('assaybank-wordmark.svg',        svg(vbw,round(WW/4),round((DESC-ASC)/4),wm(INK),'assaybank'))
@@ -74,13 +69,47 @@ def lockup(c):
     return (f'{mark(18,8,col=c)}'
             f'<g transform="translate({100+gap},{ty:.1f}) scale({S:.4f})">'
             f'<path d="{WD}" fill="none" stroke="{c}" stroke-width="{W}" stroke-linecap="butt"/></g>')
-write('assaybank-lockup.svg',       svg(f'0 0 {lw:.0f} 100',round(lw/2),50,lockup(INK),'Assaybank'))
-write('assaybank-lockup-paper.svg', svg(f'0 0 {lw:.0f} 100',round(lw/2),50,lockup(PAPER),'Assaybank'))
 sw=max(100.0,wmw)
-write('assaybank-lockup-stacked.svg',
-      svg(f'0 0 {sw:.0f} {100+30+H*S+abs(DESC-H)*S:.0f}',round(sw/2),
-          round((100+30+H*S+abs(DESC-H)*S)/2),
-          f'<g transform="translate({(sw-100)/2:.1f},0)">{mark(18,8,col=INK)}</g>'
-          f'<g transform="translate({(sw-wmw)/2:.1f},{100+30+H*S:.1f}) scale({S:.4f})">'
-          f'<path d="{WD}" fill="none" stroke="{INK}" stroke-width="{W}" stroke-linecap="butt"/></g>','Assaybank'))
 print(f'wordmark={WW:.0f} lockup={lw:.0f}')
+
+# ---------------------------------------------------------------- app icon (house style)
+# Sibling to services/model: same tile construction (rx 22/96, hairline bezel at 10% white),
+# same dark gradient field. Warm gradient where the sibling is cool, resolving to the same
+# violet family so they read as one product family without being confusable.
+STOPS=[("0","#fbbf24"),("0.55","#fb7185"),("1","#a78bfa")]
+def _defs():
+    g=''.join(f'<stop offset="{o}" stop-color="{c}"/>' for o,c in STOPS)
+    return ('<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">'
+            '<stop offset="0" stop-color="#1c1f2b"/><stop offset="1" stop-color="#0b0c12"/>'
+            f'</linearGradient><linearGradient id="assay" x1="0" y1="0" x2="1" y2="1">{g}</linearGradient></defs>')
+def _tile():
+    return ('<rect width="96" height="96" rx="22" fill="url(#tile)"/>'
+            '<rect x="0.75" y="0.75" width="94.5" height="94.5" rx="21.25" fill="none" '
+            'stroke="#ffffff" stroke-opacity="0.10"/>')
+def _ring(stroke, cut=60, gap=10, w1=17, w2=9, r=31, cx=48, cy=48):
+    px,py=math.cos(math.radians(cut+90)),math.sin(math.radians(cut+90))
+    ox,oy=px*gap/2,py*gap/2
+    A=(f'<path d="M{fp(pt(cx,cy,r,cut))} A {r} {r} 0 0 1 {fp(pt(cx,cy,r,cut+180))}" '
+       f'stroke="{stroke}" stroke-width="{w1}" transform="translate({ox:.2f},{oy:.2f})"/>')
+    B=(f'<path d="M{fp(pt(cx,cy,r,cut+180))} A {r} {r} 0 0 1 {fp(pt(cx,cy,r,cut+360))}" '
+       f'stroke="{stroke}" stroke-width="{w2}" transform="translate({-ox:.2f},{-oy:.2f})"/>')
+    return f'<g fill="none" stroke-linecap="butt">{A}{B}</g>'
+def _svg(body,w,h,vb="0 0 96 96",d="",title="Assaybank"):
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{vb}" width="{w}" height="{h}" '
+            f'role="img" aria-label="{title}"><title>{title}</title>{d}{body}</svg>\n')
+
+write('assaybank-icon.svg',    _svg(_tile()+_ring("url(#assay)"),256,256,d=_defs()))
+write('assaybank-icon-sm.svg', _svg(_tile()+_ring("url(#assay)",w1=17,w2=13),32,32,d=_defs()))
+write('favicon.svg',           _svg(_tile()+_ring("url(#assay)",w1=17,w2=13),32,32,d=_defs()))
+write('assaybank-mark.svg',    _svg(_ring("currentColor"),256,256))
+write('assaybank-mark-sm.svg', _svg(_ring("currentColor",w1=17,w2=13),32,32))
+
+# lockup: tile icon + wordmark
+_S=58.0/H; _gap=26.0; _wmw=WW*_S; _lw=96+_gap+_wmw
+def _lock(col):
+    return (_tile()+_ring("url(#assay)")
+            +f'<g transform="translate({96+_gap},{48+(H*_S)/2:.1f}) scale({_S:.4f})">'
+            f'<path d="{WD}" fill="none" stroke="{col}" stroke-width="{W}" stroke-linecap="butt"/></g>')
+write('assaybank-lockup.svg',       _svg(_lock(INK),  round(_lw/2),48,f'0 0 {_lw:.0f} 96',d=_defs()))
+write('assaybank-lockup-paper.svg', _svg(_lock(PAPER),round(_lw/2),48,f'0 0 {_lw:.0f} 96',d=_defs()))
+print(f'icons + lockups written (lockup {_lw:.0f}x96)')

@@ -23,37 +23,52 @@ In fire assay you **cut a sample to examine its interior**. The mark is a ring s
 cut: two arcs, offset perpendicular to the cut axis, with **unequal weights**.
 
 The inequality is the idea. An assay is not an inspection, it is a *comparison against a standard* —
-so the two arcs are not the same. The heavy arc is the sample; the light arc is the reference. A
+so the two arcs are not the same. The heavy arc is the sample; the light arc is the reference. The
 symmetrical version of this mark is a loading spinner; the asymmetry is what makes it ours.
 
-There is **no container**. No rounded square, no badge, no field. The mark sits directly on the
-surface at any size, which is what lets it work as a favicon, a nav glyph, a print mark and a
-watermark without a second drawing.
+## House style — this is a sibling, not a standalone
 
-## It is a system, not a logo
+Assaybank sits in a product family with `services/model` (Model Studio) and **deliberately shares
+its icon construction**:
 
-The mark is **responsive**: its proportions change with size, because a fixed drawing that reads at
-256 px does not read at 16 px.
+| Shared | Value |
+|---|---|
+| Tile | 96 × 96, `rx 22` (≈23%), dark vertical gradient `#1c1f2b → #0b0c12` |
+| Bezel | Inset hairline, `#ffffff` at 10% opacity — the edge light that stops the tile going flat |
+| Glyph | Vivid three-stop gradient on the dark field |
+
+What differs is the symbol and the temperature. Model Studio is a **segmented aperture** in
+violet → indigo → **cyan** — optical, cool, about seeing. Assaybank is a **sheared ring** in
+amber → rose → **violet** — warm, about testing metal. They resolve toward the same violet family,
+so the two read as one family at a glance and as different products on inspection.
+
+If a third service joins, it keeps the tile and the bezel, takes its own symbol, and picks a
+temperature not already used.
+
+## It is a system, not a single drawing
+
+Proportions change with size, because a drawing that reads at 256 px does not read at 16 px.
 
 | Variant | Weights | Use |
 |---|---|---|
-| Display | 18 : 8 | 32 px and above. Full differential, the idea is legible |
-| Compact | 17 : 12 | Below 32 px. Reduced differential so the minor arc survives rasterisation |
+| Display | 17 : 9 | 32 px and above |
+| Compact | 17 : 13 | Below 32 px — reduced differential so the minor arc survives rasterisation |
 
-Below about 14 px, use the wordmark or nothing. A mark nobody can resolve is noise.
+Below about 14 px use the wordmark or nothing.
 
-| Asset | File |
-|---|---|
-| Mark, display | [`assaybank-mark.svg`](assaybank-mark.svg) — `currentColor` |
-| Mark, compact | [`assaybank-mark-compact.svg`](assaybank-mark-compact.svg) — `currentColor` |
-| Mark, fixed ink / paper | [`assaybank-mark-ink.svg`](assaybank-mark-ink.svg), [`assaybank-mark-paper.svg`](assaybank-mark-paper.svg) |
-| Wordmark | [`assaybank-wordmark.svg`](assaybank-wordmark.svg), [`assaybank-wordmark-paper.svg`](assaybank-wordmark-paper.svg) |
-| Lockup | [`assaybank-lockup.svg`](assaybank-lockup.svg), [`assaybank-lockup-paper.svg`](assaybank-lockup-paper.svg), [`assaybank-lockup-stacked.svg`](assaybank-lockup-stacked.svg) |
-| Favicon | [`favicon.svg`](favicon.svg) — the compact variant |
-| Raster | `icon-512.png`, `icon-192.png`, `icon-32.png`, `apple-touch-icon.png` |
+| Asset | File | Use |
+|---|---|---|
+| App icon | [`assaybank-icon.svg`](assaybank-icon.svg) | Primary. Carries its own field, so it works on any background |
+| App icon, compact | [`assaybank-icon-sm.svg`](assaybank-icon-sm.svg) | Below 32 px |
+| Favicon | [`favicon.svg`](favicon.svg) | The compact variant |
+| Flat mark | [`assaybank-mark.svg`](assaybank-mark.svg), [`assaybank-mark-sm.svg`](assaybank-mark-sm.svg) | `currentColor`, no tile — print, watermark, inline with text, single-colour reproduction |
+| Wordmark | [`assaybank-wordmark.svg`](assaybank-wordmark.svg), [`assaybank-wordmark-paper.svg`](assaybank-wordmark-paper.svg) | |
+| Lockup | [`assaybank-lockup.svg`](assaybank-lockup.svg), [`assaybank-lockup-paper.svg`](assaybank-lockup-paper.svg) | Icon plus wordmark |
+| Raster | `icon-512.png`, `icon-192.png`, `icon-32.png`, `apple-touch-icon.png` | PWA manifest, app icons |
 
-The mark ships as `currentColor`, so it inherits from its context rather than carrying a hardcoded
-value. That is the whole reason there is one mark and not six colourways.
+Two marks, and that is deliberate rather than indecision: the **gradient tile** is the product's
+face on a screen, and the **flat mark** is what survives a fax, an engraving, a single-colour print
+run and a favicon in a theme you do not control.
 
 ## The wordmark
 
@@ -73,29 +88,31 @@ rest of this repository guards against.
 
 ## Colour
 
-**The identity is monochrome.** Ink on paper, paper on ink. There is no brand colour, and that is
-deliberate: a gold or gradient accent is the cheapest available signal of "premium" and reads as
-dated within two years. Colour here is a *user-interface* concern, not an identity one.
+The **icon** carries the family gradient: `#fbbf24 → #fb7185 → #a78bfa` on the dark tile. That
+gradient is the identity and is not recoloured.
 
-Tokens are authored in **OKLCH** for perceptual uniformity — a 10% lightness step looks like a 10%
-step, which HSL does not give you and which matters the moment you generate a ramp.
+Everything else is monochrome. The flat mark ships as `currentColor` and inherits its context, which
+is why there is one flat mark rather than six colourways.
+
+**User-interface** colour is a separate system, authored in OKLCH for perceptual uniformity — a 10%
+lightness step looks like a 10% step, which HSL does not give you and which matters the moment you
+generate a ramp.
 
 | Token | OKLCH | Role |
 |---|---|---|
-| `--ab-ink` | `oklch(18% 0.006 250)` | Primary surface-on-light, text, the mark |
-| `--ab-paper` | `oklch(98% 0.004 95)` | Primary surface-on-dark, the mark inverted |
-| `--ab-signal` | `oklch(55% 0.13 245)` | The single accent. Interactive state only — focus, selection, active nav |
+| `--ab-ink` | `oklch(18% 0.006 250)` | Text, flat mark on light |
+| `--ab-paper` | `oklch(98% 0.004 95)` | Surfaces, flat mark on dark |
+| `--ab-signal` | `oklch(55% 0.13 245)` | Interactive state only — focus, selection, active nav |
 | `--ab-positive` | `oklch(58% 0.12 150)` | Pass, complete |
 | `--ab-caution` | `oklch(72% 0.14 75)` | Flagged for human review — never a verdict (ADR-007) |
 | `--ab-critical` | `oklch(58% 0.19 27)` | Destructive action, validation failure |
 
 Rules that are not negotiable:
 
-- The accent never appears in the logo. If a surface needs the mark to be "on brand", it needs ink
-  or paper, not colour.
-- Colour is never the only carrier of meaning, anywhere, including a pass/fail state — this is a
-  WCAG 2.1 AA requirement and an accessibility conformance obligation, not a preference. See
-  [`../docs/15-accessibility-conformance.md`](../docs/15-accessibility-conformance.md).
+- The icon gradient is never used as a UI colour, and UI colour never enters the icon. They are
+  different systems that happen to live in the same product.
+- Colour is never the only carrier of meaning, anywhere, including pass/fail — a WCAG 2.1 AA
+  requirement, not a preference. See [`../docs/15-accessibility-conformance.md`](../docs/15-accessibility-conformance.md).
 - `--ab-caution` marks something for a human to look at. It never communicates a decision the system
   made, because the system does not make them.
 
@@ -104,8 +121,7 @@ Rules that are not negotiable:
 Clear space is **25% of the mark's height** on every side, measured from the ring's outer edge.
 Minimums: mark 16 px (compact variant), lockup 140 px wide, stacked lockup 88 px.
 
-Do not: add a container, badge or rounded square behind the mark · recolour it outside ink, paper
-or `currentColor` · equalise the two arc weights · close the shear · rotate, shear further, or
+Do not: recolour the icon gradient · put the flat mark on a tile of your own invention · equalise the two arc weights · close the shear · rotate, shear further, or
 mirror · apply a gradient, shadow, glow or bevel · set the wordmark in a substitute typeface ·
 rebuild the lockup by hand, its spacing is generated · use the mark to imply third-party
 certification of a person — that credential is defined in
