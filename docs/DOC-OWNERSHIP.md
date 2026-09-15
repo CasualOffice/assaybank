@@ -73,7 +73,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`project/GLOSSARY.md`](../project/GLOSSARY.md) | The domain vocabulary, so two people saying "attempt" mean the same thing | product lead | quarterly | 120 | — | 2026-09-15 |
 | [`infra/README.md`](../infra/README.md) | What each container is, how the local stack fits together, and which port is whose | infrastructure lead | on-change | 180 | `infra/docker/**`, `infra/postgres/**`, `infra/caddy/**`, `docker-compose.yml` | 2026-09-15 |
 | [`infra/piston/README.md`](../infra/piston/README.md) | Piston runtime installation, the pinned language versions, and the sandbox limits | infrastructure lead | on-change | 180 | `infra/piston/**` | 2026-09-15 |
-| [`brand/README.md`](../brand/README.md) | The name, the mark, and the rules for using them | design lead | annually | 400 | `brand/*.svg` | 2026-09-15 |
+| [`brand/README.md`](../brand/README.md) | The name, the mark, and the rules for using them | design lead | annually | 400 | `brand/*.svg` | 2026-09-16 |
 | [`.claude/rules/doc-maintenance.md`](../.claude/rules/doc-maintenance.md) | The maintenance contract in full, with a compliant and a non-compliant worked example | delivery lead | quarterly | 120 | `scripts/check-doc-freshness.mjs` | 2026-09-15 |
 | [`.claude/rules/invariants.md`](../.claude/rules/invariants.md) | The domain invariants, the ADR each comes from, and the test that guards it | engineering lead | quarterly | 120 | `docs/04-ADRs.md` | 2026-09-15 |
 | [`.claude/rules/review-checklist.md`](../.claude/rules/review-checklist.md) | What a human reviewer checks, ordered by how expensive the mistake is | engineering lead | quarterly | 120 | `project/DEFINITION-OF-DONE.md` | 2026-09-15 |

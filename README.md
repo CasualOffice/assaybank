@@ -1,11 +1,11 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="brand/assaybank-lockup-inverse.svg">
-    <img src="brand/assaybank-lockup.svg" alt="Assaybank" width="320">
+    <source media="(prefers-color-scheme: dark)" srcset="brand/assaybank-lockup-paper.svg">
+    <img src="brand/assaybank-lockup.svg" alt="Assaybank" width="300">
   </picture>
 </p>
 
-<p align="center"><em>assay</em> (v.) — to test a material in order to determine its purity and composition.</p>
+<p align="center"><em>assay</em> (v.) &mdash; to test a material in order to determine its purity and composition.</p>
 
 # Assaybank
 
