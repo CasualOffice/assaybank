@@ -116,6 +116,27 @@ Rules that are not negotiable:
 - `--ab-caution` marks something for a human to look at. It never communicates a decision the system
   made, because the system does not make them.
 
+## Regenerating the assets
+
+```
+python3 brand/generate.py brand/
+```
+
+Raster exports are produced with **headless Chrome**, not `qlmanage`. `qlmanage -t` is a
+*thumbnailer*: it pads and offsets the artwork inside the requested box, which produced icons with
+the tile in the top-left and blank margins on the right and bottom. The command is in the commit
+that fixed it; use a real rasteriser or check the output pixel by pixel.
+
+Two invariants to check after any regeneration, because both failures are silent:
+
+1. **`viewBox` aspect must equal `width`/`height` aspect.** SVG letterboxes when they disagree, and
+   letterboxing looks exactly like blank margins. `generate.py` derives width and height from the
+   padded viewBox for this reason — deriving them from the raw glyph extents is what broke it.
+2. **The wordmark must fit its box.** Glyph space puts `y=0` at the x-height top and `y=H` at the
+   baseline, so placing artwork by its intended baseline and letting the glyph add another `H`
+   pushes the real baseline outside the viewBox and clips the text. Placement is computed from the
+   `ASC..DESC` extent instead.
+
 ## Clear space, minimum size, misuse
 
 Clear space is **25% of the mark's height** on every side, measured from the ring's outer edge.

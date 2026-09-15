@@ -58,9 +58,16 @@ def write(n,s): open(os.path.join(OUT,n),'w').write(s)
 
 # --- marks: display (>=32px) and compact (<32px, reduced differential)
 # --- wordmark
-pad=10; vbw=f'{-pad} {ASC-pad} {WW+2*pad} {DESC-ASC+2*pad}'
-write('assaybank-wordmark.svg',        svg(vbw,round(WW/4),round((DESC-ASC)/4),wm(INK),'assaybank'))
-write('assaybank-wordmark-paper.svg',  svg(vbw,round(WW/4),round((DESC-ASC)/4),wm(PAPER),'assaybank'))
+# width/height MUST be derived from the padded viewBox, not the raw glyph extents.
+# Deriving them from WW/(DESC-ASC) gives an aspect ratio that disagrees with the viewBox,
+# and SVG then letterboxes the artwork inside the declared box — which shows up as blank
+# margins on the right and bottom. Keep these two lines in sync or the asset is wrong.
+pad=10
+VBW=WW+2*pad; VBH=DESC-ASC+2*pad
+vbw=f'{-pad} {ASC-pad} {VBW} {VBH}'
+_w=round(VBW/4); _h=round(VBH/4)
+write('assaybank-wordmark.svg',        svg(vbw,_w,_h,wm(INK),'assaybank'))
+write('assaybank-wordmark-paper.svg',  svg(vbw,_w,_h,wm(PAPER),'assaybank'))
 # --- lockup: mark 100 tall, wordmark x-height 62, optical baseline align
 S=62.0/H; gap=34.0; wmw=WW*S
 lw=100+gap+wmw
@@ -105,11 +112,31 @@ write('assaybank-mark.svg',    _svg(_ring("currentColor"),256,256))
 write('assaybank-mark-sm.svg', _svg(_ring("currentColor",w1=17,w2=13),32,32))
 
 # lockup: tile icon + wordmark
-_S=58.0/H; _gap=26.0; _wmw=WW*_S; _lw=96+_gap+_wmw
+#
+# VERTICAL PLACEMENT — the bug this replaces: glyph space puts y=0 at the x-height TOP
+# and y=H at the BASELINE, so translating to the intended baseline and then letting the
+# glyph add another H put the real baseline below the viewBox and clipped the wordmark.
+# Place by the glyph extent instead: ASC..DESC is the full vertical span, and it is fitted
+# into the tile height with a margin, then centred. Nothing is positioned by eye.
+_TILE = 96.0
+_EXTENT = DESC - ASC                      # full ascender-to-descender span in glyph units
+_MARGIN = 6.0                             # breathing room top and bottom
+_S = (_TILE - 2 * _MARGIN) / _EXTENT      # scale so the whole glyph extent fits the tile
+_TOP = _MARGIN - ASC * _S                 # maps glyph y=ASC to y=_MARGIN
+_gap = 26.0
+_wmw = WW * _S
+_lw = _TILE + _gap + _wmw
+
 def _lock(col):
-    return (_tile()+_ring("url(#assay)")
-            +f'<g transform="translate({96+_gap},{48+(H*_S)/2:.1f}) scale({_S:.4f})">'
-            f'<path d="{WD}" fill="none" stroke="{col}" stroke-width="{W}" stroke-linecap="butt"/></g>')
-write('assaybank-lockup.svg',       _svg(_lock(INK),  round(_lw/2),48,f'0 0 {_lw:.0f} 96',d=_defs()))
-write('assaybank-lockup-paper.svg', _svg(_lock(PAPER),round(_lw/2),48,f'0 0 {_lw:.0f} 96',d=_defs()))
+    return (_tile() + _ring("url(#assay)")
+            + f'<g transform="translate({_TILE + _gap},{_TOP:.2f}) scale({_S:.4f})">'
+              f'<path d="{WD}" fill="none" stroke="{col}" stroke-width="{W}" '
+              f'stroke-linecap="butt" stroke-linejoin="miter"/></g>')
+
+# width/height derived from the viewBox so the aspect ratios agree and nothing letterboxes.
+_lh = _TILE
+write('assaybank-lockup.svg',
+      _svg(_lock(INK), round(_lw / 2), round(_lh / 2), f'0 0 {_lw:.0f} {_lh:.0f}', d=_defs()))
+write('assaybank-lockup-paper.svg',
+      _svg(_lock(PAPER), round(_lw / 2), round(_lh / 2), f'0 0 {_lw:.0f} {_lh:.0f}', d=_defs()))
 print(f'icons + lockups written (lockup {_lw:.0f}x96)')

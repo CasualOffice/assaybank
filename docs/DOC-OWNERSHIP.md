@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-16
 **Companion docs:** [`README.md`](README.md), [`../CLAUDE.md`](../CLAUDE.md), [`../CONTRIBUTING.md`](../CONTRIBUTING.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md), [`../.claude/rules/doc-maintenance.md`](../.claude/rules/doc-maintenance.md)
 
 ---
@@ -59,13 +59,14 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`docs/15-accessibility-conformance.md`](15-accessibility-conformance.md) | The WCAG 2.1 AA commitment made concrete, and the accommodation model timers must respect | frontend lead | quarterly | 120 | `packages/ui/src/**` | 2026-09-15 |
 | [`docs/16-ai-usage-policy.md`](16-ai-usage-policy.md) | The per-round AI assistance policy, the candidate declaration, and why the signals stay advisory | engineering lead | quarterly | 120 | `packages/grading/**`, `packages/core-domain/src/scoring/**` | 2026-09-15 |
 | [`docs/17-engineering-standards.md`](17-engineering-standards.md) | The code-quality and system-design bar, and the invariants enforced in code rather than in review | engineering lead | quarterly | 120 | `packages/**`, `apps/**`, `tsconfig.base.json`, `eslint.config.js` | 2026-09-15 |
-| [`docs/DOC-OWNERSHIP.md`](DOC-OWNERSHIP.md) | This registry: who owns each document, its cadence, and what makes it stale | delivery lead | monthly | 45 | — | 2026-09-15 |
+| [`docs/DOC-OWNERSHIP.md`](DOC-OWNERSHIP.md) | This registry: who owns each document, its cadence, and what makes it stale | delivery lead | monthly | 45 | — | 2026-09-16 |
 | [`docs/hiring_platform_schema.sql`](hiring_platform_schema.sql) | The full PostgreSQL schema, runnable, and the canonical statement of the domain model | backend lead | on-change | 180 | `packages/db/schema/**`, `infra/postgres/init/02-schema.sql` | — |
 | [`project/ROADMAP.md`](../project/ROADMAP.md) | Phase-by-phase build order, the current schedule baseline, and each phase's entry and exit gate | engineering lead | monthly | 30 | `project/MILESTONES.md` | 2026-09-15 |
 | [`project/P0-FOUNDATION-PLAN.md`](../project/P0-FOUNDATION-PLAN.md) | The step-by-step build order for the foundation phase, with verification per step | engineering lead | on-change | 60 | `package.json`, `pnpm-workspace.yaml`, `turbo.json` | 2026-09-15 |
 | [`project/P1-TENANCY-PLAN.md`](../project/P1-TENANCY-PLAN.md) | The step-by-step build order for tenancy, identity and audit, with verification per step | engineering lead | on-change | 60 | `packages/db/**`, `packages/auth/**` | 2026-09-15 |
+| [`packages/db/docs/rls-plan-cost.md`](../packages/db/docs/rls-plan-cost.md) | The measured `EXPLAIN` baseline for the five hottest tenant-scoped queries with row-level security on and off (R-09) | engineering lead | on-change | 180 | `packages/db/migrations/**`, `packages/db/src/schema/**` | 2026-09-16 |
 | [`project/MILESTONES.md`](../project/MILESTONES.md) | M-1–M4 scope, the committed dates from the roadmap baseline, and exit criteria | delivery lead | monthly | 45 | — | 2026-09-15 |
-| [`project/TRACKER.md`](../project/TRACKER.md) | The working backlog: one row per engineering unit, with status and dependencies | delivery lead | monthly | 30 | — | 2026-09-15 |
+| [`project/TRACKER.md`](../project/TRACKER.md) | The working backlog: one row per engineering unit, with status and dependencies | delivery lead | monthly | 30 | — | 2026-09-16 |
 | [`project/RISKS.md`](../project/RISKS.md) | Named risks with likelihood, impact, owner, trigger and mitigation | delivery lead | monthly | 45 | — | 2026-09-15 |
 | [`project/OPEN-QUESTIONS.md`](../project/OPEN-QUESTIONS.md) | Questions genuinely undecided, each with a decider and an absolute decide-by date | delivery lead | monthly | 45 | — | 2026-09-15 |
 | [`project/STATUS.md`](../project/STATUS.md) | Where the project actually is this week, in one page | delivery lead | monthly | 14 | — | 2026-09-15 |
