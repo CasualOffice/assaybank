@@ -35,7 +35,7 @@ Documentation, infrastructure configuration and process only. **No application c
 
 ## Next
 
-1. Stand up the pnpm workspace and get all thirteen packages compiling empty (H-011 → H-013). This is the only thing between here and M0 starting on code rather than on scaffolding.
+1. Stand up the pnpm workspace and get all fourteen workspaces (five apps, nine packages) compiling empty (H-011 → H-013). This is the only thing between here and M0 starting on code rather than on scaffolding.
 2. Appoint the question bank owner before the starter taxonomy is seeded (OQ-010, decide by 2026-09-25).
 3. Begin M0: schema sections 1–4, RLS with per-table negative tests, question version lifecycle.
 

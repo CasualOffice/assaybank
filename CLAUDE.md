@@ -47,6 +47,8 @@ The design decisions below are load-bearing. If your change touches the left col
 | Proctoring, integrity signals, the review queue | [ADR-007](docs/04-ADRs.md) (signals, never decisions) |
 | Adding or upgrading any dependency | [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md) §1 (dependency licence policy) |
 | Scoring, ranking, recommendations, candidate comparison | [ADR-011](docs/04-ADRs.md) (no AI in the scoring path) and [`docs/16-ai-usage-policy.md`](docs/16-ai-usage-policy.md) |
+| Writing any code at all — types, layering, errors, migrations, tests | [`docs/17-engineering-standards.md`](docs/17-engineering-standards.md) (the production-grade bar and the invariants enforced in code) |
+| Starting a phase, or wondering what to build next | [`project/ROADMAP.md`](project/ROADMAP.md), and [`project/P0-FOUNDATION-PLAN.md`](project/P0-FOUNDATION-PLAN.md) while the foundation is being built |
 
 ## Hard rules
 

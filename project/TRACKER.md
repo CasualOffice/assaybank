@@ -60,7 +60,7 @@ Reviewers should reject a PR that closes work without the tracker edit. This is 
 | H-008 | Project management layer: milestones, backlog, risks, open questions, status, definition of done, glossary | docs | M-1 | — | PRD 6 | M | done | _unassigned_ |
 | H-009 | Record ADR-012..ADR-019 and rewrite the docs index | docs | M-1 | — | ADR-012 | M | done | _unassigned_ |
 | H-010 | Supporting design docs 06–16: testing, load and capacity, i18n, ATS, certification, retention and DPIA, observability, environments, threat model, accessibility, AI usage policy | docs | M-1 | H-008 | PRD 11 | L | done | _unassigned_ |
-| H-011 | pnpm workspace plus Turborepo pipeline, all thirteen packages present and compiling empty | api | M-1 | H-001 | ADR-012 | M | todo | _unassigned_ |
+| H-011 | pnpm workspace plus Turborepo pipeline, all fourteen workspaces (five apps, nine packages) present and compiling empty | api | M-1 | H-001 | ADR-012 | M | todo | _unassigned_ |
 | H-012 | `packages/config`: env parsing and validation that fails fast at boot, driven by `.env.example` | api | M-1 | H-011 | HLD 10 | S | todo | _unassigned_ |
 | H-013 | `packages/observability`: structured logger, OTel tracing bootstrap, Prometheus `/metrics` endpoint | api | M-1 | H-011 | HLD 8 | M | todo | _unassigned_ |
 

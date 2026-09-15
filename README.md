@@ -45,15 +45,17 @@ All three read from the same `question_versions` table, resolve the same section
 
 The design is complete and the repository currently contains documentation, planning material and scaffolding only. **There is no application code yet.** Everything in the repository layout below that is not marked as present is planned, and lands with the milestone named against it.
 
-Project start is **Monday 2026-09-21**. Milestones follow [`docs/01-PRD.md`](docs/01-PRD.md) §6; exit criteria and their tracking live in [`project/MILESTONES.md`](project/MILESTONES.md).
+Milestones follow [`docs/01-PRD.md`](docs/01-PRD.md) §6. **Dates are deliberately not repeated here** — they live in [`project/ROADMAP.md`](project/ROADMAP.md) (build order and the current baseline) and [`project/MILESTONES.md`](project/MILESTONES.md) (the commitment and its exit criteria). A calendar copied into four documents is a calendar that will disagree with itself.
 
-| Milestone | Weeks | Dates | Delivers | Exit criterion |
-|---|---|---|---|---|
-| **M0** Question bank | 1–3 | 2026-09-21 → 2026-10-11 | Authoring, immutable versioning, skills, roles, import/export | 200 questions loaded, tagged to ≥ 3 job roles, exportable and re-importable without loss |
-| **M1** Async MCQ | 4–6 | 2026-10-12 → 2026-11-01 | Assessment builder, tokenised invitations, server-authoritative timer, auto-grading | 50 candidates complete a 30-question test concurrently; scores reproduce exactly on re-grade |
-| **M2** Coding rounds | 7–10 | 2026-11-02 → 2026-11-29 | Monaco, Piston wiring, async grading queue with retry and dead-letter | 100 concurrent submissions graded, p95 result latency under 8 s |
-| **M3** Live interviews | 11–14 | 2026-11-30 → 2026-12-27 | Yjs collaboration, session replay, structured scorecards | An interviewer runs a full 45-minute loop and replays it afterwards |
-| **M4** Proctored / certification | 15–18 | 2026-12-28 → 2027-01-24 | Safe Exam Browser integration, browser-signal proctoring, integrity review queue | A 90-minute certification exam runs end to end with a reviewable integrity report |
+| Milestone | Phase | Delivers | Exit criterion |
+|---|---|---|---|
+| **M-1** Foundation | P0 | Workspace, toolchain, tenancy harness, CI enforcing | A clean clone reaches a running stack and a green CI run in under 10 minutes |
+| **M0** Question bank | P1–P2 | Tenancy and identity spine, authoring, immutable versioning, skills, roles, import/export | 200 questions loaded, tagged to ≥ 3 job roles, exportable and re-importable without loss |
+| **M1** Async MCQ | P3 | Assessment builder, tokenised invitations, server-authoritative timer, auto-grading | 50 candidates complete a 30-question test concurrently; scores reproduce exactly on re-grade |
+| **M2** Coding rounds | P4 | Monaco, Piston wiring, async grading queue with retry and dead-letter | 100 concurrent submissions graded, p95 result latency under 8 s |
+| **M3** Live interviews | P5 | Yjs collaboration, session replay, structured scorecards | An interviewer runs a full 45-minute loop and replays it afterwards |
+| **M4** Proctored / certification | P6 | Safe Exam Browser integration, browser-signal proctoring, integrity review queue | A 90-minute certification exam runs end to end with a reviewable integrity report |
+| — | P7 | Load, disaster-recovery, security and accessibility verification before GA | Every gate in [`docs/07-load-and-capacity-testing.md`](docs/07-load-and-capacity-testing.md) green |
 
 M0 through M2 is the product. M3 is a separate track that can start in parallel with a second engineer. M4 is last deliberately — it is the least valuable per unit of effort and the most legally fraught.
 
@@ -101,6 +103,7 @@ assaybank/
 │   ├── observability/        Logger, OTel tracing, metrics                                M0
 │   └── ui/                   Shared React components and design tokens                    M0
 ├── infra/                    Dockerfiles, Postgres init, Piston, Caddy, OTel, Prometheus  present
+├── brand/                 Logo system, favicon and icon assets
 ├── docs/                     PRD, HLD, API spec, ADRs, and the specialist docs            present
 ├── project/                  Milestones, tracker, risks, open questions, status           present
 ├── scripts/                  Code-graph generation and the CI doc/licence gates           present
@@ -171,6 +174,7 @@ make seed                     # load skills, roles and a starter question set (f
 | [`docs/14-threat-model.md`](docs/14-threat-model.md) | Attacker classes, trust boundaries, sandbox escape, cheating economics |
 | [`docs/15-accessibility-conformance.md`](docs/15-accessibility-conformance.md) | WCAG 2.1 AA conformance plan, accommodations, assistive-technology testing |
 | [`docs/16-ai-usage-policy.md`](docs/16-ai-usage-policy.md) | Where AI may and may not be used, and why the scoring path is closed to it |
+| [`docs/17-engineering-standards.md`](docs/17-engineering-standards.md) | The production-grade bar: type discipline, layering, API and database rules, and what a reviewer checks first |
 | [`docs/DOC-OWNERSHIP.md`](docs/DOC-OWNERSHIP.md) | Which role owns which document and how staleness is detected |
 | [`docs/hiring_platform_schema.sql`](docs/hiring_platform_schema.sql) | Full PostgreSQL schema, runnable |
 
@@ -179,7 +183,9 @@ make seed                     # load skills, roles and a starter question set (f
 | Doc | What it answers |
 |---|---|
 | [`project/STATUS.md`](project/STATUS.md) | Where the build actually is, as of the last update |
-| [`project/MILESTONES.md`](project/MILESTONES.md) | M0–M4 with absolute dates, deliverables and exit criteria |
+| [`project/ROADMAP.md`](project/ROADMAP.md) | **Start here to build.** Phase-by-phase build order P0–P7, the schedule baseline, and each phase's entry and exit gate |
+| [`project/P0-FOUNDATION-PLAN.md`](project/P0-FOUNDATION-PLAN.md) | The fifteen steps of the foundation phase, in order, each with its verification |
+| [`project/MILESTONES.md`](project/MILESTONES.md) | M-1–M4 commitments, dates and exit criteria |
 | [`project/TRACKER.md`](project/TRACKER.md) | The backlog: every work item, its milestone, owner and status |
 | [`project/RISKS.md`](project/RISKS.md) | Risk register with likelihood, impact, owner and mitigation |
 | [`project/OPEN-QUESTIONS.md`](project/OPEN-QUESTIONS.md) | Unanswered questions, each with an owner and a decide-by date |

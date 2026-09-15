@@ -31,10 +31,11 @@ This directory is the design record. It is the reason the system is shaped the w
 | [`14-threat-model.md`](14-threat-model.md) | Assets, adversaries and attack surfaces, from sandbox escape to tenant isolation to a candidate who wants the answer key, with the mitigation for each |
 | [`15-accessibility-conformance.md`](15-accessibility-conformance.md) | The WCAG 2.1 AA commitment made concrete: what is tested, how, and the accommodation model the timer and proctoring must respect |
 | [`16-ai-usage-policy.md`](16-ai-usage-policy.md) | The per-round AI assistance policy, the candidate-facing declaration, what is captured, and why those signals stay advisory (ADR-017) |
+| [`17-engineering-standards.md`](17-engineering-standards.md) | The code-quality and system-design bar: type discipline, layering, API and database rules, the invariants that are code rather than documentation, and what a reviewer checks first |
 | [`DOC-OWNERSHIP.md`](DOC-OWNERSHIP.md) | Who owns each document, its review cadence, and what makes it stale |
 | [`hiring_platform_schema.sql`](hiring_platform_schema.sql) | Full PostgreSQL schema, runnable |
 
-Documents 06 through 16 and `DOC-OWNERSHIP.md` were written in the same documentation run as this index. Read each for its own detail rather than relying on the one-line summary above.
+Documents 06 through 17 and `DOC-OWNERSHIP.md` were written in the same documentation run as this index. Read each for its own detail rather than relying on the one-line summary above.
 
 ## Reading order
 
@@ -91,8 +92,8 @@ The five gaps this index listed before are now addressed. Each was tracked throu
 | ATS integration is webhooks only; no direct connector specified | ADR-019, [`09-ats-integration.md`](09-ats-integration.md) (OQ-002) | Webhooks are the substrate by design; a connector is a thin adapter above them, built when two customers ask for the same ATS |
 | No i18n design for question content | ADR-018, [`08-i18n-and-localisation.md`](08-i18n-and-localisation.md) (OQ-003) | English-only content at v1, interface externalised from day one, translation seams designed now; a translated version is a distinct question and inherits no statistics |
 | Certificate issuance format undecided (PDF vs Open Badges) | ADR-016, [`10-certification-and-credentials.md`](10-certification-and-credentials.md) (OQ-004) | Open Badges 3.0 verifiable credential is canonical; the PDF is a rendering of it |
-| Retention defaults are working assumptions pending legal sign-off | [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md) (OQ-005) | The `RETENTION_*` defaults are codified and enforced in code with time-travel tests. Counsel sign-off is still outstanding — see below |
-| Load testing plan not written | [`07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md) (OQ-006) | k6 scenarios in the repository, run against staging with production-shaped volumes, thresholds stated per milestone, results committed as exit evidence |
+| Retention defaults are working assumptions pending legal sign-off | [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md) (OQ-005) | The `RETENTION_*` defaults are fixed, with the enforcing sweep, its DDL and its time-travel tests specified. Implementation lands in P6; counsel sign-off is still outstanding — see below |
+| Load testing plan not written | [`07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md) (OQ-006) | k6 scenarios, workload model and per-milestone thresholds specified, to be run against staging with production-shaped volumes in P7, with results committed as exit evidence |
 
 The runtime question in HLD §5 — Node or Python — was also open by omission rather than by intent, and is closed by ADR-012 (OQ-007).
 
@@ -122,7 +123,8 @@ This directory holds the design record. The working surfaces are elsewhere.
 | [`../README.md`](../README.md) | Repository entry point — what this is, how to bring the stack up, where to start |
 | [`../CLAUDE.md`](../CLAUDE.md) | The repository's working agreements: conventions, constraints and the rules any contributor, human or agent, is expected to follow |
 | [`../CODE-GRAPH.md`](../CODE-GRAPH.md) | The planned module map — every app and package, what it owns, and which direction dependencies are allowed to point |
-| [`../project/`](../project/) | Delivery state: [`MILESTONES.md`](../project/MILESTONES.md), [`TRACKER.md`](../project/TRACKER.md), [`RISKS.md`](../project/RISKS.md), [`OPEN-QUESTIONS.md`](../project/OPEN-QUESTIONS.md), [`STATUS.md`](../project/STATUS.md), [`DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md), [`GLOSSARY.md`](../project/GLOSSARY.md) |
+| [`../project/`](../project/) | Delivery state and plan: [`ROADMAP.md`](../project/ROADMAP.md), [`P0-FOUNDATION-PLAN.md`](../project/P0-FOUNDATION-PLAN.md), [`MILESTONES.md`](../project/MILESTONES.md), [`TRACKER.md`](../project/TRACKER.md), [`RISKS.md`](../project/RISKS.md), [`OPEN-QUESTIONS.md`](../project/OPEN-QUESTIONS.md), [`STATUS.md`](../project/STATUS.md), [`DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md), [`GLOSSARY.md`](../project/GLOSSARY.md) |
+| [`../brand/`](../brand/) | The name, the mark, the palette and the usage rules; the wordmark generator |
 | [`../infra/`](../infra/) | Container definitions, Postgres init, Piston runtime configuration, proxy, telemetry collector |
 | [`../.github/`](../.github/) | CI workflows, including the licence gate that enforces ADR-001, and the review templates |
 

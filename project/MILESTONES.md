@@ -15,52 +15,64 @@ Dates are absolute and assume a five-day working week. Project start is Monday 2
 
 ## Plan at a glance
 
-| Milestone | Dates | Working days | PRD weeks | Owner |
+| Milestone | Phase | Dates | Working days | Owner |
 |---|---|---|---|---|
-| M-1 Foundation | 2026-09-15 → 2026-09-18 | 4 | pre-start | _unassigned_ |
-| M0 Question bank | 2026-09-21 → 2026-10-09 | 15 | 1–3 | _unassigned_ |
-| M1 Async MCQ assessment | 2026-10-12 → 2026-10-30 | 15 | 4–6 | _unassigned_ |
-| M2 Coding rounds | 2026-11-02 → 2026-11-27 | 20 | 7–10 | _unassigned_ |
-| M3 Live interviews | 2026-11-30 → 2026-12-24 | 19 | 11–14 | _unassigned_ (engineer 2) |
-| M4 Proctored / certification mode | 2027-01-05 → 2027-01-30 | 20 | 15–18 | _unassigned_ |
+| M-1 Foundation | P0 | 2026-09-21 → 2026-10-02 | 10 | _unassigned_ |
+| M0 Question bank | P1–P2 | 2026-10-05 → 2026-11-13 | 30 | _unassigned_ |
+| M1 Async MCQ assessment | P3 | 2026-11-16 → 2026-12-11 | 20 | _unassigned_ |
+| M2 Coding rounds | P4 | 2026-12-14 → 2027-01-22 | 20 | _unassigned_ |
+| M3 Live interviews | P5 | 2026-12-14 → 2027-01-22 | 20 | _unassigned_ (engineer 2) |
+| M4 Proctored / certification mode | P6 | 2027-01-25 → 2027-02-19 | 20 | _unassigned_ |
+| GA readiness | P7 | 2027-02-22 → 2027-03-12 | 15 | _unassigned_ |
+
+**Re-baselined 2026-09-15.** The PRD's 18-week calendar assumed a working repository, database and
+deployment pipeline. None existed. [`ROADMAP.md`](ROADMAP.md) §1 sets out the arithmetic and the
+three options; the plan above is the recommended one, and it needs an owner's sign-off (`OQ-013`).
+PRD week numbers no longer map one-to-one onto the calendar and are omitted here rather than
+carried forward as a second, wrong set of dates.
+
+Non-working period: 2026-12-21 → 2027-01-01.
 
 ### The parallelism assumption
 
 [`../docs/README.md`](../docs/README.md) states it plainly: *"M0 through M2 is the product. M3 is a separate track that can start in parallel with a second engineer."* The dates above encode that assumption. Specifically:
 
 - M3 is staffed by a **second engineer**, not by whoever is finishing M2. M3 depends on M2's execution adapter (in-session run) and on M1's attempt and scoring model, but not on M2 being finished — the collaboration tier, the replay store and the scorecard model are independent surfaces.
-- That second engineer ramps up during M2 (2026-11-02 → 2026-11-27): reading the docs, standing up `apps/collab` against the dev stack, and building the session and scorecard schema. Delivery work starts 2026-11-30.
-- **If the second engineer is not confirmed, M3 becomes serial and M4 moves to 2027-02-01 → 2027-02-26.** That is a four-week slip to the whole plan, tracked as `R-12` in [`RISKS.md`](RISKS.md) and as `OQ-012` in [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), with a decide-by date of 2026-10-16 so the ramp-up window is still recoverable.
+- That second engineer ramps up during P3 (2026-11-16 → 2026-12-11): reading the docs, standing up `apps/collab` against the dev stack, and building the session and scorecard schema. Delivery work starts 2026-12-14.
+- **If the second engineer is not confirmed, M3 becomes serial, M4 shifts behind it and GA moves to 2027-04-09.** That is a four-week slip to the whole plan, tracked as `R-12` in [`RISKS.md`](RISKS.md) and as `OQ-012` in [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), with a decide-by date of 2026-10-16 so the ramp-up window is still recoverable.
 
-There is a deliberate non-working gap from 2026-12-25 to 2027-01-02. M4 starts on Monday 2027-01-05.
+There is a deliberate non-working gap from 2026-12-21 to 2027-01-01. M2 and M3 resume on Monday 2027-01-04.
 
 ```mermaid
 gantt
-    title Delivery plan 2026-09-15 to 2027-01-30
+    title Delivery plan 2026-09-21 to 2027-03-12 (re-baselined 2026-09-15)
     dateFormat YYYY-MM-DD
     axisFormat %d %b
     todayMarker off
 
     section Engineer 1
-    M-1 Foundation          :done,   mm1, 2026-09-15, 2026-09-18
-    M0 Question bank        :        m0,  2026-09-21, 2026-10-09
-    M1 Async MCQ            :        m1,  2026-10-12, 2026-10-30
-    M2 Coding rounds        :        m2,  2026-11-02, 2026-11-27
-    M4 Proctored mode       :        m4,  2027-01-05, 2027-01-30
+    M-1 Foundation (P0)     :        mm1, 2026-09-21, 2026-10-02
+    M0 Question bank (P1-P2):        m0,  2026-10-05, 2026-11-13
+    M1 Async MCQ (P3)       :        m1,  2026-11-16, 2026-12-11
+    M2 Coding rounds (P4)   :        m2,  2026-12-14, 2027-01-22
+    M4 Proctored mode (P6)  :        m4,  2027-01-25, 2027-02-19
 
     section Engineer 2 (assumed, OQ-012)
-    M3 ramp-up and schema   :active, m3r, 2026-11-02, 2026-11-27
-    M3 Live interviews      :        m3,  2026-11-30, 2026-12-24
+    M3 ramp-up and schema   :active, m3r, 2026-11-16, 2026-12-11
+    M3 Live interviews (P5) :        m3,  2026-12-14, 2027-01-22
+
+    section Both
+    GA readiness (P7)       :crit,   p7,  2027-02-22, 2027-03-12
 
     section Calendar
-    Year-end break          :crit,   brk, 2026-12-25, 2027-01-02
+    Year-end break          :crit,   brk, 2026-12-21, 2027-01-01
 ```
 
 ---
 
 ## M-1 — Foundation
 
-**Dates:** 2026-09-15 → 2026-09-18 (pre-start week)
+**Dates:** 2026-09-21 → 2026-10-02 (phase P0)
 **Goal:** land on Monday 2026-09-21 with nothing left to decide about repo shape, runtime, infrastructure or process, so week 1 is spent on the question bank rather than on scaffolding arguments.
 
 This pre-milestone does not appear in the PRD. It exists because the PRD's M0 assumes a working repository, and there was none.
@@ -77,18 +89,18 @@ This pre-milestone does not appear in the PRD. It exists because the PRD's M0 as
 - [x] Licence gate script that fails on GPL / LGPL-static / AGPL / SSPL / BSL / Commons Clause (ADR-001)
 - [x] Project management layer — this file plus `TRACKER.md`, `RISKS.md`, `OPEN-QUESTIONS.md`, `STATUS.md`, `DEFINITION-OF-DONE.md`, `GLOSSARY.md`
 - [x] Supporting design docs 06–16: testing strategy, load and capacity testing, i18n, ATS integration, certification and credentials, retention and DPIA, observability and runbooks, environments and release, threat model, accessibility conformance, AI usage policy
-- [ ] pnpm workspace with all thirteen packages present and compiling empty (**pending — no application code exists in this repository yet**)
+- [ ] pnpm workspace with all fourteen workspaces (five apps, nine packages) present and compiling empty (**pending — no application code exists in this repository yet**)
 - [ ] `packages/config` env parsing that fails fast at boot against `.env.example` (**pending**)
 - [ ] `packages/observability` logger, OTel bootstrap and `/metrics` endpoint (**pending**)
 - [ ] First green CI run against a real `pnpm-lock.yaml` and a first CycloneDX SBOM (**pending — the gate script exists, the dependency tree it grades does not**)
 
 ### Exit criteria
 
-Not defined by the PRD. Local criterion: **a new engineer clones the repository, runs `make dev`, and reaches a running dev stack and a green CI run without asking anyone a question.**
+Not defined by the PRD. Local criterion: **a new engineer clones the repository, runs `make up`, and reaches a running dev stack and a green CI run without asking anyone a question.**
 
 | Criterion | Verified by |
 |---|---|
-| Dev stack starts clean | `make dev` then `make health` against the compose stack; see [`../infra/README.md`](../infra/README.md) |
+| Dev stack starts clean | `make up` then `make ps` against the compose stack; see [`../infra/README.md`](../infra/README.md) |
 | CI is green on an empty workspace | `.github/workflows/ci.yml` run on the first commit |
 | Licence gate rejects a prohibited licence | `node scripts/check-licences.mjs` with a deliberately planted AGPL fixture (task H-039) |
 | Docs are internally consistent | `node scripts/check-links.mjs` and `node scripts/check-doc-freshness.mjs` |
@@ -110,7 +122,7 @@ None directly. M-1 is the substrate for FR-26 (RLS needs a database), FR-27 (per
 
 ## M0 — Question bank
 
-**Dates:** 2026-09-21 → 2026-10-09 (PRD weeks 1–3)
+**Dates:** 2026-10-05 → 2026-11-13 (phases P1–P2)
 **Goal:** the foundation everything else reads from. One bank, one taxonomy, immutable published versions, and content that can leave in an open format.
 
 ### Scope
@@ -162,7 +174,7 @@ FR-1, FR-2, FR-3, FR-4, FR-5, FR-26, FR-27, FR-29 (partial — bank export only)
 
 ## M1 — Async MCQ assessment
 
-**Dates:** 2026-10-12 → 2026-10-30 (PRD weeks 4–6)
+**Dates:** 2026-11-16 → 2026-12-11 (phase P3)
 **Goal:** a recruiter can compose an assessment, invite candidates, and get one defensible number per candidate, with the server owning the clock and the question selection.
 
 ### Scope
@@ -216,7 +228,7 @@ FR-6, FR-7, FR-8, FR-9, FR-10, FR-12 (guard established), FR-20, FR-21, FR-27, F
 
 ## M2 — Coding rounds
 
-**Dates:** 2026-11-02 → 2026-11-27 (PRD weeks 7–10)
+**Dates:** 2026-12-14 → 2027-01-22 (phase P4)
 **Goal:** candidates write and run real code in a sandbox that is assumed to be escapable, graded asynchronously, with a hidden-case boundary that holds.
 
 ### Scope
@@ -267,10 +279,10 @@ FR-11, FR-12, FR-13, FR-14, FR-15, FR-20 (coding contribution to the weighted su
 
 ## M3 — Live interviews
 
-**Dates:** 2026-11-30 → 2026-12-24 (PRD weeks 11–14)
+**Dates:** 2026-12-14 → 2027-01-22 (phase P5, parallel track)
 **Goal:** an interviewer and a candidate share an editor with no setup on either side, and the session is reconstructable afterwards.
 
-Staffed by the second engineer; ramp-up runs 2026-11-02 → 2026-11-27 alongside M2. See the parallelism assumption above.
+Staffed by the second engineer; ramp-up runs 2026-11-16 → 2026-12-11 alongside M1. See the parallelism assumption above.
 
 ### Scope
 
@@ -316,7 +328,7 @@ FR-16, FR-17, FR-18, FR-19, FR-22.
 
 ## M4 — Proctored / certification mode
 
-**Dates:** 2027-01-05 → 2027-01-30 (PRD weeks 15–18)
+**Dates:** 2027-01-25 → 2027-02-19 (phase P6)
 **Goal:** run a high-stakes exam where integrity concerns reach a human with evidence attached, and no automated verdict is ever computed.
 
 M4 is last deliberately: least value per unit of effort, most legal exposure. [`../docs/04-ADRs.md`](../docs/04-ADRs.md) ADR-007 governs everything in it.
