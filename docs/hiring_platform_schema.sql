@@ -12,6 +12,7 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;   -- fuzzy search over question text
+CREATE EXTENSION IF NOT EXISTS citext;   -- case-insensitive email on users and candidates
 
 
 -- ============================================================

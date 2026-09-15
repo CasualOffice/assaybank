@@ -358,6 +358,33 @@ On merge to `main`, CI:
 
 Frontend caveat: `apps/web` and `apps/candidate` inline `API_PUBLIC_URL`, `COLLAB_PUBLIC_URL` and `LIVEKIT_URL` at build time, so their bundles are **not** environment-neutral. Either build one bundle per environment from the same commit — recording each digest against that commit — or serve those three values from a runtime configuration endpoint. The runtime endpoint is the better answer and is the recommended approach; until it exists, the per-environment build must be explicit in the release manifest so that "the same release" is not quietly two different bundles.
 
+### 6.4 Digest pinning
+
+`docker-compose.prod.yml` never names a mutable tag. Every service resolves its image from a
+required variable — `HIRING_API_IMAGE`, `POSTGRES_IMAGE` and so on — and compose refuses to start if
+one is unset, with a message pointing back here. A tag is a moving target: `:latest` on two nodes an
+hour apart is two different builds, and that is not a property you want while an exam is running.
+
+The release pipeline resolves each tag to a digest and exports the pinned references:
+
+```sh
+resolve() {          # resolve() <var> <tag-reference>
+  digest=$(docker buildx imagetools inspect "$2" --format '{{.Manifest.Digest}}')
+  echo "$1=${2%%:*}@${digest}"
+}
+resolve HIRING_API_IMAGE  "ghcr.io/assaybank/hiring-api:${RELEASE}"   >> release.env
+resolve POSTGRES_IMAGE    "postgres:16-alpine"                        >> release.env
+# ... one line per service
+```
+
+`release.env` is an artefact of the release, stored with it. Redeploying a release means replaying
+its `release.env`, which is what makes a rollback land on exactly the bytes that were running before
+rather than on whatever the tag points at today.
+
+Third-party images (Postgres, Valkey, Caddy, Piston, SeaweedFS, the collector, Prometheus) are
+re-resolved deliberately, not on every deploy — a base-image digest change is a reviewed change, and
+it goes through the same promotion path as our own code.
+
 ### 6.4 Promotion path and gates
 
 ```mermaid

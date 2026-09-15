@@ -91,9 +91,12 @@ infra/seaweedfs
 
 # infra/docker and infra/piston are NOT excluded:
 #   infra/docker  — the Dockerfiles themselves must be in the context
-#   infra/piston  — packages.json and install-runtimes.sh are baked into the
-#                   Piston image at build time, because an exec node has no
-#                   egress and cannot fetch a runtime at boot
+#   infra/piston  — packages.json and install-runtimes.sh will be baked into
+#                   the planned custom Piston image at build time, because an
+#                   exec node has no egress and cannot fetch a runtime at boot.
+#                   No such image build exists yet: the dev stack uses the
+#                   upstream Piston image and installs runtimes at first boot.
+#                   The custom image lands in P4 — see project/ROADMAP.md.
 
 # --- Local scratch ---------------------------------------------------------
 tmp

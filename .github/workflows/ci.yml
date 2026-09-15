@@ -81,7 +81,7 @@ jobs:
       - if: needs.detect.outputs.workspace == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
 
       - if: needs.detect.outputs.workspace == 'true'
@@ -107,7 +107,7 @@ jobs:
       - if: needs.detect.outputs.workspace == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
 
       - if: needs.detect.outputs.workspace == 'true'
@@ -133,7 +133,7 @@ jobs:
       - if: needs.detect.outputs.workspace == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
 
       - if: needs.detect.outputs.workspace == 'true'
@@ -192,7 +192,7 @@ jobs:
       - if: needs.detect.outputs.workspace == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
 
       - if: needs.detect.outputs.workspace == 'true'
@@ -223,7 +223,7 @@ jobs:
       - if: needs.detect.outputs.workspace == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: pnpm
 
       - if: needs.detect.outputs.workspace == 'true'

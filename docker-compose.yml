@@ -220,7 +220,10 @@ services:
       PISTON_OUTPUT_MAX_SIZE: ${EXEC_MAX_OUTPUT_BYTES:-65536}
       PISTON_DISABLE_NETWORKING: "true"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:2000/api/v2/runtimes || exit 1"]
+      # Upstream Piston ships neither curl nor wget reliably across tags, so try
+      # both rather than assuming. Every other service here uses an image-native
+      # probe; this is the one that has to be defensive.
+      test: ["CMD-SHELL", "curl -fsS http://localhost:2000/api/v2/runtimes >/dev/null 2>&1 || wget -qO- http://localhost:2000/api/v2/runtimes >/dev/null 2>&1 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -398,6 +401,8 @@ services:
         condition: service_healthy
       seaweedfs:
         condition: service_healthy
+      seaweedfs-init:
+        condition: service_completed_successfully
       mailpit:
         condition: service_healthy
     ports:
@@ -442,6 +447,8 @@ services:
         condition: service_healthy
       seaweedfs:
         condition: service_healthy
+      seaweedfs-init:
+        condition: service_completed_successfully
     environment:
       <<: [*app-env, *retention-env]
       OTEL_SERVICE_NAME: hiring-worker

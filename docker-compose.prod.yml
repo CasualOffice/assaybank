@@ -136,7 +136,7 @@ services:
   caddy:
     # Caddy (Apache-2.0). Automatic TLS, and a routing config that keeps the
     # WebSocket path sticky by room code — see infra/caddy/Caddyfile.
-    image: caddy:2.8-alpine@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${CADDY_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     networks: [edge]
     ports:
       - target: 443
@@ -171,7 +171,7 @@ services:
   # =========================================================================
 
   api:
-    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-api:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${HIRING_API_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     build:
       context: .
       dockerfile: infra/docker/api.Dockerfile
@@ -252,7 +252,7 @@ services:
     logging: *default-logging
 
   collab:
-    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-collab:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${HIRING_COLLAB_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     build:
       context: .
       dockerfile: infra/docker/collab.Dockerfile
@@ -304,7 +304,7 @@ services:
     logging: *default-logging
 
   worker:
-    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-worker:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${HIRING_WORKER_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     build:
       context: .
       dockerfile: infra/docker/worker.Dockerfile
@@ -384,7 +384,7 @@ services:
     logging: *default-logging
 
   web:
-    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-web:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${HIRING_WEB_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     build:
       context: .
       dockerfile: infra/docker/web.Dockerfile
@@ -418,7 +418,7 @@ services:
   candidate:
     # A separate bundle by design. No staff-only route, no correct-answer flag
     # and no question-bank code is ever compiled into this image.
-    image: ${REGISTRY:-ghcr.io/assaybank}/hiring-candidate:${IMAGE_TAG:-latest}@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${HIRING_CANDIDATE_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     build:
       context: .
       dockerfile: infra/docker/candidate.Dockerfile
@@ -454,7 +454,7 @@ services:
   # =========================================================================
 
   piston:
-    image: ghcr.io/engineer-man/piston:latest@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${PISTON_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     # `exec` only, and `exec` is `internal: true`. There is no route from here
     # to postgres, valkey, seaweedfs, the API, the collab service or the
     # internet. Language runtimes are baked into the image at build time
@@ -521,7 +521,7 @@ services:
   # from ADR-010 are non-negotiable.
 
   postgres:
-    image: postgres:16-alpine@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${POSTGRES_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     networks: [data]
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hiring}
@@ -558,7 +558,7 @@ services:
     logging: *default-logging
 
   valkey:
-    image: valkey/valkey:8-alpine@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${VALKEY_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     networks: [data]
     command:
       - valkey-server
@@ -590,7 +590,7 @@ services:
     logging: *default-logging
 
   seaweedfs:
-    image: chrislusf/seaweedfs:3.68@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${SEAWEEDFS_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     networks: [data]
     command: >
       server
@@ -628,7 +628,7 @@ services:
   # =========================================================================
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.109.0@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${OPENTELEMETRY_COLLECTOR_CONTRIB_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     networks: [edge, data]
     command: ["--config=/etc/otel/otel-collector.yaml"]
     configs:
@@ -650,7 +650,7 @@ services:
     logging: *default-logging
 
   prometheus:
-    image: prom/prometheus:v2.54.1@sha256:REPLACE_WITH_PINNED_DIGEST
+    image: ${PROMETHEUS_IMAGE:?must be a digest-pinned reference resolved by the release pipeline - see docs/13-environments-and-release.md}
     networks: [edge, data]
     command:
       - --config.file=/etc/prometheus/prometheus.yml

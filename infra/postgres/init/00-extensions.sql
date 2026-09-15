@@ -19,14 +19,12 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Case-insensitive text.
 --
--- NOTE: docs/hiring_platform_schema.sql uses the `citext` type for
--- users.email and candidates.email but does not create the extension in its
--- own header — it names only pgcrypto and pg_trgm. Loading the schema without
--- this line fails at the first CREATE TABLE. The line belongs here rather
--- than as an edit to the schema file because the schema file is the
--- documented artefact and this is the loader's job.
+-- docs/hiring_platform_schema.sql declares citext in its own header alongside
+-- pgcrypto and pg_trgm, so it loads standalone. This line is kept because
+-- CREATE EXTENSION IF NOT EXISTS is idempotent and the loader should not
+-- depend on the order in which the schema happens to declare things.
 --
--- TBD — owner: backend lead, decide by 2026-10-09 (M0 exit): fold this into
+-- TBD — owner: backend lead, decide by 2026-11-13 (M0 exit): fold this into
 -- the Drizzle migration in packages/db so the extension set is versioned
 -- alongside the tables rather than living in a container init script.
 CREATE EXTENSION IF NOT EXISTS citext;
