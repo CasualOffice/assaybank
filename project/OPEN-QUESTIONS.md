@@ -272,7 +272,7 @@ This must be decided before task H-018 seeds the starter taxonomy, because the s
 **Decider:** _unassigned_ — engineering lead, with whoever holds headcount
 **Decide by:** 2026-10-16
 
-**Why it matters.** The dates in [`MILESTONES.md`](MILESTONES.md) assume it. Without a second engineer M3 runs serially after M2 and the plan slips four weeks, moving M4 to 2027-02-01 → 2027-02-26. The decide-by date is set so the M2-parallel ramp-up window (2026-11-02 → 2026-11-27) is still recoverable; deciding later means the ramp-up is lost even if the answer is yes. See R-12.
+**Why it matters.** The dates in [`MILESTONES.md`](MILESTONES.md) assume it. Without a second engineer M3 runs serially after M2 and the plan slips four weeks, moving M4 behind M3 and GA to 2027-04-09. The decide-by date is set so the P3-parallel ramp-up window (2026-11-16 → 2026-12-11) is still recoverable; deciding later means the ramp-up is lost even if the answer is yes. See R-12.
 
 **Options.**
 
@@ -319,3 +319,24 @@ This must be decided before task H-018 seeds the starter taxonomy, because the s
 | Per-region deployment, data never leaves | Cleanest compliance position and a genuine product argument for self-hosting. Multiplies the operational surface and the release process. |
 
 **Recommendation.** Decide the hiring geography first — this is downstream of a business question, and engineering should not pick a region by default. If EU candidates are in scope at all, the third option is the one the architecture was designed for.
+
+---
+
+## OQ-015 — Is the 25-week re-baselined schedule accepted?
+
+**Status:** **open**
+**Source:** [`ROADMAP.md`](ROADMAP.md) §1 — the PRD's 18-week plan assumed a foundation that did not exist
+**Decider:** _unassigned_ — engineering lead with the executive sponsor
+**Decide by:** 2026-09-25
+
+**Why it matters.** Two schedules are in circulation until this is answered. [`../docs/01-PRD.md`](../docs/01-PRD.md) §6 implies 18 weeks; [`ROADMAP.md`](ROADMAP.md) and [`MILESTONES.md`](MILESTONES.md) now say 25, ending 2027-03-12. The difference is not slippage — it is work the PRD never counted: two weeks of foundation, two weeks of the tenancy, identity and audit spine, and three weeks of production readiness (load testing, a restore rehearsal, a security review, an accessibility audit) that the PRD had no phase for at all. Anyone planning a campus drive against the old date is planning against a number nobody believes.
+
+**Options.**
+
+| Option | Trade-off |
+|---|---|
+| Accept 25 weeks, GA 2027-03-12 | Every exit criterion is met and the production-readiness phase survives. Six weeks later than the PRD implied. |
+| Cut M4 from v1, GA 2027-02-05 | No certification mode and no proctoring. The PRD already sequences M4 last as the least valuable per unit of effort and the most legally fraught, so this is the cheapest real cut. |
+| Add a second engineer from P1, GA ~2027-02-12 | Only helps from P2 onward — P0 and P1 are one person's critical path and do not parallelise. Compounds with OQ-012, which already assumes a second engineer for M3. |
+
+**Recommendation.** Accept the 25 weeks. Compressing P0 means every later phase pays interest on a bad foundation, and compressing P7 means discovering the capacity ceiling during a campus drive, which is the single worst failure this product can have. If a date is genuinely immovable, cut M4 — that is a scope decision someone can make deliberately, unlike a foundation that silently does not hold.

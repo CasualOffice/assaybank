@@ -55,7 +55,7 @@ Do not respond by compressing P0 or P7. Compressing P0 means every later phase p
 bad foundation; compressing P7 means discovering the capacity ceiling during a campus drive, which
 is the single worst failure this product can have.
 
-This re-baseline is an estimate and needs an owner's sign-off. Tracked as `OQ-013` in
+This re-baseline is an estimate and needs an owner's sign-off. Tracked as `OQ-015` in
 [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md).
 
 ---

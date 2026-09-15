@@ -12,15 +12,15 @@
 
 | | |
 |---|---|
-| **Current milestone** | M-1 Foundation (2026-09-15 → 2026-09-18) |
-| **Next milestone** | M0 Question bank, starts Monday 2026-09-21 |
+| **Current milestone** | M-1 Foundation, phase P0 (2026-09-21 → 2026-10-02) |
+| **Next milestone** | M0 Question bank, phases P1–P2 (2026-10-05 → 2026-11-13) |
 | **Overall RAG** | amber |
-| **Schedule** | green — M-1 on track, M0 starts on the planned date |
+| **Schedule** | amber — re-baselined 2026-09-15 from 18 weeks to 25. The PRD plan assumed a working repository, database and pipeline; none existed, and it had no production-readiness phase. GA 2027-03-12. Needs sign-off (OQ-015) |
 | **Scope** | green — no changes to PRD §6 |
 | **Risk** | amber — eight high risks open, three of them the same question-bank problem (R-03, R-04, R-13) |
 | **Staffing** | red — M3 assumes a second engineer who is not confirmed (OQ-012, decide by 2026-10-16) |
 
-Amber overall because the plan is sound and the delivery capacity behind it is not yet confirmed.
+Amber overall because the plan is sound, the schedule has just moved six weeks for reasons that were always true but unstated, and the delivery capacity behind it is not yet confirmed.
 
 ## Shipped this period (2026-09-15)
 
@@ -30,14 +30,29 @@ Documentation, infrastructure configuration and process only. **No application c
 - Dev and production docker stacks on the canonical ports; Caddy, OTel, Prometheus, Grafana configuration
 - ADR-012 closing the Node-vs-Python question left open in HLD §5, plus ADR-013 through ADR-019
 - Design docs 06–16: testing, load and capacity, i18n, ATS, certification, retention and DPIA, observability, environments, threat model, accessibility, AI usage policy
-- Project management layer: milestones, 109-task backlog, 20-entry risk register, open questions, definition of done, glossary
+- Project management layer: milestones, a 135-task prioritised backlog, 20-entry risk register, open questions, definition of done, glossary
+- `ROADMAP.md` (phases P0–P7 with entry and exit gates), `P0-FOUNDATION-PLAN.md` (fifteen ordered steps) and `docs/17-engineering-standards.md`
+- The project licensed MPL-2.0 (ADR-020), with a CI gate enforcing the Exhibit A header on every source file
+- 27 cross-document contradictions found by an audit pass and fixed, including two blockers: an ADR specifying the exact model the document it pointed at rejects, and four separate copies of the milestone calendar that had all drifted
 - CI workflows and the licence gate script (ADR-001); code graph and its generator
+
+## In progress
+
+**P0 foundation build, started 2026-09-15.** `H-110` through `H-135`. The sequential spine
+(workspace, strict tsconfig, layering lint rule, fourteen workspaces) is being built first because
+concurrent edits to the workspace root corrupt each other; the independent tracks — config,
+observability, contracts, the pure domain, db and tenancy, the security boundary, the design
+system — follow it in parallel. See the Start here section of [`TRACKER.md`](TRACKER.md).
 
 ## Next
 
-1. Stand up the pnpm workspace and get all fourteen workspaces (five apps, nine packages) compiling empty (H-011 → H-013). This is the only thing between here and M0 starting on code rather than on scaffolding.
-2. Appoint the question bank owner before the starter taxonomy is seeded (OQ-010, decide by 2026-09-25).
-3. Begin M0: schema sections 1–4, RLS with per-table negative tests, question version lifecycle.
+1. Close P0 against its exit gate in [`ROADMAP.md`](ROADMAP.md) §5. The criterion that matters is
+   `H-135`: a clean clone on a second machine reaching a running stack and a green CI run in under
+   ten minutes, timed by someone who did not build it.
+2. Get the re-baselined schedule signed off (OQ-015). Until it is, two plans are in circulation.
+3. Appoint the question bank owner before the starter taxonomy is seeded (OQ-010, decide by 2026-09-25).
+4. Begin P1: tenancy, identity and audit — the one vertical slice every later feature is a
+   variation on.
 
 ## Blocked
 
@@ -46,7 +61,8 @@ Documentation, infrastructure configuration and process only. **No application c
 | M3 dates in [`MILESTONES.md`](MILESTONES.md) | Second engineer unconfirmed (OQ-012) | engineering lead | 2026-09-15 |
 | Skill taxonomy seed (H-018) | No named owner (OQ-010) | engineering lead | 2026-09-15 |
 | ADR-001 reversal analysis | Internal-only determination never written down (OQ-008) | executive sponsor | 2026-09-15 |
-| Licence gate verification (H-039) | No `pnpm-lock.yaml` exists to grade | engineering lead | 2026-09-15 |
+| Licence gate verification (H-133) | No `pnpm-lock.yaml` existed to grade — unblocks as soon as the P0 workspace installs | engineering lead | 2026-09-15 |
+| Schedule baseline | Re-baseline from 18 to 25 weeks unsigned (OQ-015) | engineering lead | 2026-09-15 |
 
 ## Key metrics
 
