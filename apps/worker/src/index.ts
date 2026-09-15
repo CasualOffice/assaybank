@@ -36,7 +36,7 @@ import { pathToFileURL } from 'node:url';
 
 import { startTelemetryServer, WORKER_METRICS_PORT } from './http.js';
 import type { RunningTelemetryServer } from './http.js';
-import { createRedisIdempotencyStore, setIdempotencyStore } from './idempotency.js';
+import { createRedisIdempotencyStore, setIdempotencyStore, toJobId } from './idempotency.js';
 import {
   EXAMPLE_JOB_NAME,
   exampleJobKey,
@@ -259,7 +259,7 @@ export async function enqueueExampleJob(
 ): Promise<void> {
   const payload = exampleJobPayload(now());
   const key = exampleJobKey(payload);
-  await queue.add(EXAMPLE_JOB_NAME, injectTraceContext(payload), { jobId: key });
+  await queue.add(EXAMPLE_JOB_NAME, injectTraceContext(payload), { jobId: toJobId(key) });
   logger.info(
     { event: 'job.enqueued', queue: 'maintenance.cron', job_name: EXAMPLE_JOB_NAME, job_id: key },
     'example job enqueued',

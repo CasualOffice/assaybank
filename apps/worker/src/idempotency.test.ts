@@ -17,6 +17,7 @@ import {
   MemoryIdempotencyStore,
   resetIdempotency,
   setIdempotencyStore,
+  toJobId,
 } from './idempotency.js';
 import type { IdempotencyRedisClient, IdempotencyStore } from './idempotency.js';
 
@@ -249,5 +250,26 @@ describe('the Valkey-backed store', () => {
       del: () => Promise.resolve(1),
     };
     await expect(createRedisIdempotencyStore(client).get('k')).resolves.toBe('{"v":1}');
+  });
+});
+
+describe('toJobId', () => {
+  it('removes the colon BullMQ rejects in a custom job id', () => {
+    expect(toJobId('example.noop:2026-09-16T10:00:00.000Z')).not.toContain(':');
+  });
+
+  it('is deterministic, or a replay would enqueue a second copy instead of being refused', () => {
+    const key = 'grade:0191f0c2-0000-7000-8000-000000000000';
+    expect(toJobId(key)).toBe(toJobId(key));
+  });
+
+  it('is injective, or two unrelated jobs would collide and one would be silently dropped', () => {
+    // The pair that a naive `replaceAll(':', '%3A')` collapses: escaping `%` first is
+    // what keeps these distinct.
+    expect(toJobId('a%3Ab')).not.toBe(toJobId('a:b'));
+  });
+
+  it('rejects an invalid business key rather than encoding it into something plausible', () => {
+    expect(() => toJobId('')).toThrow(IdempotencyKeyError);
   });
 });

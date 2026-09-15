@@ -21,6 +21,7 @@
  */
 
 import { config } from '@assaybank/config';
+import { toJobId } from '../../src/idempotency.js';
 import type { QueuesConfig } from '@assaybank/config';
 import { createLogger } from '@assaybank/observability';
 import type { Logger } from '@assaybank/observability';
@@ -205,9 +206,12 @@ suite('the no-op example job', () => {
   });
 
   it('completes, and a second enqueue under the same business key is refused', async () => {
-    const key = 'example.noop:2026-09-16T10:00:00.000Z';
-    await queue.add('example.noop', { tick: '2026-09-16T10:00:00.000Z' }, { jobId: key });
-    await queue.add('example.noop', { tick: '2026-09-16T10:00:00.000Z' }, { jobId: key });
+    // The business key carries a colon, which BullMQ forbids in a job id. Producers go
+    // through toJobId() for exactly that reason, so the test uses it too rather than
+    // hand-rolling a key the real code would never enqueue.
+    const jobId = toJobId('example.noop:2026-09-16T10:00:00.000Z');
+    await queue.add('example.noop', { tick: '2026-09-16T10:00:00.000Z' }, { jobId });
+    await queue.add('example.noop', { tick: '2026-09-16T10:00:00.000Z' }, { jobId });
 
     await until(() => completed.length > 0);
     // BullMQ refuses a duplicate job id, which is the first of the two idempotency

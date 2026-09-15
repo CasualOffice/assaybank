@@ -243,6 +243,28 @@ export async function idempotent<T>(
 }
 
 /**
+ * Encodes a business key into a BullMQ-safe job id.
+ *
+ * BullMQ rejects a custom job id containing `:` — it uses the colon as its own Redis key
+ * separator, so a key like `grade:<submission-id>` or any key carrying an ISO timestamp
+ * throws at `queue.add` rather than at review. Business keys naturally contain both.
+ *
+ * The encoding is percent-style and must hold two properties, because idempotency depends
+ * on them:
+ *
+ *   deterministic — the same key always yields the same id, or a replay enqueues a second
+ *                   copy instead of being refused;
+ *   injective     — two different keys never yield the same id, or two unrelated jobs
+ *                   collide and one is silently dropped.
+ *
+ * `%` is escaped before `:` so the mapping stays reversible: without that ordering,
+ * `a%3Ab` and `a:b` would both encode to `a%3Ab`.
+ */
+export function toJobId(key: string): string {
+  return assertBusinessKey(key).replaceAll('%', '%25').replaceAll(':', '%3A');
+}
+
+/**
  * Validates a business key.
  *
  * An empty or whitespace-bearing key is rejected rather than normalised: a key built from
