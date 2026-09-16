@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE-GRAPH.md`](CODE-GRAPH.md), [`project/DEFINITION-OF-DONE.md`](project/DEFINITION-OF-DONE.md), [`docs/DOC-OWNERSHIP.md`](docs/DOC-OWNERSHIP.md)
 
 ---
@@ -11,7 +11,7 @@ This file is the operating contract for anyone changing this repository — huma
 
 ## The project in three sentences
 
-Assaybank is a self-hosted technical hiring platform covering async assessments, live coding interviews and proctored certification exams against one shared question bank and one skill taxonomy. The design is complete and documented; as of 2026-09-15 there is no application code in this repository, and the build starts Monday 2026-09-21. Everything that does not exist yet must be described in future or imperative tense and marked as planned — never claim code exists.
+Assaybank is a self-hosted technical hiring platform covering async assessments, live coding interviews and proctored certification exams against one shared question bank and one skill taxonomy. The design is complete and documented, and the build is under way: as of 2026-09-17 the foundation (P0) and tenancy/identity (P1) are complete and the question bank (P2) is in progress — see [`project/STATUS.md`](project/STATUS.md). Describe only what is merged and tested as existing; everything else is planned, in future or imperative tense. Check the code before asserting either — this file said "no application code" for two days after there was some.
 
 ## Repo map: who owns what
 

@@ -108,6 +108,9 @@ export const QUESTION_VERSION_PATH = '/questions/{id}/versions/{v}';
 /** Publishing one version — a distinct action requiring `question.publish`. */
 export const QUESTION_VERSION_PUBLISH_PATH = '/questions/{id}/versions/{v}/publish';
 
+/** `POST` — run code against a question's sample cases. */
+export const QUESTION_PREVIEW_PATH = '/questions/{id}/preview';
+
 // --- vocabulary --------------------------------------------------------------
 
 /**
@@ -822,6 +825,23 @@ export const QuestionVersionInputSchema = z
 
 /** The parsed body of `POST /questions/{id}/versions` and of `PATCH …/versions/{v}`. */
 export type QuestionVersionInput = z.infer<typeof QuestionVersionInputSchema>;
+
+/**
+ * `POST /questions/{id}/preview` — run code against a question's **sample** cases (docs/03 §4).
+ *
+ * Both fields optional: with neither, the question's own reference solution is run, which is how
+ * an author checks a question before publishing it. Hidden cases are never run by a preview,
+ * because a preview's output is shown to whoever asked.
+ */
+export const QuestionPreviewRequestSchema = z
+  .strictObject({
+    language: z.string().min(1).max(50).optional(),
+    code: z.string().min(1).max(200_000).optional(),
+  })
+  .describe('Run code, or the reference solution, against sample cases only.')
+  .openapi('QuestionPreviewRequest');
+
+export type QuestionPreviewRequest = z.infer<typeof QuestionPreviewRequestSchema>;
 
 /**
  * The fields a question's *first* version must carry, because there is nothing to copy

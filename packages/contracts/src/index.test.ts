@@ -131,6 +131,8 @@ const PUBLIC_SURFACE = [
   'toAuthorVersionView',
   'toAuthorView',
   'toCandidateView',
+  'QUESTION_PREVIEW_PATH',
+  'QuestionPreviewRequestSchema',
   // taxonomy — skills, job roles and the join between them (ADR-009)
   'SkillKeySchema',
   'SkillCategorySchema',

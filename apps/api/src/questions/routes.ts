@@ -70,8 +70,10 @@ import {
   QUESTION_PATH,
   QUESTION_VERSIONS_PATH,
   QUESTION_VERSION_PATH,
+  QUESTION_PREVIEW_PATH,
   QUESTION_VERSION_PUBLISH_PATH,
   QuestionParamsSchema,
+  QuestionPreviewRequestSchema,
   QuestionVersionInputSchema,
   QuestionVersionParamsSchema,
   parseRequestPart,
@@ -108,6 +110,7 @@ import {
 } from '@assaybank/db';
 
 import { requirePermission } from '../authorisation.js';
+import { assertKindContent, shapeOfContent, shapeOfRecord } from './kind-content.js';
 import { staffOnly } from '../principal.js';
 import { rateLimitFor } from '../rate-limit.js';
 
@@ -133,6 +136,8 @@ export const QUESTION_VERSIONS_ROUTE = fastifyPath(QUESTION_VERSIONS_PATH);
 export const QUESTION_VERSION_ROUTE = fastifyPath(QUESTION_VERSION_PATH);
 /** `/api/v1/questions/:id/versions/:v/publish`. */
 export const QUESTION_VERSION_PUBLISH_ROUTE = fastifyPath(QUESTION_VERSION_PUBLISH_PATH);
+/** `POST /questions/:id/preview` */
+export const QUESTION_PREVIEW_ROUTE = fastifyPath(QUESTION_PREVIEW_PATH);
 
 /**
  * The `audit_log.action` each write is recorded under.
@@ -485,7 +490,7 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
           // `max(version_no) + 1`, so two concurrent creates would otherwise both read 3
           // and both try to write 4, and the loser would meet the unique constraint as a
           // 500 rather than as a queue.
-          await requireQuestion(tx, id, { forUpdate: true });
+          const question = await requireQuestion(tx, id, { forUpdate: true });
 
           const prior = await getLatestVersion(tx, id);
 
@@ -508,6 +513,12 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
           // which is what makes ADR-003's "every edit is a new version" affordable rather
           // than a reason to avoid editing (see @assaybank/db's version-content.ts).
           const content = mergeVersionContent(prior, body);
+
+          // Checked on the merge, not the body: omitting `options` keeps the previous ones,
+          // so a body-only check would wave through options that were already wrong. Draft
+          // stage — content the kind can never use is refused now; content it still lacks is
+          // refused at publish, because a draft is allowed to be unfinished.
+          assertKindContent(question.kind, shapeOfContent(content), 'draft');
 
           const created = await createVersion(tx, id, content, {
             at: now(),
@@ -568,7 +579,7 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
       const updated = await request.audited(
         { action: QUESTION_ACTIONS.versionUpdate, entityType: VERSION_ENTITY },
         async (tx, entry) => {
-          await requireQuestion(tx, id, { forUpdate: true });
+          const question = await requireQuestion(tx, id, { forUpdate: true });
           const before = await requireVersion(tx, id, v, { forUpdate: true });
 
           if (before.published_at !== null) {
@@ -588,6 +599,11 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
           // draft is changing what that draft says, and everything unnamed stays as this
           // draft already had it.
           const content = mergeVersionContent(before, body);
+
+          // The same draft-stage check as version creation. Without it, editing a draft in
+          // place was a way round the rule: create a valid coding draft, then PATCH options
+          // onto it.
+          assertKindContent(question.kind, shapeOfContent(content), 'draft');
 
           const after = await updateVersion(tx, id, v, content);
           // Zero rows changed after a successful read under `FOR UPDATE` means the row was
@@ -641,6 +657,12 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
           // version.
           const status = nextStatus(question, { type: 'publish' });
 
+          // After the transition check, before the stamp. A version that cannot be graded —
+          // a coding question with only visible cases, a short answer with no key — must not
+          // become immutable, because once published the only fix is another version and the
+          // broken one has already been served (ADR-003).
+          assertKindContent(question.kind, shapeOfRecord(before), 'publish');
+
           const after = await publishVersion(tx, id, v, now());
           // Zero rows changed means a concurrent publish won the race. Answering 409
           // rather than re-stamping is the point: the other request's instant is the one
@@ -665,4 +687,34 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
       return toAuthorVersionView(published);
     },
   );
+
+  // --- POST /questions/:id/preview ---------------------------------------------
+  //
+  // Everything a preview needs is decided here now — who may ask, what they may send, whether
+  // the question exists and whether its kind can be run — and only the last step, running the
+  // code, waits for P4's execution adapter. So when that adapter lands, one line changes and
+  // the contract does not.
+  //
+  // It answers `execution_unavailable` rather than a result. A stubbed "passed" would tell an
+  // author their reference solution works when nothing ran, and they would publish on it.
+  app.post(QUESTION_PREVIEW_ROUTE, { config: write }, async (request) => {
+    const principal = staffOnly(request);
+    const { id } = parseRequestPart(QuestionParamsSchema, request.params, 'params');
+    parseRequestPart(QuestionPreviewRequestSchema, request.body ?? {}, 'body');
+
+    const question = await withOrg(db, principal.orgId, (tx) => requireQuestion(tx, id));
+
+    if (question.kind !== 'coding' && question.kind !== 'sql') {
+      throw ApiError.validationFailed(
+        `Only coding and sql questions can be previewed; this one is ${question.kind}.`,
+        { details: { kind: question.kind, fields: [{ field: 'params/id', rule: 'runnable_kind' }] } },
+      );
+    }
+
+    // TBD — owner: backend lead, replace with exec-adapter.execute() in P4 (project/ROADMAP.md).
+    throw ApiError.executionUnavailable(
+      'Previewing runs code, and the execution service arrives in P4. Nothing was run.',
+      { details: { available_from_phase: 'P4', ran: false } },
+    );
+  });
 }

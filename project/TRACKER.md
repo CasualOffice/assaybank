@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-17
 **Companion docs:** [`MILESTONES.md`](MILESTONES.md), [`DEFINITION-OF-DONE.md`](DEFINITION-OF-DONE.md), [`RISKS.md`](RISKS.md), [`GLOSSARY.md`](GLOSSARY.md), [`../docs/01-PRD.md`](../docs/01-PRD.md), [`../docs/03-API-spec.md`](../docs/03-API-spec.md), [`../docs/04-ADRs.md`](../docs/04-ADRs.md)
 
 ---
@@ -81,9 +81,9 @@ and picking it up anyway is how two people end up editing the same file.
 | H-008 | P0 | Project management layer: milestones, backlog, risks, open questions, status, definition of done, glossary | docs | M-1 | — | PRD 6 | M | done | _unassigned_ |
 | H-009 | P0 | Record ADR-012..ADR-019 and rewrite the docs index | docs | M-1 | — | ADR-012 | M | done | _unassigned_ |
 | H-010 | P0 | Supporting design docs 06–16: testing, load and capacity, i18n, ATS, certification, retention and DPIA, observability, environments, threat model, accessibility, AI usage policy | docs | M-1 | H-008 | PRD 11 | L | done | _unassigned_ |
-| H-011 | P0 | pnpm workspace plus Turborepo pipeline, all fourteen workspaces (five apps, nine packages) present and compiling empty | api | M-1 | H-001 | ADR-012 | M | todo | _unassigned_ |
-| H-012 | P0 | `packages/config`: env parsing and validation that fails fast at boot, driven by `.env.example` | api | M-1 | H-011 | HLD 10 | S | todo | _unassigned_ |
-| H-013 | P0 | `packages/observability`: structured logger, OTel tracing bootstrap, Prometheus `/metrics` endpoint | api | M-1 | H-011 | HLD 8 | M | todo | _unassigned_ |
+| H-011 | P0 | pnpm workspace plus Turborepo pipeline, all fourteen workspaces (five apps, nine packages) present and compiling empty — _delivered as H-112_ | api | M-1 | H-001 | ADR-012 | M | done | _unassigned_ |
+| H-012 | P0 | `packages/config`: env parsing and validation that fails fast at boot, driven by `.env.example` — _delivered as H-113_ | api | M-1 | H-011 | HLD 10 | S | done | _unassigned_ |
+| H-013 | P0 | `packages/observability`: structured logger, OTel tracing bootstrap, Prometheus `/metrics` endpoint — _delivered as H-114_ | api | M-1 | H-011 | HLD 8 | M | done | _unassigned_ |
 
 | H-110 | P0 | pnpm workspace, Turborepo, `tsconfig.base.json` with the strict flag set, Prettier, commit hooks | infra | M-1 | H-001 | ADR-012, ADR-013 | M | done | _unassigned_ |
 | H-111 | P0 | ESLint flat config **with the layering rule enforced** (packages must not import apps; core-domain and grading import no I/O) plus a fixture test proving a violation fails | infra | M-1 | H-110 | CODE-GRAPH, docs/17 §2 | M | done | _unassigned_ |
@@ -116,32 +116,32 @@ and picking it up anyway is how two people end up editing the same file.
 
 | ID | Pri | Task | Area | Milestone | Depends on | FR / ADR ref | Est | Status | Owner |
 |------|---|---|---|---|---|---|---|---|
-| H-014 | P0 | Drizzle schema for schema sections 1–3: organizations, users, RBAC tables, skills, job roles, job openings | db | M0 | H-011 | FR-26, FR-27 | M | todo | _unassigned_ |
-| H-015 | P0 | Drizzle schema for schema section 4: questions, question_versions, mcq_options, coding_specs, test_cases, short_answer_keys, question_stats, plus the two enums | db | M0 | H-014 | FR-1, ADR-003 | M | todo | _unassigned_ |
+| H-014 | P0 | Drizzle schema for schema sections 1–3: organizations, users, RBAC tables, skills, job roles, job openings | db | M0 | H-011 | FR-26, FR-27 | M | done | _unassigned_ |
+| H-015 | P0 | Drizzle schema for schema section 4: questions, question_versions, mcq_options, coding_specs, test_cases, short_answer_keys, question_stats, plus the two enums | db | M0 | H-014 | FR-1, ADR-003 | M | done | _unassigned_ |
 | H-016 | P0 | RLS policies on every tenant table plus per-checkout `app.current_org`, and a separate elevated job role with its own audit trail | db | M0 | H-015 | FR-26, ADR-010 | M | done | _unassigned_ |
 | H-017 | P0 | RLS negative test per tenant table: a session scoped to org A reads zero org B rows on select, update and delete | db | M0 | H-016 | FR-26, ADR-010 | M | done | _unassigned_ |
 | H-018 | P1 | Seed script: system `user_roles`, `permissions`, `user_role_permissions`, and a two-level starter skill taxonomy | db | M0 | H-014 | ADR-009 | S | todo | _unassigned_ |
 | H-019 | P0 | Expand-contract migration harness plus a CI lint rejecting a destructive migration in one step | db | M0 | H-014 | HLD 10 | M | todo | _unassigned_ |
 | H-020 | P0 | Indexes from schema section 11 and an `EXPLAIN` baseline captured with RLS enabled, to detect plan degradation later | db | M0 | H-017 | ADR-010 | M | done | _unassigned_ |
-| H-021 | P1 | `packages/auth`: staff sessions via Better Auth plus OIDC login against `OIDC_ISSUER` | api | M0 | H-014 | FR-27 | L | todo | _unassigned_ |
-| H-022 | P1 | Per-action permission checks resolved from `user_role_permissions`, never from a role name, so custom roles work | api | M0 | H-021 | FR-27 | M | todo | _unassigned_ |
-| H-023 | P0 | `packages/contracts`: zod schemas, the stable error-code union, generated OpenAPI 3.1 | api | M0 | H-011 | API 2 | M | todo | _unassigned_ |
-| H-024 | P1 | Fastify app skeleton: request id, error envelope, cursor pagination, `server_time` on every response | api | M0 | H-023 | API 2, ADR-006 | M | todo | _unassigned_ |
+| H-021 | P1 | `packages/auth`: staff sessions via Better Auth plus OIDC login against `OIDC_ISSUER` | api | M0 | H-014 | FR-27 | L | done | _unassigned_ |
+| H-022 | P1 | Per-action permission checks resolved from `user_role_permissions`, never from a role name, so custom roles work | api | M0 | H-021 | FR-27 | M | done | _unassigned_ |
+| H-023 | P0 | `packages/contracts`: zod schemas, the stable error-code union, generated OpenAPI 3.1 | api | M0 | H-011 | API 2 | M | done | _unassigned_ |
+| H-024 | P1 | Fastify app skeleton: request id, error envelope, cursor pagination, `server_time` on every response — _partial 2026-09-17: request id, error envelope and cursor pagination done; `server_time` is on the health routes only, not yet every response_ | api | M0 | H-023 | API 2, ADR-006 | M | todo | _unassigned_ |
 | H-025 | P0 | `Idempotency-Key` middleware replaying the original response body and status on a repeat | api | M0 | H-024 | API 2 | M | todo | _unassigned_ |
-| H-026 | P1 | Valkey-backed rate limiter implementing the five documented scopes and returning `Retry-After` | api | M0 | H-024 | API 2 | M | todo | _unassigned_ |
-| H-027 | P1 | Append-only `audit_log` writer plus middleware capturing every privileged action with actor, entity and reason | api | M0 | H-024 | FR-21, FR-25 | M | todo | _unassigned_ |
-| H-028 | P2 | Skills and job-roles CRUD including `job_role_skills` weights, and `GET /job-roles/{id}/coverage` reporting where the bank is thin | api | M0 | H-024 | FR-2, ADR-009 | M | todo | _unassigned_ |
-| H-029 | P1 | Question CRUD across all eight kinds with kind-specific payload validation for options, coding specs, test cases and answer keys | api | M0 | H-024 | PRD 6 M0 | L | todo | _unassigned_ |
-| H-030 | P0 | Version lifecycle draft → review → published → retired; `PATCH` on a published version returns 409 `version_immutable` | api | M0 | H-029 | FR-1, ADR-003 | M | todo | _unassigned_ |
-| H-031 | P1 | `PUT /questions/{id}/skills` with weights; no route, column or import path permits tagging a question with a job role | api | M0 | H-028 | FR-2, ADR-009 | S | todo | _unassigned_ |
+| H-026 | P1 | Valkey-backed rate limiter implementing the five documented scopes and returning `Retry-After` — _partial 2026-09-17: Valkey-backed with `Retry-After`, 3 of 5 scopes; trial-run and submission scopes arrive with execution in P3/P4_ | api | M0 | H-024 | API 2 | M | todo | _unassigned_ |
+| H-027 | P1 | Append-only `audit_log` writer plus middleware capturing every privileged action with actor, entity and reason | api | M0 | H-024 | FR-21, FR-25 | M | done | _unassigned_ |
+| H-028 | P2 | Skills and job-roles CRUD including `job_role_skills` weights, and `GET /job-roles/{id}/coverage` reporting where the bank is thin — _partial 2026-09-17: skills list/create/merge and `GET /job-roles/{id}/coverage` done; job-roles CRUD and `PUT /job-roles/{id}/skills` remain_ | api | M0 | H-024 | FR-2, ADR-009 | M | todo | _unassigned_ |
+| H-029 | P1 | Question CRUD across all eight kinds with kind-specific payload validation for options, coding specs, test cases and answer keys | api | M0 | H-024 | PRD 6 M0 | L | done | _unassigned_ |
+| H-030 | P0 | Version lifecycle draft → review → published → retired; `PATCH` on a published version returns 409 `version_immutable` | api | M0 | H-029 | FR-1, ADR-003 | M | done | _unassigned_ |
+| H-031 | P1 | `PUT /questions/{id}/skills` with weights; no route, column or import path permits tagging a question with a job role — _partial 2026-09-17: `setQuestionSkills` repository done; the `PUT /questions/{id}/skills` route remains_ | api | M0 | H-028 | FR-2, ADR-009 | S | todo | _unassigned_ |
 | H-032 | P2 | Import job adapters for HumanEval, MBPP, LBPP and Exercism, rejecting any row without `source_license`, preserving `external_ref`, emitting per-row errors instead of failing the file, and driving an attributions page in the staff console | worker | M0 | H-029 | FR-3 | L | todo | _unassigned_ |
 | H-033 | P2 | QTI 2.1 import and export, round-trip without loss across all eight question kinds | worker | M0 | H-032 | M0 exit | L | todo | _unassigned_ |
 | H-034 | P2 | JSON bank export in an open, documented shape, with CC-BY attribution preserved in the payload | worker | M0 | H-032 | FR-29, G6 | M | todo | _unassigned_ |
 | H-035 | P1 | Nightly `question_stats` job computing p-value and point-biserial discrimination per question version once n ≥ 30 | worker | M0 | H-015 | FR-5 | M | todo | _unassigned_ |
 | H-036 | P0 | `exposure_count` increment on attempt materialisation plus a retirement flag above a configurable threshold | api | M0 | H-030 | FR-4 | S | todo | _unassigned_ |
-| H-037 | P0 | Staff console shell: TanStack Router, auth guard, layout, shared design tokens in `packages/ui` | web | M0 | H-021 | — | M | todo | _unassigned_ |
+| H-037 | P0 | Staff console shell: TanStack Router, auth guard, layout, shared design tokens in `packages/ui` — _partial 2026-09-17: router, layout and design tokens done; the auth guard remains_ | web | M0 | H-021 | — | M | todo | _unassigned_ |
 | H-038 | P1 | Question authoring UI: markdown prompt editor, option editor, test-case editor, explicit publish action that reads as irreversible | web | M0 | H-037 | ADR-003 | L | todo | _unassigned_ |
-| H-039 | P0 | Wire the licence gate against the real `pnpm-lock.yaml`, plant an AGPL fixture to prove it fails, generate the first CycloneDX SBOM | compliance | M0 | H-007, H-011 | ADR-001 | S | todo | _unassigned_ |
+| H-039 | P0 | Wire the licence gate against the real `pnpm-lock.yaml`, plant an AGPL fixture to prove it fails, generate the first CycloneDX SBOM | compliance | M0 | H-007, H-011 | ADR-001 | S | done | _unassigned_ |
 | H-040 | P2 | M0 exit evidence: load 200 questions tagged to at least 3 job roles and prove a lossless export/re-import round trip | docs | M0 | H-033 | M0 exit | M | todo | _unassigned_ |
 
 ## M1 — Async MCQ assessment (phase P3)
@@ -292,16 +292,19 @@ works on the machine that built it; that is not what P0 promises.
 
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
-| M-1 | P0 | 39 | 36 | 10 | 29 |
-| M0 | P1–P2 | 27 | 12 | 0 | 27 |
-| M1 | P3 | 22 | 10 | 0 | 22 |
+| M-1 | P0 | 39 | 36 | 38 | 1 |
+| M0 | P1–P2 | 27 | 12 | 12 | 15 |
+| M1 | P3 | 22 | 9 | 0 | 22 |
 | M2 | P4 | 18 | 8 | 0 | 18 |
 | M3 | P5 | 14 | 4 | 0 | 14 |
-| M4 | P6 | 15 | 2 | 0 | 15 |
-| **Total** | | **135** | **72** | **10** | **125** |
+| M4 | P6 | 15 | 3 | 0 | 15 |
+| **Total** | | **135** | **72** | **50** | **85** |
 
-The ten `done` rows are the documentation, infrastructure configuration and process artifacts
-produced in the 2026-09-15 foundation run. Every row describing runtime behaviour is `todo`.
+Reconciled against the code on 2026-09-17, not carried forward. A row is `done` only where the behaviour
+exists and is tested; partial work stays `todo` with an annotation saying what is done and what
+remains, because `in-progress` means an owner with an open branch and every owner is unassigned.
+The reconciliation was needed because P1 and the first P2 tracks were built without flipping their
+rows — a breach of CLAUDE.md rule 2 that left the board describing a project that did not exist.
 
 M-1 grew from 13 rows to 39 because the original set described the *outputs* of the foundation
 phase without the engineering work that produces them — a workspace, a schema as migrations, a

@@ -377,7 +377,12 @@ describe('PATCH /questions/{id}/versions/{v} — ADR-003', () => {
     const { id, versionNo } = await publishedQuestion('mcq_single', {
       prompt_md: 'Which is prime?',
       difficulty: 2,
-      options: [{ body_md: '7', is_correct: true }],
+      // Two options at least: one option is not a question, and the kind rule now refuses
+      // to publish it.
+      options: [
+        { body_md: '7', is_correct: true },
+        { body_md: '8', is_correct: false },
+      ],
     });
 
     const response = await patch(`${QUESTIONS_ROUTE}/${id}/versions/${versionNo}`, {
@@ -756,28 +761,217 @@ describe('tenancy (ADR-010)', () => {
 
 describe('the author view is what staff receive', () => {
   it('serves the answer key, because an author who cannot see it cannot author', async () => {
-    const { id, versionNo } = await createQuestionWithVersion('coding', {
+    // Each key on the kind that genuinely carries it. This test once put options and answer
+    // keys onto a coding question to assert all four in one place; the kind rule now refuses
+    // that, correctly, because neither is ever served or graded on a coding question.
+    const coding = await createQuestionWithVersion('coding', {
       prompt_md: 'Reverse a list.',
       difficulty: 3,
       explanation_md: 'Three pointers.',
-      options: [{ body_md: 'iteratively', is_correct: true }],
       coding_spec: {
         allowed_languages: ['python'],
         solution_code: { python: 'return xs[::-1]' },
       },
       test_cases: [{ stdin: '1 2 3', expected_stdout: '3 2 1', is_sample: false }],
+    });
+    const choice = await createQuestionWithVersion('mcq_single', {
+      prompt_md: 'Which reversal allocates no new list?',
+      difficulty: 3,
+      options: [
+        { body_md: 'iteratively, in place', is_correct: true },
+        { body_md: 'slicing', is_correct: false },
+      ],
+    });
+    const short = await createQuestionWithVersion('short_answer', {
+      prompt_md: 'Name the approach.',
+      difficulty: 2,
       answer_keys: [{ match_type: 'ci', pattern: 'iteratively' }],
     });
 
-    const version = asVersion((await get(`${QUESTIONS_ROUTE}/${id}/versions/${versionNo}`)).body);
+    const read = async (q: { id: string; versionNo: number }) =>
+      asVersion((await get(`${QUESTIONS_ROUTE}/${q.id}/versions/${String(q.versionNo)}`)).body);
+
+    const codingView = await read(coding);
+    const choiceView = await read(choice);
+    const shortView = await read(short);
 
     // The deliberate opposite of the leak suite: this surface is permission-gated staff
     // territory, and withholding the key here would make the bank unusable.
-    expect(version.options[0]?.is_correct).toBe(true);
-    expect(version.coding_spec?.solution_code).toStrictEqual({ python: 'return xs[::-1]' });
-    expect(version.test_cases[0]?.expected_stdout).toBe('3 2 1');
-    expect(version.answer_keys[0]?.pattern).toBe('iteratively');
-    expect(version.explanation_md).toBe('Three pointers.');
+    expect(choiceView.options[0]?.is_correct).toBe(true);
+    expect(codingView.coding_spec?.solution_code).toStrictEqual({ python: 'return xs[::-1]' });
+    expect(codingView.test_cases[0]?.expected_stdout).toBe('3 2 1');
+    expect(shortView.answer_keys[0]?.pattern).toBe('iteratively');
+    expect(codingView.explanation_md).toBe('Three pointers.');
+  });
+});
+
+describe('question kinds carry only what they can use', () => {
+  /** The fields named in a validation_failed envelope, as the client sent them. */
+  function fieldsIn(body: unknown): string[] {
+    const details = asEnvelope(body).error.details as
+      | { fields?: Array<{ field: string; rule: string }> }
+      | undefined;
+    return (details?.fields ?? []).map((f) => `${f.field}:${f.rule}`);
+  }
+
+  it('refuses options on a coding question when the version is created', async () => {
+    const created = await post(QUESTIONS_ROUTE, { kind: 'coding', source_license: 'MIT' });
+    const { id } = asQuestion(created.body);
+
+    const response = await post(`${QUESTIONS_ROUTE}/${id}/versions`, {
+      prompt_md: 'Reverse a list.',
+      difficulty: 3,
+      options: [{ body_md: 'a', is_correct: true }],
+    });
+
+    expect(response.status).toBe(422);
+    expect(fieldsIn(response.body)).toContain('body/options:wrong_kind');
+  });
+
+  it('refuses the same content added to a draft by PATCH — the edit is not a way round the rule', async () => {
+    const { id, versionNo } = await createQuestionWithVersion('coding', {
+      prompt_md: 'Reverse a list.',
+      difficulty: 3,
+    });
+
+    const response = await patch(`${QUESTIONS_ROUTE}/${id}/versions/${String(versionNo)}`, {
+      options: [{ body_md: 'a', is_correct: true }],
+    });
+
+    expect(response.status).toBe(422);
+    expect(fieldsIn(response.body)).toContain('body/options:wrong_kind');
+  });
+
+  it('lets a draft be unfinished — a coding draft with no test cases saves', async () => {
+    const created = await post(QUESTIONS_ROUTE, { kind: 'coding', source_license: 'MIT' });
+    const { id } = asQuestion(created.body);
+
+    const response = await post(`${QUESTIONS_ROUTE}/${id}/versions`, {
+      prompt_md: 'Reverse a list.',
+      difficulty: 3,
+    });
+
+    expect(response.status).toBe(201);
+  });
+
+  it('refuses to publish a coding question whose only case is visible, and stamps nothing', async () => {
+    const { id, versionNo } = await createQuestionWithVersion('coding', {
+      prompt_md: 'Reverse a list.',
+      difficulty: 3,
+      coding_spec: { allowed_languages: ['python'] },
+      test_cases: [{ stdin: '1 2', expected_stdout: '2 1', is_sample: true }],
+    });
+    expect((await patch(`${QUESTIONS_ROUTE}/${id}`, { status: 'review' })).status).toBe(200);
+
+    const response = await post(`${QUESTIONS_ROUTE}/${id}/versions/${String(versionNo)}/publish`);
+
+    expect(response.status).toBe(422);
+    expect(fieldsIn(response.body)).toContain('body/test_cases:incomplete');
+
+    // The refusal leaves no trace: a version that could not be graded must not be frozen.
+    const after = asVersion((await get(`${QUESTIONS_ROUTE}/${id}/versions/${String(versionNo)}`)).body);
+    expect(after.published_at).toBeNull();
+  });
+
+  // The three kinds no other test in this file publishes end to end.
+  it('publishes a complete true_false question', async () => {
+    await publishedQuestion('true_false', {
+      prompt_md: 'A published version can be edited in place.',
+      difficulty: 1,
+      options: [
+        { body_md: 'True', is_correct: false },
+        { body_md: 'False', is_correct: true },
+      ],
+    });
+  });
+
+  it('publishes a complete sql question, fixture database included', async () => {
+    await publishedQuestion('sql', {
+      prompt_md: 'Count the orders per customer.',
+      difficulty: 2,
+      coding_spec: {
+        allowed_languages: ['sql'],
+        fixture_sql: 'create table orders (customer_id int); insert into orders values (1),(1),(2);',
+      },
+      test_cases: [{ stdin: '', expected_stdout: '1|2\n2|1', is_sample: false }],
+    });
+  });
+
+  it('refuses to publish an sql question with no fixture database', async () => {
+    const { id, versionNo } = await createQuestionWithVersion('sql', {
+      prompt_md: 'Count the orders per customer.',
+      difficulty: 2,
+      coding_spec: { allowed_languages: ['sql'] },
+      test_cases: [{ stdin: '', expected_stdout: 'x', is_sample: false }],
+    });
+    expect((await patch(`${QUESTIONS_ROUTE}/${id}`, { status: 'review' })).status).toBe(200);
+
+    const response = await post(`${QUESTIONS_ROUTE}/${id}/versions/${String(versionNo)}/publish`);
+
+    expect(response.status).toBe(422);
+    expect(fieldsIn(response.body)).toContain('body/coding_spec:incomplete');
+  });
+
+  it('publishes a system_design question, which is human-graded and needs no machine content', async () => {
+    await publishedQuestion('system_design', {
+      prompt_md: 'Design a URL shortener for 10k writes per second.',
+      difficulty: 4,
+    });
+  });
+});
+
+describe('POST /questions/{id}/preview — before the execution service exists', () => {
+  const previewOf = (id: string) => `${QUESTIONS_ROUTE}/${id}/preview`;
+
+  it('answers execution_unavailable and says plainly that nothing ran — never a stubbed pass', async () => {
+    const { id } = await createQuestionWithVersion('coding', {
+      prompt_md: 'Reverse a list.',
+      difficulty: 3,
+      coding_spec: { allowed_languages: ['python'], solution_code: { python: 'return xs[::-1]' } },
+    });
+
+    const response = await post(previewOf(id), { language: 'python', code: 'print(1)' });
+
+    expect(response.status).toBe(503);
+    const envelope = asEnvelope(response.body);
+    expect(envelope.error.code).toBe('execution_unavailable');
+    expect(envelope.error.details?.['ran']).toBe(false);
+    // The failure this guards against: an author who reads "passed" publishes on it.
+    expect(JSON.stringify(response.body)).not.toMatch(/"(passed|result|stdout)"/u);
+  });
+
+  it('accepts an empty body, which means "run the reference solution"', async () => {
+    const { id } = await createQuestionWithVersion('sql', { prompt_md: 'Count.', difficulty: 2 });
+    expect((await post(previewOf(id))).status).toBe(503);
+  });
+
+  it('checks the kind before reaching for the execution service', async () => {
+    const { id } = await createQuestionWithVersion('subjective', { prompt_md: 'Discuss.', difficulty: 2 });
+
+    const response = await post(previewOf(id));
+
+    expect(response.status).toBe(422);
+    expect(asEnvelope(response.body).error.code).toBe('validation_failed');
+  });
+
+  it('refuses an unknown body field rather than ignoring it', async () => {
+    const { id } = await createQuestionWithVersion('coding', { prompt_md: 'Reverse.', difficulty: 3 });
+    expect((await post(previewOf(id), { hidden: true })).status).toBe(422);
+  });
+
+  it('answers not_found for a question that does not exist', async () => {
+    const response = await post(previewOf('00000000-0000-4000-8000-000000000000'));
+    expect(response.status).toBe(404);
+  });
+
+  it('requires question.write — reading the bank is not enough to run code against it', async () => {
+    const { id } = await createQuestionWithVersion('coding', { prompt_md: 'Reverse.', difficulty: 3 });
+
+    acting = reader();
+    const response = await post(previewOf(id));
+
+    expect(response.status).toBe(403);
+    expect(asEnvelope(response.body).error.code).toBe('forbidden');
   });
 });
 

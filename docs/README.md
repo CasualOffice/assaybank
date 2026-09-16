@@ -2,14 +2,14 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`../README.md`](../README.md), [`../CLAUDE.md`](../CLAUDE.md), [`../CODE-GRAPH.md`](../CODE-GRAPH.md), [`../project/STATUS.md`](../project/STATUS.md)
 
 ---
 
 A self-hosted platform covering async assessments, live coding interviews, and proctored certification exams against one shared question bank.
 
-This directory is the design record. It is the reason the system is shaped the way it is, and it is written to be read by someone who was not in the room. Nothing here has been built yet — the repository is documentation and scaffolding, and every statement about the system is a statement of intent. Delivery starts Monday 2026-09-21.
+This directory is the design record. It is the reason the system is shaped the way it is, and it is written to be read by someone who was not in the room. These documents are the specification the code is built against. Build began on 2026-09-15; what is built at any moment is recorded in [`../project/STATUS.md`](../project/STATUS.md), and a statement here describes intent unless that file says the behaviour exists.
 
 ## Documents
 

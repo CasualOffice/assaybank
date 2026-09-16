@@ -38,13 +38,13 @@ Non-markdown entries — currently only the schema — are registered for their 
 | Path | Purpose | Owner | Cadence | Max age | Triggers | Last updated |
 |---|---|---|---|---|---|---|
 | [`README.md`](../README.md) | Repository entry point: what this is, how to bring the stack up, where to start reading | engineering lead | on-change | 180 | `docker-compose.yml`, `Makefile`, `.env.example` | 2026-09-17 |
-| [`CLAUDE.md`](../CLAUDE.md) | The operating contract every contributor, human or agent, works under | engineering lead | quarterly | 120 | `apps/*/package.json`, `packages/*/package.json` | 2026-09-15 |
+| [`CLAUDE.md`](../CLAUDE.md) | The operating contract every contributor, human or agent, works under | engineering lead | quarterly | 120 | `apps/*/package.json`, `packages/*/package.json` | 2026-09-17 |
 | [`CONTRIBUTING.md`](../CONTRIBUTING.md) | How a change is proposed, reviewed and merged | delivery lead | quarterly | 120 | `.github/workflows/**`, `Makefile` | 2026-09-17 |
 | [`CODE-GRAPH.md`](../CODE-GRAPH.md) | Generated module map: every app and package, what it owns, which way dependencies point | engineering lead | on-change | 180 | `code-graph.json`, `apps/*/package.json`, `packages/*/package.json`, `pnpm-workspace.yaml`, `turbo.json` | 2026-09-15 |
-| [`docs/README.md`](README.md) | Index of the design record and the reading order for each audience | engineering lead | monthly | 45 | — | 2026-09-15 |
+| [`docs/README.md`](README.md) | Index of the design record and the reading order for each audience | engineering lead | monthly | 45 | — | 2026-09-17 |
 | [`docs/01-PRD.md`](01-PRD.md) | What we are building and why: users, scope by milestone, requirements, success metrics | product lead | quarterly | 120 | — | 2026-09-14 |
 | [`docs/02-HLD.md`](02-HLD.md) | Components, flows, technology choices, scaling, security, failure modes, deployment | engineering lead | on-change | 180 | `code-graph.json`, `infra/docker/**` | 2026-09-15 |
-| [`docs/03-API-spec.md`](03-API-spec.md) | Endpoints, auth model, attempt state machine, webhooks, error format | backend lead | on-change | 90 | `apps/api/src/routes/**`, `packages/contracts/**` | 2026-09-16 |
+| [`docs/03-API-spec.md`](03-API-spec.md) | Endpoints, auth model, attempt state machine, webhooks, error format | backend lead | on-change | 90 | `apps/api/src/routes/**`, `packages/contracts/**` | 2026-09-17 |
 | [`docs/04-ADRs.md`](04-ADRs.md) | The decisions that are expensive to reverse, each with its reversal conditions | engineering lead | annually | 400 | — | 2026-09-15 |
 | [`docs/05-licensing-and-compliance.md`](05-licensing-and-compliance.md) | Dependency licence policy, question content licensing, employment-assessment regulation | legal counsel | on-change | 180 | `pnpm-lock.yaml`, `.licence-allowlist.json` | 2026-09-15 |
 | [`docs/06-testing-strategy.md`](06-testing-strategy.md) | What is tested at which layer, the test data strategy, what a milestone must prove | QA lead | on-change | 180 | `.github/workflows/ci.yml`, `.github/workflows/e2e.yml`, `packages/grading/**` | 2026-09-15 |
@@ -66,10 +66,10 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`project/P1-TENANCY-PLAN.md`](../project/P1-TENANCY-PLAN.md) | The step-by-step build order for tenancy, identity and audit, with verification per step | engineering lead | on-change | 60 | — | 2026-09-15 |
 | [`packages/db/docs/rls-plan-cost.md`](../packages/db/docs/rls-plan-cost.md) | The measured `EXPLAIN` baseline for the five hottest tenant-scoped queries with row-level security on and off (R-09) | engineering lead | on-change | 180 | `packages/db/migrations/**`, `packages/db/src/schema/**` | 2026-09-16 |
 | [`project/MILESTONES.md`](../project/MILESTONES.md) | M-1–M4 scope, the committed dates from the roadmap baseline, and exit criteria | delivery lead | monthly | 45 | — | 2026-09-15 |
-| [`project/TRACKER.md`](../project/TRACKER.md) | The working backlog: one row per engineering unit, with status and dependencies | delivery lead | monthly | 30 | — | 2026-09-16 |
+| [`project/TRACKER.md`](../project/TRACKER.md) | The working backlog: one row per engineering unit, with status and dependencies | delivery lead | monthly | 30 | — | 2026-09-17 |
 | [`project/RISKS.md`](../project/RISKS.md) | Named risks with likelihood, impact, owner, trigger and mitigation | delivery lead | monthly | 45 | — | 2026-09-15 |
 | [`project/OPEN-QUESTIONS.md`](../project/OPEN-QUESTIONS.md) | Questions genuinely undecided, each with a decider and an absolute decide-by date | delivery lead | monthly | 45 | — | 2026-09-15 |
-| [`project/STATUS.md`](../project/STATUS.md) | Where the project actually is this week, in one page | delivery lead | monthly | 14 | — | 2026-09-15 |
+| [`project/STATUS.md`](../project/STATUS.md) | Where the project actually is this week, in one page | delivery lead | monthly | 14 | — | 2026-09-17 |
 | [`project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md) | What "done" means for a change, a milestone and a release | engineering lead | quarterly | 120 | `.github/pull_request_template.md` | 2026-09-15 |
 | [`project/GLOSSARY.md`](../project/GLOSSARY.md) | The domain vocabulary, so two people saying "attempt" mean the same thing | product lead | quarterly | 120 | — | 2026-09-15 |
 | [`infra/README.md`](../infra/README.md) | What each container is, how the local stack fits together, and which port is whose | infrastructure lead | on-change | 180 | `infra/docker/**`, `infra/postgres/**`, `infra/caddy/**`, `docker-compose.yml` | 2026-09-17 |

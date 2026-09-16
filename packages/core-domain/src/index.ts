@@ -54,3 +54,11 @@ export { shuffleOptions } from './shuffle.js';
 
 export { rollUpSkillScores } from './skill-scores.js';
 export type { QuestionSkillScore, SkillWeights } from './skill-scores.js';
+
+export { validateKindContent } from './kind-content.js';
+export type {
+  KindContentIssue,
+  KindContentSeverity,
+  KindContentShape,
+  KindContentStage,
+} from './kind-content.js';

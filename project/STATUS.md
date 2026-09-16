@@ -2,67 +2,56 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`MILESTONES.md`](MILESTONES.md), [`TRACKER.md`](TRACKER.md), [`RISKS.md`](RISKS.md), [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md)
 
 ---
 
-**Last reviewed:** 2026-09-15 · **Next review:** 2026-09-25
+**Last reviewed:** 2026-09-17 · **Next review:** 2026-09-25
 **Cadence:** updated every Friday by the engineering lead, and at every milestone close as part of the ritual in [`MILESTONES.md`](MILESTONES.md). One screen, always. If it needs two, the detail belongs in the tracker.
 
 | | |
 |---|---|
-| **Current milestone** | M-1 Foundation, phase P0 (2026-09-21 → 2026-10-02) |
-| **Next milestone** | M0 Question bank, phases P1–P2 (2026-10-05 → 2026-11-13) |
+| **Current milestone** | M0 Question bank — P1 complete, P2 three of six tracks complete |
+| **Next milestone** | M1 Async MCQ assessment, phase P3 |
 | **Overall RAG** | amber |
-| **Schedule** | amber — re-baselined 2026-09-15 from 18 weeks to 25. The PRD plan assumed a working repository, database and pipeline; none existed, and it had no production-readiness phase. GA 2027-03-12. Needs sign-off (OQ-015) |
+| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,203 tests**, 0 failing, 0 skipped |
+| **Schedule** | amber — ahead of the re-baselined plan (P0 and P1 are complete before their planned start of 2026-09-21), but the 25-week baseline is still unsigned (OQ-015) and build pace so far says little about the judgement-heavy phases ahead |
 | **Scope** | green — no changes to PRD §6 |
 | **Risk** | amber — eight high risks open, three of them the same question-bank problem (R-03, R-04, R-13) |
 | **Staffing** | red — M3 assumes a second engineer who is not confirmed (OQ-012, decide by 2026-10-16) |
 
-Amber overall because the plan is sound, the schedule has just moved six weeks for reasons that were always true but unstated, and the delivery capacity behind it is not yet confirmed.
+Amber overall, not green, despite the build: the baseline is unsigned, the second engineer is unconfirmed, and GitHub-native secret scanning is still off.
 
-## Shipped this period (2026-09-15)
+## Shipped this period (2026-09-15 → 2026-09-17)
 
-Documentation, infrastructure configuration and process only. **No application code exists in this repository.**
+**Application code now exists.** 50 of 135 backlog tasks are done, reconciled against the code.
 
-- Repo root identity, canonical `.env.example`, `Makefile`, contributor guide
-- Dev and production docker stacks on the canonical ports; Caddy, OTel, Prometheus, Grafana configuration
-- ADR-012 closing the Node-vs-Python question left open in HLD §5, plus ADR-013 through ADR-019
-- Design docs 06–16: testing, load and capacity, i18n, ATS, certification, retention and DPIA, observability, environments, threat model, accessibility, AI usage policy
-- Project management layer: milestones, a 135-task prioritised backlog, 20-entry risk register, open questions, definition of done, glossary
-- `ROADMAP.md` (phases P0–P7 with entry and exit gates), `P0-FOUNDATION-PLAN.md` (fifteen ordered steps) and `docs/17-engineering-standards.md`
-- The project licensed MPL-2.0 (ADR-020), with a CI gate enforcing the Exhibit A header on every source file
-- 27 cross-document contradictions found by an audit pass and fixed, including two blockers: an ADR specifying the exact model the document it pointed at rejects, and four separate copies of the milestone calendar that had all drifted
-- CI workflows and the licence gate script (ADR-001); code graph and its generator
+- **P0 foundation** — fourteen workspaces, strict TypeScript, lint-enforced layering, CI enforcing, MPL-2.0 with a header gate, the licence gate proven to fail on a planted AGPL dependency
+- **P1 tenancy, identity and audit** — per-checkout org context proven by an interleaved test, RLS proven per table against real Postgres, OIDC and password login, per-action permissions with a route-enumeration test, append-only audit at the database
+- **P2 question bank, three tracks** — immutable versions with a database trigger (ADR-003); an audience-typed serialisation boundary where a candidate view that could carry an answer key fails to compile; skills, merging and role coverage that reports a required skill with no questions rather than dropping it; and the kind rule — content a kind can never use is refused on every write, content it still lacks is refused at publish, so an ungradeable question cannot become immutable
+- **Security** — an external scanner flagged realistic-looking fixture passwords on the public repository. None was a real credential. All renamed to look fake on sight, and a new gate enforces it. `docs/14` had claimed history secret scanning was in place; it was not, and now says so
+- **CI green for the first time** — it had been red since the first push without being checked
 
 ## In progress
 
-**P0 foundation build, started 2026-09-15.** `H-110` through `H-135`. The sequential spine
-(workspace, strict tsconfig, layering lint rule, fourteen workspaces) is being built first because
-concurrent edits to the workspace root corrupt each other; the independent tracks — config,
-observability, contracts, the pure domain, db and tenancy, the security boundary, the design
-system — follow it in parallel. See the Start here section of [`TRACKER.md`](TRACKER.md).
+P2 question bank: import/export (the M0 exit criterion — QTI and JSON round-trip), question statistics, and the authoring console.
 
 ## Next
 
-1. Close P0 against its exit gate in [`ROADMAP.md`](ROADMAP.md) §5. The criterion that matters is
-   `H-135`: a clean clone on a second machine reaching a running stack and a green CI run in under
-   ten minutes, timed by someone who did not build it.
-2. Get the re-baselined schedule signed off (OQ-015). Until it is, two plans are in circulation.
-3. Appoint the question bank owner before the starter taxonomy is seeded (OQ-010, decide by 2026-09-25).
-4. Begin P1: tenancy, identity and audit — the one vertical slice every later feature is a
-   variation on.
+1. Finish P2 and close M0 against its exit criterion: 200 questions, tagged to three roles, exported and re-imported without loss.
+2. Enable GitHub secret scanning and push protection — both disabled (security lead, by 2026-09-24).
+3. Get the schedule baseline signed off (OQ-015).
 
 ## Blocked
 
 | What | Blocked on | Owner | Since |
 |---|---|---|---|
-| M3 dates in [`MILESTONES.md`](MILESTONES.md) | Second engineer unconfirmed (OQ-012) | engineering lead | 2026-09-15 |
+| M3 dates | Second engineer unconfirmed (OQ-012) | engineering lead | 2026-09-15 |
 | Skill taxonomy seed (H-018) | No named owner (OQ-010) | engineering lead | 2026-09-15 |
 | ADR-001 reversal analysis | Internal-only determination never written down (OQ-008) | executive sponsor | 2026-09-15 |
-| Licence gate verification (H-133) | No `pnpm-lock.yaml` existed to grade — unblocks as soon as the P0 workspace installs | engineering lead | 2026-09-15 |
 | Schedule baseline | Re-baseline from 18 to 25 weeks unsigned (OQ-015) | engineering lead | 2026-09-15 |
+| Clean-clone timing (H-135) | Needs a second machine and someone who did not build the repository | engineering lead | 2026-09-17 |
 
 ## Key metrics
 

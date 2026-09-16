@@ -181,6 +181,8 @@ enforce it, and each must have a named test.
 | No model sits in the scoring or decision path | ADR-011 | Architecture review; `grading` is pure and has no network import |
 | Hidden test-case content never leaves the server | FR-12 | Typed serialisers; the standing leak suite |
 | Test-case expectations never enter the sandbox | ADR-002 | The adapter's type signature makes it impossible |
+| A published version can always be graded — no coding question published with only visible test cases, no short answer without a key | ADR-003 | `validateKindContent` in `packages/core-domain`, applied at publish on the stored version; a refused publish stamps nothing |
+| A version never carries content its kind cannot use | — | The same rule at `wrong_kind` severity, on every version write including `PATCH` — which was a way round it until it was checked there too |
 
 **If an invariant can only be enforced by a person remembering it, it is not enforced.**
 

@@ -39,6 +39,7 @@ describe('@assaybank/core-domain', () => {
         'transition',
         'transitionQuestion',
         'unwrapOr',
+        'validateKindContent',
       ].sort(),
     );
   });

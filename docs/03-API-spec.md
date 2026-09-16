@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (backend lead)
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-17
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`09-ats-integration.md`](09-ats-integration.md)
 
 ---
@@ -136,6 +136,29 @@ POST   /questions/{id}/versions/{v}/publish
 
 Publishing is a distinct action requiring `question.publish`. After publish the version is frozen. A `PATCH` against a published version returns `409 conflict` with code `version_immutable`.
 
+#### What each kind may carry
+
+A version body does not state its kind — the question does — so the rule is checked where both are known, on the **merged** content (the body copied forward over the previous version). It is enforced at two severities, at different moments:
+
+| Severity | Meaning | Checked on |
+|---|---|---|
+| `wrong_kind` | Content the kind can never use | `POST .../versions` and `PATCH .../versions/{v}` — every write |
+| `incomplete` | Content the kind needs but lacks | `POST .../versions/{v}/publish` only |
+
+A draft may be unfinished; it may not be wrong. Refusing `incomplete` content only at publish keeps authoring incremental, and refusing it there keeps an ungradeable version from becoming immutable.
+
+| Kind | May carry | Needs at publish |
+|---|---|---|
+| `mcq_single` | `options` | ≥ 2 options, exactly 1 correct |
+| `mcq_multi` | `options` | ≥ 2 options, ≥ 1 correct |
+| `true_false` | `options` | exactly 2 options, exactly 1 correct |
+| `short_answer` | `answer_keys` | ≥ 1 answer key |
+| `coding` | `coding_spec`, `test_cases` | a `coding_spec`, and ≥ 1 **hidden** test case — sample cases are shown to the candidate, so a question graded only on them can be passed by printing the expected output. No `fixture_sql` |
+| `sql` | `coding_spec`, `test_cases` | a `coding_spec` with `fixture_sql`, and ≥ 1 hidden test case |
+| `subjective`, `system_design` | nothing machine-checkable | nothing — human graded |
+
+A refusal is `422 validation_failed`, reporting every problem at once. `details.fields[]` names each one as `{field: "body/<field>", rule: "wrong_kind" \| "incomplete", message}`, and `details.stage` is `draft` or `publish`. A refused publish stamps nothing: `published_at` stays null.
+
 ### Skills, stats, preview
 
 ```
@@ -144,7 +167,11 @@ GET    /questions/{id}/stats        → {n_attempts, p_value, discrimination, me
 POST   /questions/{id}/preview      {language?, code?}  → dry-run against sample cases
 ```
 
-`preview` lets an author verify their reference solution passes before publishing. It runs through the same execution path as candidate submissions.
+`preview` lets an author verify their reference solution passes before publishing. It runs through the same execution path as candidate submissions, against **sample cases only** — a preview's output is shown to whoever asked. With an empty body it runs the question's own reference solution.
+
+Requires `question.write`. Only `coding` and `sql` questions can be previewed; any other kind is `422 validation_failed`.
+
+**Until the execution service lands in P4**, every well-formed preview of a runnable question answers `503 execution_unavailable` with `details.ran: false`. Authorisation, validation, the `404` and the kind check all run first and are final, so P4 replaces only the last step. It deliberately never returns a stubbed result: an author who reads "passed" publishes on it.
 
 ### Bulk
 
