@@ -50,6 +50,13 @@
       "when": 1758931200000,
       "tag": "0007_question_bank_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1759017600000,
+      "tag": "0008_global_rows_read_only",
+      "breakpoints": true
     }
   ]
 }

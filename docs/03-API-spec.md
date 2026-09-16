@@ -99,9 +99,24 @@ PUT    /job-roles/{id}/skills       [{skill_id, weight, min_difficulty, max_diff
 
 GET    /job-roles/{id}/coverage     → bank coverage report: for each required skill,
                                       how many published questions exist per difficulty band
+POST   /skills/{id}/merge           {target_id, reason}
 ```
 
-`coverage` is the endpoint that stops you from building an assessment for a role you have no questions for. Call it before assessment creation and warn the recruiter.
+`coverage` is the endpoint that stops you from building an assessment for a role you have no questions for. Call it before assessment creation and warn the recruiter. It answers `404` for a role that does not exist rather than an empty report, and names every required skill with nothing in band in `gaps`.
+
+**As built (2026-09-17).** Everything above except `PATCH /skills/{id}` and the job-openings routes.
+
+| Route | Permission | Notes |
+|---|---|---|
+| `GET` skills, job roles, a role's skills, coverage | `question.read` | `GET /job-roles?active=` takes the literal `true` or `false`; anything else is `422` |
+| `POST /skills`, `POST /skills/{id}/merge` | `question.write` | Merge is audited with its `reason` |
+| `POST`/`PATCH /job-roles`, `PUT /job-roles/{id}/skills` | `assessment.write` | A role's requirements decide what its assessments are composed from, so bank authoring alone does not grant them |
+
+- A role `code` is upper-case alphanumeric with `-` or `_` (`BE-SDE1`), unique per organisation, and fixed at creation. A taken code is `409 conflict`. Retiring a role is `PATCH {is_active: false}`; there is no delete, because assessments keep pointing at it. A `PATCH` naming nothing is `422`.
+- `PUT /job-roles/{id}/skills` replaces the whole set and answers `{job_role_id, data: [{skill_id, skill_key, skill_name, weight, min_difficulty, max_difficulty, is_required}]}`, required first, then by weight, then by key. `is_required` defaults to `true`. A skill named twice, or `min_difficulty` above `max_difficulty`, is `422`.
+- **A skill id this organisation cannot read is `422 validation_failed`**, with `details.fields[]` naming each by position (`body/1/skill_id`, rule `not_found`), and nothing is written. That covers an id that does not exist and one belonging to another organisation, answered identically. Global skills are readable by everyone and accepted. The check exists because a foreign key is validated without row-level security (`14-threat-model.md` T-041).
+- Taxonomy refusals: a missing parent is `422` on `body/parent_id` (`not_found`); a third level is `422` (`too_deep`, ADR-009). A merge whose source is missing is `404`; a missing target is `422` on `body/target_id`. A merge is refused (`merge_refused`) when the source is a global skill — shared by every organisation, so no single one may merge it away — when the target is the source's own child, and when the source has children and the target is itself a child, which would make them a third level.
+- Every write is audited: `skill.create`, `skill.merge`, `job_role.create`, `job_role.update` and `job_role.skills.replace`, the last two with `before` and `after`.
 
 ```
 GET    /job-openings                ?status=&job_role_id=
@@ -167,6 +182,8 @@ GET    /questions/{id}/stats        → {question_id, version_no, n_attempts, p_
                                        mean_seconds, computed_at, min_responses}
 POST   /questions/{id}/preview      {language?, code?}  → dry-run against sample cases
 ```
+
+`PUT /questions/{id}/skills` replaces the question's whole tag set and answers `{question_id, skills: [{skill_id, weight}]}`. Requires `question.write`. Tags belong to the question, not a version, so a published question can be re-tagged without touching what any candidate was served. Weight is `0`–`99.99`; at most 50 skills; a skill named twice is `422`; a skill this organisation cannot read is `422` exactly as for job-role requirements above. There is no field that tags a question with a job role (ADR-009), and one sent is refused as unknown. Audited as `question.skills.replace` with `before` and `after`.
 
 `stats` reports the **current version**, never a pool across versions (ADR-003), as the nightly sweep last recorded it. `p_value` and `discrimination` are null until `min_responses` (30) finalised responses exist, and discrimination is also null when either the item or the rest score has no variance — `null` means "cannot tell", which a `0` would misreport as "does not discriminate". A question the sweep has not reached answers `200` with zeros and nulls, not `404`. Requires `question.read`.
 

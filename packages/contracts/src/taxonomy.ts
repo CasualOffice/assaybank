@@ -17,7 +17,7 @@
 
 import { z } from 'zod';
 
-import { SkillIdSchema } from './ids.js';
+import { JobRoleIdSchema, SkillIdSchema } from './ids.js';
 // Difficulty is defined once, in questions.ts, because a second definition of the same
 // 1-5 band is a place for the two to drift apart.
 import { DifficultySchema } from './questions.js';
@@ -40,7 +40,7 @@ export const SkillKeySchema = z
 
 export const SkillCategorySchema = z.string().min(1).max(60);
 
-export const CreateSkillSchema = z.object({
+export const CreateSkillSchema = z.strictObject({
   key: SkillKeySchema,
   name: z.string().min(1).max(200),
   category: SkillCategorySchema.optional(),
@@ -64,14 +64,27 @@ export const ListSkillsQuerySchema = z.object({
  * is lossy: after a merge, nothing records that the two were ever distinct. That is the point —
  * an unmerged duplicate quietly splits a role's coverage in half.
  */
-export const MergeSkillSchema = z.object({
+export const MergeSkillSchema = z.strictObject({
   target_id: SkillIdSchema,
   reason: z.string().min(1).max(500),
 });
 export type MergeSkillInput = z.infer<typeof MergeSkillSchema>;
 
-export const CreateJobRoleSchema = z.object({
-  code: z.string().min(1).max(60),
+/**
+ * A role code: `BE-SDE1`, `DATA-ANALYST`. Unique per organisation and fixed at creation, because
+ * it is the handle imports, exports and assessment templates refer to a role by.
+ */
+export const JobRoleCodeSchema = z
+  .string()
+  .min(1)
+  .max(60)
+  .regex(
+    /^[A-Z0-9]+(?:[-_][A-Z0-9]+)*$/u,
+    'a role code is upper-case alphanumeric with - or _ separators, e.g. BE-SDE1',
+  );
+
+export const CreateJobRoleSchema = z.strictObject({
+  code: JobRoleCodeSchema,
   title: z.string().min(1).max(200),
   family: z.string().min(1).max(60).optional(),
   seniority: z.string().min(1).max(60).optional(),
@@ -79,9 +92,22 @@ export const CreateJobRoleSchema = z.object({
 });
 export type CreateJobRoleInput = z.infer<typeof CreateJobRoleSchema>;
 
-export const UpdateJobRoleSchema = CreateJobRoleSchema.partial()
-  .omit({ code: true })
-  .extend({ is_active: z.boolean().optional() });
+export const UpdateJobRoleSchema = z
+  .strictObject({
+    title: z.string().min(1).max(200).optional(),
+    family: z.string().min(1).max(60).optional(),
+    seniority: z.string().min(1).max(60).optional(),
+    description: z.string().max(5000).optional(),
+    // Retiring a role is `is_active: false`, never a delete: assessments and openings keep
+    // pointing at it, and the history of what a role required is part of their record.
+    is_active: z.boolean().optional(),
+  })
+  .refine((patch) => Object.values(patch).some((v) => v !== undefined), {
+    error: 'Name at least one field to change.',
+  });
+export type UpdateJobRoleInput = z.infer<typeof UpdateJobRoleSchema>;
+
+export const JobRoleParamsSchema = z.strictObject({ id: JobRoleIdSchema });
 
 /**
  * One row of a role's skill requirement.
@@ -91,7 +117,7 @@ export const UpdateJobRoleSchema = CreateJobRoleSchema.partial()
  * only that something was wrong.
  */
 export const JobRoleSkillSchema = z
-  .object({
+  .strictObject({
     skill_id: SkillIdSchema,
     weight: z.number().min(0).max(99.99),
     min_difficulty: DifficultySchema.optional(),
@@ -107,14 +133,81 @@ export const JobRoleSkillSchema = z
   );
 export type JobRoleSkillInput = z.infer<typeof JobRoleSkillSchema>;
 
+/**
+ * A skill named twice in one set is refused rather than resolved: which weight was meant is not
+ * something the server can know, and silently keeping one is a guess about someone's hiring bar.
+ */
+function uniqueSkills(rows: readonly { readonly skill_id: string }[]): boolean {
+  return new Set(rows.map((r) => r.skill_id)).size === rows.length;
+}
+
 /** The whole requirement set is replaced at once — PUT, not PATCH, per docs/03 §3. */
-export const PutJobRoleSkillsSchema = z.array(JobRoleSkillSchema).max(200);
+export const PutJobRoleSkillsSchema = z
+  .array(JobRoleSkillSchema)
+  .max(200)
+  .refine(uniqueSkills, { error: 'Each skill may appear once.' });
+
+/** One skill a question measures, as written by `PUT /questions/{id}/skills`. */
+export const QuestionSkillInputSchema = z.strictObject({
+  skill_id: SkillIdSchema,
+  weight: z.number().min(0).max(99.99),
+});
+
+/**
+ * The whole tag set of a question, replaced at once. Skills only — there is deliberately no
+ * field here, or anywhere, that tags a question with a job role (ADR-009).
+ */
+export const PutQuestionSkillsSchema = z
+  .array(QuestionSkillInputSchema)
+  .max(50)
+  .refine(uniqueSkills, { error: 'Each skill may appear once.' });
 
 export const ListJobRolesQuerySchema = z.object({
   family: z.string().min(1).max(60).optional(),
   seniority: z.string().min(1).max(60).optional(),
-  active: z.coerce.boolean().optional(),
+  // Not `z.coerce.boolean()`: that is `Boolean("false")`, which is `true`, and `?active=false`
+  // would list exactly the roles it asked to exclude.
+  active: z
+    .enum(['true', 'false'])
+    .transform((v) => v === 'true')
+    .optional(),
 });
+
+// ---------------------------------------------------------------------------- paths
+
+/** OpenAPI spellings; `apps/api` converts `{id}` to `:id` and prefixes `API_BASE_PATH`. */
+export const SKILLS_PATH = '/skills';
+export const SKILL_MERGE_PATH = '/skills/{id}/merge';
+export const JOB_ROLES_PATH = '/job-roles';
+export const JOB_ROLE_PATH = '/job-roles/{id}';
+export const JOB_ROLE_SKILLS_PATH = '/job-roles/{id}/skills';
+export const JOB_ROLE_COVERAGE_PATH = '/job-roles/{id}/coverage';
+export const QUESTION_SKILLS_PATH = '/questions/{id}/skills';
+
+export const SkillParamsSchema = z.strictObject({ id: SkillIdSchema });
+
+// ---------------------------------------------------------------------------- views
+
+export interface JobRoleView {
+  readonly id: string;
+  readonly code: string;
+  readonly title: string;
+  readonly family: string | null;
+  readonly seniority: string | null;
+  readonly description: string | null;
+  readonly is_active: boolean;
+  readonly created_at: string;
+}
+
+export interface JobRoleSkillView {
+  readonly skill_id: string;
+  readonly skill_key: string;
+  readonly skill_name: string;
+  readonly weight: number;
+  readonly min_difficulty: number | null;
+  readonly max_difficulty: number | null;
+  readonly is_required: boolean;
+}
 
 // ---------------------------------------------------------------------------- coverage
 

@@ -134,6 +134,15 @@ are too, and they will not run your validation function.
 suite from P0 step 7: a new table with `org_id` and no policy fails CI. The policy is not optional
 because the failure mode is a cross-tenant leak, which is the failure that ends products.
 
+**RLS does not check foreign keys, so resolve every reference first.** PostgreSQL validates a foreign
+key without row-level security. A row policed through its parent — `question_skills` through
+`questions` — accepts a reference to another tenant's row, because neither the policy nor the key
+looks at the referenced tenant. Every id in a request body that names a tenant-owned row is read
+back under `withOrg` before it is written, and one the tenant cannot see is refused as not found.
+And a table with shared global rows gets per-command policies: `USING (org_id IS NULL OR ...)` on a
+policy covering every command lets a tenant delete or claim the shared row (migration 0008,
+[`14-threat-model.md`](14-threat-model.md) T-041).
+
 **Migrations are expand-contract, always:**
 
 ```

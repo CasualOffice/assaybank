@@ -116,6 +116,8 @@ describe('the migrations, taken together', () => {
     expect(missing).toEqual([]);
   });
 
+  // Checked across the migrations as written, not as finally applied: 0008 later replaces the
+  // org_isolation policy on the nullable-org_id tables with per-command policies (see below).
   it('creates an org_isolation policy on every table that is not explicitly exempt', () => {
     const missing = POLICIED_TABLES.filter(
       (table) => !new RegExp(`CREATE POLICY org_isolation ON ${table}\\b`).test(migrationsSql),
@@ -156,18 +158,39 @@ describe('migration 0001_initial', () => {
   });
 });
 
-describe('migration 0002_rls', () => {
-  it('lets the two nullable-org_id tables be read but never written as global rows', () => {
-    // USING admits org_id IS NULL so a tenant can read the shared taxonomy; WITH CHECK
-    // must not, or a tenant could edit every other tenant's rows.
+describe('migration 0008_global_rows_read_only', () => {
+  // 0002's single policy per nullable-org_id table admitted global rows to DELETE and to an
+  // UPDATE that rewrote org_id — a shape this file used to assert as correct. 0008 replaces it.
+  // The behaviour is proven against a real database in tests/rls.test.ts; this checks the text.
+  const globalSql = read('0008_global_rows_read_only.sql');
+
+  const policy = (name: string, table: string): string => {
+    const start = globalSql.indexOf(`CREATE POLICY ${name} ON ${table} `);
+    expect(start, `${name} on ${table}`).toBeGreaterThan(-1);
+    return globalSql.slice(start, globalSql.indexOf('--> statement-breakpoint', start));
+  };
+
+  it('drops the policy that admitted global rows to every command', () => {
     for (const table of GLOBAL_ROW_TABLES) {
-      const start = rlsSql.indexOf(`CREATE POLICY org_isolation ON ${table}\n`);
-      const body = rlsSql.slice(start, rlsSql.indexOf('--> statement-breakpoint', start));
-      expect(body).toContain('USING (org_id IS NULL OR org_id = public.app_current_org())');
-      expect(body).toContain('WITH CHECK (org_id = public.app_current_org())');
+      expect(globalSql).toContain(`DROP POLICY IF EXISTS org_isolation ON ${table};`);
     }
   });
 
+  it('admits global rows to SELECT and to nothing else', () => {
+    for (const table of GLOBAL_ROW_TABLES) {
+      expect(policy('org_read', table)).toContain(
+        'FOR SELECT\n    USING (org_id IS NULL OR org_id = public.app_current_org())',
+      );
+      for (const write of ['org_insert', 'org_update', 'org_delete']) {
+        const body = policy(write, table);
+        expect(body, `${write} on ${table}`).not.toContain('IS NULL');
+        expect(body).toContain('org_id = public.app_current_org()');
+      }
+    }
+  });
+});
+
+describe('migration 0002_rls', () => {
   it('gives no policy to a table that is exempt, and names its reason', () => {
     for (const table of Object.keys(RLS_EXEMPT_TABLES)) {
       expect(new RegExp(`CREATE POLICY org_isolation ON ${table}\\b`).test(rlsSql)).toBe(false);

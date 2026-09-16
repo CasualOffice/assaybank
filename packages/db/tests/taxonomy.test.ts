@@ -22,7 +22,22 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { OrgIdSchema, type OrgId } from '@assaybank/contracts';
 import { createDb, migrate, withOrg, type Database } from '../src/index.js';
-import { createSkill, getJobRoleCoverage, mergeSkills, TaxonomyDepthError } from '../src/taxonomy.js';
+import {
+  createJobRole,
+  getJobRoleSkills,
+  invisibleSkillIds,
+  listJobRoles,
+  setJobRoleSkills,
+  updateJobRole,
+} from '../src/job-roles.js';
+import {
+  createSkill,
+  getJobRoleCoverage,
+  mergeSkills,
+  SkillMergeError,
+  SkillNotFoundError,
+  TaxonomyDepthError,
+} from '../src/taxonomy.js';
 
 const POSTGRES_IMAGE = 'postgres:16-alpine';
 const OWNER_USER = 'hiring';
@@ -39,7 +54,6 @@ const runtime = await (async (): Promise<{ available: boolean; reason: string }>
     return { available: false, reason: error instanceof Error ? error.message : String(error) };
   }
 })();
-
 
 /** `!` is forbidden (docs/17 §1); a fixture that did not insert should say so by name. */
 function required<T>(value: T | undefined, name: string): T {
@@ -204,7 +218,9 @@ describe.skipIf(!runtime.available)('taxonomy and coverage (ADR-009)', () => {
         INSERT INTO question_skills (question_id, skill_id, weight) VALUES (${required(q, 'q').id}, ${required(dupe, 'dupe').id}, 1)
       `;
 
-      const result = await withOrg(db, orgId, (tx) => mergeSkills(tx, required(dupe, 'dupe').id, deepSkillId));
+      const result = await withOrg(db, orgId, (tx) =>
+        mergeSkills(tx, required(dupe, 'dupe').id, deepSkillId),
+      );
       expect(result.questionTagsRewritten).toBe(1);
 
       const remaining = await owner<{ n: string }[]>`
@@ -234,7 +250,9 @@ describe.skipIf(!runtime.available)('taxonomy and coverage (ADR-009)', () => {
         VALUES (${required(q, 'q').id}, ${required(dupe, 'dupe').id}, 1), (${required(q, 'q').id}, ${deepSkillId}, 1)
       `;
 
-      const result = await withOrg(db, orgId, (tx) => mergeSkills(tx, required(dupe, 'dupe').id, deepSkillId));
+      const result = await withOrg(db, orgId, (tx) =>
+        mergeSkills(tx, required(dupe, 'dupe').id, deepSkillId),
+      );
       expect(result.questionTagsRewritten).toBe(0);
 
       const rows = await owner<{ n: string }[]>`
@@ -246,7 +264,170 @@ describe.skipIf(!runtime.available)('taxonomy and coverage (ADR-009)', () => {
     it('refuses to merge a skill into itself', async () => {
       await expect(
         withOrg(db, orgId, (tx) => mergeSkills(tx, deepSkillId, deepSkillId)),
+      ).rejects.toThrow(SkillMergeError);
+    });
+
+    /** An org-owned skill, created as the owner so the fixture does not depend on createSkill. */
+    async function ownSkill(key: string, parentId: string | null = null): Promise<string> {
+      const [row] = await owner<{ id: string }[]>`
+        INSERT INTO skills (org_id, key, name, parent_id)
+        VALUES (${orgId}, ${key}, ${key}, ${parentId}) RETURNING id
+      `;
+      return required(row, key).id;
+    }
+
+    it('merges an organisation’s duplicate into a global skill — the common case', async () => {
+      const [global] = await owner<{ id: string }[]>`
+        INSERT INTO skills (org_id, key, name) VALUES (NULL, 'git', 'Git') RETURNING id
+      `;
+      const duplicate = await ownSkill('git-scm');
+      const result = await withOrg(db, orgId, (tx) =>
+        mergeSkills(tx, duplicate, required(global, 'global').id),
+      );
+      expect(result.childrenReparented).toBe(0);
+      const left = await owner`SELECT 1 FROM skills WHERE id = ${duplicate}`;
+      expect(left.length).toBe(0);
+    });
+
+    it('refuses to merge a global skill away, and writes nothing first', async () => {
+      const [global] = await owner<{ id: string }[]>`
+        INSERT INTO skills (org_id, key, name) VALUES (NULL, 'linux', 'Linux') RETURNING id
+      `;
+      const globalId = required(global, 'global').id;
+      const [q] = await owner<{ id: string }[]>`
+        INSERT INTO questions (org_id, kind, status) VALUES (${orgId}, 'subjective', 'draft') RETURNING id
+      `;
+      await owner`INSERT INTO question_skills (question_id, skill_id, weight)
+                  VALUES (${required(q, 'q').id}, ${globalId}, 1)`;
+      const target = await ownSkill('linux-admin');
+
+      await expect(withOrg(db, orgId, (tx) => mergeSkills(tx, globalId, target))).rejects.toThrow(
+        SkillMergeError,
+      );
+
+      // Refused before the copy: the target gained no tag and the global skill is untouched.
+      const copied = await owner`SELECT 1 FROM question_skills WHERE skill_id = ${target}`;
+      expect(copied.length).toBe(0);
+      const still = await owner`SELECT 1 FROM skills WHERE id = ${globalId}`;
+      expect(still.length).toBe(1);
+    });
+
+    it('treats another organisation’s skill as not existing, as either side', async () => {
+      const [other] = await owner<{ id: string }[]>`
+        INSERT INTO organizations (name, slug) VALUES ('Other Co', 'other-co-merge') RETURNING id
+      `;
+      const [foreign] = await owner<{ id: string }[]>`
+        INSERT INTO skills (org_id, key, name) VALUES (${required(other, 'other').id}, 'rust', 'Rust')
+        RETURNING id
+      `;
+      const foreignId = required(foreign, 'foreign').id;
+      const mine = await ownSkill('rust-lang');
+
+      await expect(withOrg(db, orgId, (tx) => mergeSkills(tx, mine, foreignId))).rejects.toThrow(
+        SkillNotFoundError,
+      );
+      await expect(withOrg(db, orgId, (tx) => mergeSkills(tx, foreignId, mine))).rejects.toThrow(
+        SkillNotFoundError,
+      );
+    });
+
+    it('refuses a merge that would make the source’s children a third level', async () => {
+      const parent = await ownSkill('frontend');
+      await ownSkill('frontend.css', parent);
+      const otherParent = await ownSkill('web');
+      const nestedTarget = await ownSkill('web.ui', otherParent);
+
+      await expect(
+        withOrg(db, orgId, (tx) => mergeSkills(tx, parent, nestedTarget)),
       ).rejects.toThrow(TaxonomyDepthError);
+    });
+
+    it('refuses to merge a parent into its own child', async () => {
+      const parent = await ownSkill('databases');
+      const child = await ownSkill('databases.indexing', parent);
+
+      await expect(withOrg(db, orgId, (tx) => mergeSkills(tx, parent, child))).rejects.toThrow(
+        SkillMergeError,
+      );
+    });
+  });
+
+  describe('job roles', () => {
+    it('refuses a duplicate code by answering undefined, leaving the transaction usable', async () => {
+      const outcome = await withOrg(db, orgId, async (tx) => {
+        const first = await createJobRole(tx, {
+          orgId,
+          code: 'DATA-ANALYST',
+          title: 'Data analyst',
+        });
+        const second = await createJobRole(tx, { orgId, code: 'DATA-ANALYST', title: 'Again' });
+        // Still usable after the conflict: this is why it is ON CONFLICT and not a caught error.
+        const listed = await listJobRoles(tx, {});
+        return { first, second, listed };
+      });
+      expect(outcome.first?.code).toBe('DATA-ANALYST');
+      expect(outcome.second).toBeUndefined();
+      expect(outcome.listed.some((r) => r.code === 'DATA-ANALYST')).toBe(true);
+    });
+
+    it('filters on is_active in both directions', async () => {
+      const retired = await withOrg(db, orgId, async (tx) => {
+        const role = required(
+          await createJobRole(tx, { orgId, code: 'LEGACY-PHP', title: 'Legacy PHP' }),
+          'role',
+        );
+        return updateJobRole(tx, role.id, { isActive: false });
+      });
+      expect(retired?.isActive).toBe(false);
+
+      const [active, inactive] = await withOrg(db, orgId, async (tx) =>
+        Promise.all([listJobRoles(tx, { active: true }), listJobRoles(tx, { active: false })]),
+      );
+      expect(active.map((r) => r.code)).not.toContain('LEGACY-PHP');
+      expect(inactive.map((r) => r.code)).toEqual(['LEGACY-PHP']);
+    });
+
+    it('replaces a role’s requirements wholesale and reads them back in coverage order', async () => {
+      const rows = await withOrg(db, orgId, async (tx) => {
+        await setJobRoleSkills(tx, roleId, [
+          { skillId: thinSkillId, weight: 1.5, isRequired: false },
+          {
+            skillId: deepSkillId,
+            weight: 2.25,
+            minDifficulty: 2,
+            maxDifficulty: 4,
+            isRequired: true,
+          },
+        ]);
+        return getJobRoleSkills(tx, roleId);
+      });
+      expect(rows.map((r) => [r.skillId, r.weight, r.isRequired])).toEqual([
+        [deepSkillId, 2.25, true],
+        [thinSkillId, 1.5, false],
+      ]);
+    });
+
+    it('names another organisation’s skill as invisible, and never a global one', async () => {
+      const [other] = await owner<{ id: string }[]>`
+        INSERT INTO organizations (name, slug) VALUES ('Probe Co', 'probe-co-skills') RETURNING id
+      `;
+      const [foreign] = await owner<{ id: string }[]>`
+        INSERT INTO skills (org_id, key, name) VALUES (${required(other, 'other').id}, 'go', 'Go')
+        RETURNING id
+      `;
+      const [global] = await owner<{ id: string }[]>`
+        INSERT INTO skills (org_id, key, name) VALUES (NULL, 'http', 'HTTP') RETURNING id
+      `;
+      const nowhere = '00000000-0000-4000-8000-000000000000';
+      const invisible = await withOrg(db, orgId, (tx) =>
+        invisibleSkillIds(tx, [
+          required(foreign, 'foreign').id,
+          required(global, 'global').id,
+          deepSkillId,
+          nowhere,
+        ]),
+      );
+      expect(invisible).toEqual([required(foreign, 'foreign').id, nowhere].sort());
     });
   });
 

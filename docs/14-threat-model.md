@@ -231,6 +231,7 @@ Forty entries. The index table is for scanning; the detail blocks below carry th
 | T-038 | Question content | T/E | XSS through markdown in a question prompt | Med | High | Med |
 | T-039 | Reporting | T | CSV injection in exports | Med | Med | Low |
 | T-040 | API / grading | R | Score tampering by staff, and dispute repudiation | Low | High | Low |
+| T-041 | API → DB | T/I | Cross-tenant references that RLS does not check: foreign keys, and writable global rows | Med | High | Low |
 
 Category key: **S** spoofing · **T** tampering · **R** repudiation · **I** information disclosure · **D** denial of service · **E** elevation of privilege · **AI** assessment integrity (§1.2).
 
@@ -407,6 +408,13 @@ Category key: **S** spoofing · **T** tampering · **R** repudiation · **I** in
 *Existing control.* [`03-API-spec.md`](03-API-spec.md) §7 defines the disclosure table by case type, and it applies to the stream as much as to the final result — but the stream is a second code path and is the one most likely to be written quickly.
 *Residual reasoning.* SSE frames are the classic place where a filter is applied to the final response and forgotten on the incremental one.
 *Action.* Covered by `H-134` (proposed), which must include SSE frames explicitly; plus `H-135` (proposed) — hidden cases in candidate-facing contexts are labelled generically (`Hidden case 3`), with the author-supplied `test_cases.label` shown only to staff, and progress frames carry `{ordinal, passed}` and nothing else.
+
+**T-041 · API → DB · T/I · Cross-tenant references that RLS does not check**
+*Scenario.* Two shapes, both found in built code on 2026-09-17 and both fixed the same day. (1) A foreign key is checked by PostgreSQL without row-level security. `question_skills` and `job_role_skills` are policed through the question and the role, so `PUT /questions/{id}/skills` naming *another organisation's* skill id passed both the policy and the key, tagged this tenant's question with it, and exposed that skill's name through the coverage report. (2) `skills` and `user_roles` hold global rows (`org_id IS NULL`) shared by every tenant, under one policy per table whose `USING` admitted global rows for every command. A tenant could `DELETE` a global skill — the cascade then stripped it from every organisation's questions and roles — or `UPDATE ... SET org_id = <own org>` to claim it, which `WITH CHECK` accepted because the new row was the tenant's own.
+*Likelihood* medium — reachable by any staff user with `question.write` · *Impact* high — tampering with every tenant's taxonomy and role catalogue · *Residual* low.
+*Existing control.* (1) Every skill id in a request body is resolved under RLS before it is written (`invisibleSkillIds`), and one the tenant cannot read is refused as `422 not_found` — never `forbidden`, which would confirm it exists. (2) Migration `0008_global_rows_read_only` splits each policy per command: `SELECT` admits global rows, `INSERT`, `UPDATE` and `DELETE` do not. Both are proven by tests that failed before the fix: `apps/api/test/integration/taxonomy.test.ts` (and a mutation run with the check removed), and generated global-row cases in `packages/db/tests/rls.test.ts`.
+*Residual reasoning.* Low for the tables that exist. The general shape is the risk: any future table policed through a parent, with a foreign key to a *different* tenant-owned table, reopens (1). The generated RLS suite compares tenant against tenant and does not see it.
+*Action.* Every route writing a reference to a tenant-owned row resolves that reference under RLS first; the rule is in [`17-engineering-standards.md`](17-engineering-standards.md) §4. Any new nullable-`org_id` table must add a global seed to the RLS suite, which fails until it does.
 
 ### 5.6 Assessment integrity — TB-1
 

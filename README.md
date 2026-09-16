@@ -43,7 +43,7 @@ All three read from the same `question_versions` table, resolve the same section
 
 ## Status
 
-**Where it stands, 2026-09-17.** The foundation, tenancy and identity phases are built and tested, and the question bank is half built: fourteen workspaces, 2,221 passing tests, and CI green on `main` across build, security, docs and licence gates. 51 of 135 backlog tasks are done — [`project/STATUS.md`](project/STATUS.md) has the one-screen view and [`project/TRACKER.md`](project/TRACKER.md) the task-level one. No assessment can be taken yet: attempts, execution, live interviews and proctoring are phases P3 to P6, and anything in the layout below not yet built lands with the phase named against it.
+**Where it stands, 2026-09-17.** The foundation, tenancy and identity phases are built and tested, and the question bank is half built: fourteen workspaces, 2,278 passing tests, and CI green on `main` across build, security, docs and licence gates. 53 of 135 backlog tasks are done — [`project/STATUS.md`](project/STATUS.md) has the one-screen view and [`project/TRACKER.md`](project/TRACKER.md) the task-level one. No assessment can be taken yet: attempts, execution, live interviews and proctoring are phases P3 to P6, and anything in the layout below not yet built lands with the phase named against it.
 
 Milestones follow [`docs/01-PRD.md`](docs/01-PRD.md) §6. **Dates are deliberately not repeated here** — they live in [`project/ROADMAP.md`](project/ROADMAP.md) (build order and the current baseline) and [`project/MILESTONES.md`](project/MILESTONES.md) (the commitment and its exit criteria). A calendar copied into four documents is a calendar that will disagree with itself.
 

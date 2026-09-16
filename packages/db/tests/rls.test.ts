@@ -38,6 +38,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
+  GLOBAL_ROW_TABLES,
   TENANT_KEY_COLUMN,
   TENANT_ROOT_TABLE,
   TENANT_TABLES,
@@ -98,6 +99,17 @@ if (!runtime.available) {
 const SUITE_NAME = runtime.available
   ? 'row-level security (ADR-010)'
   : `row-level security (ADR-010) — SKIPPED, no container runtime: ${runtime.reason}`;
+
+/**
+ * One global row (`org_id IS NULL`) per table that admits them — the shared rows every tenant
+ * reads. Keyed by table so a new nullable-`org_id` table without an entry here fails the
+ * completeness case below instead of being skipped.
+ */
+const GLOBAL_SEEDS: Readonly<Record<string, string>> = {
+  skills: `INSERT INTO skills (org_id, key, name) VALUES (NULL, 'rls-global-probe', 'Global probe')`,
+  user_roles: `INSERT INTO user_roles (org_id, key, name, is_system)
+               VALUES (NULL, 'rls-global-probe', 'Global probe', true)`,
+};
 
 /** Per-organisation seed: one row in every table that carries org_id. */
 interface Seed {
@@ -303,6 +315,11 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
     await owner.unsafe(`ALTER ROLE hiring_app WITH PASSWORD '${APP_PASSWORD}'`);
     await owner.unsafe(`ALTER ROLE hiring_job WITH PASSWORD '${JOB_PASSWORD}'`);
 
+    for (const table of GLOBAL_ROW_TABLES) {
+      const statement = GLOBAL_SEEDS[table];
+      if (statement !== undefined) await owner.unsafe(statement);
+    }
+
     orgA = await seed(owner, 'orga');
     orgB = await seed(owner, 'orgb');
 
@@ -386,6 +403,80 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
       expect(touched === 0 || touched === 'denied', `org A deleted a ${table} row of org B`).toBe(
         true,
       );
+    });
+  });
+
+  // ---- global rows ----------------------------------------------------------
+  // A nullable org_id means "shared by every tenant". Reading those rows is the point; writing
+  // them is not. The generated cases above compare org A against org B and so never touch a
+  // global row — which is how a policy whose USING clause admitted global rows for DELETE and
+  // UPDATE went unnoticed until 0008. A tenant that can delete a global skill strips it, by
+  // cascade, from every organisation's questions; one that can claim it takes it from them.
+  it('seeds a global row for every table that admits one', () => {
+    expect(GLOBAL_ROW_TABLES.length).toBeGreaterThan(0);
+    for (const table of GLOBAL_ROW_TABLES) {
+      expect(GLOBAL_SEEDS[table], `add a global seed for ${table}`).toBeDefined();
+    }
+  });
+
+  describe.each(GLOBAL_ROW_TABLES)('%s global rows', (table) => {
+    const key = sql.identifier(TENANT_KEY_COLUMN);
+    const relation = sql.identifier(table);
+
+    it('are readable by a tenant', async () => {
+      const a = required(orgA, 'orgA');
+      const touched = await rowsTouched(
+        required(db, 'db'),
+        a.orgId,
+        sql`SELECT 1 FROM ${relation} WHERE ${key} IS NULL`,
+      );
+      expect(touched).not.toBe('denied');
+      expect(touched).toBeGreaterThan(0);
+    });
+
+    it('cannot be claimed by a tenant rewriting org_id to its own', async () => {
+      const a = required(orgA, 'orgA');
+      const touched = await rowsTouched(
+        required(db, 'db'),
+        a.orgId,
+        sql`UPDATE ${relation} SET ${key} = ${a.orgId} WHERE ${key} IS NULL RETURNING 1`,
+      );
+      expect(touched === 0 || touched === 'denied', `org A claimed a global ${table} row`).toBe(
+        true,
+      );
+    });
+
+    it('cannot be deleted by a tenant', async () => {
+      const a = required(orgA, 'orgA');
+      const touched = await rowsTouched(
+        required(db, 'db'),
+        a.orgId,
+        sql`DELETE FROM ${relation} WHERE ${key} IS NULL RETURNING 1`,
+      );
+      expect(touched === 0 || touched === 'denied', `org A deleted a global ${table} row`).toBe(
+        true,
+      );
+    });
+
+    it('cannot be created by a tenant', async () => {
+      const a = required(orgA, 'orgA');
+      const handle = required(db, 'db');
+      const insert =
+        table === 'skills'
+          ? sql`INSERT INTO skills (org_id, key, name) VALUES (NULL, 'rls-forged', 'Forged') RETURNING 1`
+          : sql`INSERT INTO user_roles (org_id, key, name) VALUES (NULL, 'rls-forged', 'Forged') RETURNING 1`;
+      const outcome = await withOrg(handle, a.orgId, async (tx) => tx.execute(insert)).then(
+        () => 'inserted',
+        (error: unknown) => (isInsufficientPrivilege(error) ? 'denied' : 'other-error'),
+      );
+      expect(outcome).toBe('denied');
+    });
+
+    it('survive: nothing above removed or reassigned the seeded global row', async () => {
+      const rows = await required(owner, 'owner').unsafe<{ n: number }[]>(
+        `SELECT count(*)::int AS n FROM "${table}" WHERE ${TENANT_KEY_COLUMN} IS NULL AND key = 'rls-global-probe'`,
+      );
+      expect(rows[0]?.n).toBe(1);
     });
   });
 

@@ -139,6 +139,8 @@ export {
   getJobRoleCoverage,
   listSkills,
   mergeSkills,
+  SkillMergeError,
+  SkillNotFoundError,
   TaxonomyDepthError,
 } from './taxonomy.js';
 export type {
@@ -147,6 +149,24 @@ export type {
   MergeSkillsResult,
   SkillRow,
 } from './taxonomy.js';
+
+export {
+  createJobRole,
+  getJobRole,
+  getJobRoleSkills,
+  invisibleSkillIds,
+  listJobRoles,
+  setJobRoleSkills,
+  updateJobRole,
+} from './job-roles.js';
+export type {
+  CreateJobRoleRecord,
+  JobRolePatch,
+  JobRoleRow,
+  JobRoleSkillInputRow,
+  JobRoleSkillRow,
+  ListJobRolesFilter,
+} from './job-roles.js';
 
 export {
   getQuestionStats,

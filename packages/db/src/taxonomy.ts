@@ -78,6 +78,46 @@ export class TaxonomyDepthError extends Error {
 }
 
 /**
+ * A skill id this tenant cannot read — another organisation's, or none at all.
+ *
+ * Deliberately one error for both: telling the caller "that exists, but not for you" would let
+ * one tenant probe for another's skill ids.
+ */
+export class SkillNotFoundError extends Error {
+  constructor(readonly skillId: string) {
+    super(`skill ${skillId} does not exist`);
+    this.name = 'SkillNotFoundError';
+  }
+}
+
+/** A merge the taxonomy's rules refuse. Distinct from depth so the caller can name the field. */
+export class SkillMergeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SkillMergeError';
+  }
+}
+
+async function readSkill(
+  tx: DbTransaction,
+  id: string,
+): Promise<{ org_id: string | null; parent_id: string | null; children: number } | undefined> {
+  const rows = await tx.execute<{
+    org_id: string | null;
+    parent_id: string | null;
+    children: string;
+  }>(sql`
+    SELECT s.org_id, s.parent_id,
+           (SELECT count(*) FROM skills c WHERE c.parent_id = s.id)::text AS children
+      FROM skills s WHERE s.id = ${id}::uuid
+  `);
+  const row = rows[0];
+  return row === undefined
+    ? undefined
+    : { org_id: row.org_id, parent_id: row.parent_id, children: Number.parseInt(row.children, 10) };
+}
+
+/**
  * Creates a skill, refusing a third level.
  *
  * ADR-009: "Keep it shallow (two levels)". Depth is checked here rather than by a constraint
@@ -101,7 +141,7 @@ export async function createSkill(
     `);
     const found = parent[0];
     if (found === undefined) {
-      throw new TaxonomyDepthError(`parent skill ${input.parentId} does not exist`);
+      throw new SkillNotFoundError(input.parentId);
     }
     if (found.parent_id !== null) {
       throw new TaxonomyDepthError(
@@ -147,6 +187,17 @@ export interface MergeSkillsResult {
  * `ON CONFLICT DO NOTHING` on both rewrites matters: a question already tagged with both skills
  * would otherwise violate the composite primary key half way through. The row count returned is
  * what actually moved, not what was attempted.
+ *
+ * Everything that can refuse is checked **before** anything is written, because a refusal part
+ * way through would leave tags copied onto the target and the source still in place:
+ *
+ * - both skills must be readable by this tenant ({@link SkillNotFoundError});
+ * - the source must belong to this organisation. A global skill is shared by every tenant, and
+ *   one tenant merging it away would rewrite every other tenant's vocabulary. Merging an
+ *   organisation's duplicate *into* a global skill is fine, and is the common case;
+ * - the result must still be two levels deep. The source's children move to the target, so a
+ *   target that is itself a child would make them grandchildren; and a target that is the
+ *   source's own child would become its own parent.
  */
 export async function mergeSkills(
   tx: DbTransaction,
@@ -154,7 +205,31 @@ export async function mergeSkills(
   targetId: string,
 ): Promise<MergeSkillsResult> {
   if (sourceId === targetId) {
-    throw new TaxonomyDepthError('a skill cannot be merged into itself');
+    throw new SkillMergeError('a skill cannot be merged into itself');
+  }
+
+  const source = await readSkill(tx, sourceId);
+  if (source === undefined) throw new SkillNotFoundError(sourceId);
+  const target = await readSkill(tx, targetId);
+  if (target === undefined) throw new SkillNotFoundError(targetId);
+
+  if (source.org_id === null) {
+    throw new SkillMergeError(
+      'a global skill is shared by every organisation and cannot be merged away by one. ' +
+        'Merge your own duplicate into it instead.',
+    );
+  }
+  if (target.parent_id === sourceId) {
+    throw new SkillMergeError(
+      'the target is a child of the skill being merged, and would become its own parent. ' +
+        'Merge the child into the parent instead.',
+    );
+  }
+  if (source.children > 0 && target.parent_id !== null) {
+    throw new TaxonomyDepthError(
+      'the skill being merged has children, and the target is itself a child: its children ' +
+        'would become a third level (ADR-009). Merge into the target’s parent, or re-parent first.',
+    );
   }
 
   const tags = await tx.execute<{ moved: string }>(sql`

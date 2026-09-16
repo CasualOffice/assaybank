@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-17
 **Companion docs:** [`../../../docs/04-ADRs.md`](../../../docs/04-ADRs.md) (ADR-010), [`../../../project/RISKS.md`](../../../project/RISKS.md) (R-09), [`../../../project/P1-TENANCY-PLAN.md`](../../../project/P1-TENANCY-PLAN.md) (step 2), [`../../../docs/07-load-and-capacity-testing.md`](../../../docs/07-load-and-capacity-testing.md)
 
 ---
@@ -178,11 +178,20 @@ apply it in one line rather than rediscover it.
 | The RLS arm actually had the policy applied, and the `BYPASSRLS` arm did not | yes | The vacuity control. If the "with RLS" arm ever ran as a bypassing role, every plan would match perfectly and every assertion would pass while proving the opposite of what it claims |
 | Planning and execution time | **no** | At tens of microseconds, run-to-run noise exceeds the effect. A threshold here is a flaky test wearing the costume of a performance gate. Numbers are evidence for a human; plan shape is the gate |
 
+## Policy changes since the capture
+
+Migration 0008 (2026-09-17) replaced the single policy on `skills` and `user_roles` with one policy
+per command, so a tenant can no longer delete or claim a shared global row. Neither table is on the
+gated list, and the `SELECT` predicate is character-for-character the one 0002 created, so no plan
+above is affected. Nothing was re-measured.
+
 ## When to re-read this
 
 - Any migration that adds, drops or redefines a policy on a table in the list above.
 - The first query that returns many child rows at once — a cohort report, the psychometrics
-  job. Finding 1 says that is where the per-row `SubPlan` stops being free.
+  job. Finding 1 says that is where the per-row `SubPlan` stops being free. The psychometrics
+  sweep now exists (`readItemResponses`, 2026-09-17) and reads every finalised answer in a tenant;
+  its plan has **not** been captured here yet.
 - The first staging load run (`docs/07-load-and-capacity-testing.md`). R-09's trigger is
   "API p95 above 250 ms on any non-execution endpoint"; these plans are the first place to
   look when it fires.

@@ -59,7 +59,6 @@
 import type { FastifyInstance } from 'fastify';
 
 import {
-  API_BASE_PATH,
   ApiError,
   CreateQuestionSchema,
   FIRST_VERSION_FIELDS,
@@ -115,21 +114,10 @@ import {
 import { MIN_RESPONSES_FOR_STATS } from '@assaybank/grading';
 
 import { requirePermission } from '../authorisation.js';
+import { fastifyPath } from '../paths.js';
 import { assertKindContent, shapeOfContent, shapeOfRecord } from './kind-content.js';
 import { staffOnly } from '../principal.js';
 import { rateLimitFor } from '../rate-limit.js';
-
-/**
- * OpenAPI writes a path parameter as `{id}` and Fastify as `:id`.
- *
- * Converted rather than declared twice: the document and the route table have to describe
- * the same URL, and two string literals that must match is two string literals that will
- * eventually not. `@assaybank/contracts` owns the spelling because it is the contract;
- * this is the one place that translates it.
- */
-function fastifyPath(openApiPath: string): string {
-  return `${API_BASE_PATH}${openApiPath.replace(/\{([A-Za-z_][A-Za-z0-9_]*)\}/gu, ':$1')}`;
-}
 
 /** The registered paths, exported so the tests address the routes by the same constant. */
 export const QUESTIONS_ROUTE = fastifyPath(QUESTIONS_PATH);
