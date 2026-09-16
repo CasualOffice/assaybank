@@ -38,9 +38,21 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { ApiError } from '@assaybank/contracts';
 import { counter, type CounterMetric } from '@assaybank/observability';
 
-/** The five scopes of docs/03 §2, as docs/12 §4.6 labels them. */
+/**
+ * The five scopes of docs/03 §2, as docs/12 §4.6 labels them, plus one the table does not
+ * have.
+ *
+ * `staff_login` is not in docs/03 §2. The table there covers authenticated traffic and the
+ * one unauthenticated endpoint that existed when it was written — token redemption, at 20
+ * per hour per address. Staff login is the second unauthenticated endpoint and it needs
+ * its own ceiling, because the two are not the same kind of secret: a redemption token is
+ * 256 bits of CSPRNG output and cannot be guessed at any rate, while a password is
+ * whatever a recruiter chose and an attacker with a leaked credential list only needs a
+ * few attempts per address. See {@link RATE_LIMITS} for the number and the reasoning.
+ */
 export const RATE_LIMIT_SCOPES = [
   'staff_api',
+  'staff_login',
   'candidate_autosave',
   'trial_run',
   'submission',
@@ -77,6 +89,14 @@ export interface RateLimitWindow {
 export const RATE_LIMITS: Readonly<Record<Exclude<RateLimitScope, 'submission'>, RateLimitWindow>> =
   Object.freeze({
     staff_api: { max: 600, timeWindow: '1 minute', per: 'staff user' },
+    // Ten attempts per quarter of an hour, per client address. Stricter than token
+    // redemption's 20 per hour because the secret is guessable: ten tries is more than a
+    // human needs and far fewer than credential stuffing needs, and the window is short
+    // enough that a locked-out recruiter is working again within one coffee rather than
+    // filing a ticket. Keyed on the address rather than on the address and the email,
+    // because the attack that matters is one address trying many accounts — password
+    // spraying — and an email-keyed bucket would let it through unimpeded.
+    staff_login: { max: 10, timeWindow: '15 minutes', per: 'client address' },
     candidate_autosave: { max: 60, timeWindow: '1 minute', per: 'attempt' },
     trial_run: { max: 60, timeWindow: '1 hour', per: 'attempt' },
     token_redemption: { max: 20, timeWindow: '1 hour', per: 'client address' },

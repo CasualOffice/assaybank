@@ -15,6 +15,34 @@
       "when": 1758499200000,
       "tag": "0002_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1758585600000,
+      "tag": "0003_platform_org",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1758672000000,
+      "tag": "0004_audit_append_only",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1758758400000,
+      "tag": "0005_invitation_lookup",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1758844800000,
+      "tag": "0006_staff_identity",
+      "breakpoints": true
     }
   ]
 }

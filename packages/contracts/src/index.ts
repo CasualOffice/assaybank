@@ -71,6 +71,30 @@ export type {
 } from './ids.js';
 
 export {
+  MAX_BRANDING_NAME_LENGTH,
+  MAX_LOGO_URL_LENGTH,
+  ORG_SETTINGS_PATH,
+  OrgBrandingPatchSchema,
+  OrgBrandingSchema,
+  OrgIdentitySchema,
+  OrgProctoringDefaultsPatchSchema,
+  OrgProctoringDefaultsSchema,
+  OrgSettingsPatchSchema,
+  OrgSettingsResponseSchema,
+  OrgSettingsSchema,
+  defaultOrgSettings,
+  mergeOrgSettings,
+  projectOrgSettings,
+} from './org-settings.js';
+export type {
+  OrgBranding,
+  OrgProctoringDefaults,
+  OrgSettings,
+  OrgSettingsPatch,
+  OrgSettingsResponse,
+} from './org-settings.js';
+
+export {
   ApiError,
   ERROR_CODES,
   ERROR_CODE_MESSAGES,
@@ -84,6 +108,9 @@ export {
   toErrorEnvelope,
 } from './errors.js';
 export type { ApiErrorOptions, ErrorCode, ErrorDetails, ErrorEnvelope } from './errors.js';
+
+export { MAX_VALIDATION_FIELDS, parseRequestPart, validationFieldsFor } from './parse.js';
+export type { RequestPart, ValidationField } from './parse.js';
 
 export { API_BASE_PATH, buildOpenApiDocument } from './openapi.js';
 export type { OpenApiDocument } from './openapi.js';

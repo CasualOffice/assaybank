@@ -45,11 +45,16 @@ const everyColumn = (): { table: string; column: PgColumn }[] =>
 const SNAKE_CASE = /^[a-z][a-z0-9_]*$/;
 
 describe('the schema object', () => {
-  it('holds the forty tables of docs/hiring_platform_schema.sql and nothing else', () => {
-    // 40 is the number infra/postgres/init/03-rls.sql accounts for. If this changes, the
-    // isolation model changed too, and both must be revisited in the same commit.
-    expect(tables).toHaveLength(40);
-    expect(Object.values(schema)).toHaveLength(40);
+  it('holds the forty tables of docs/hiring_platform_schema.sql plus the two staff identity needs', () => {
+    // 40 is the number infra/postgres/init/03-rls.sql accounts for, and it is still the
+    // number of product tables. The two extra are staff_accounts and staff_verifications
+    // (P1 step 3): Better Auth's account and verification models, which the schema file
+    // never had because it models the product and not how a staff member proves who they
+    // are. Both carry org_id and both are policied in 0006, so the isolation model did not
+    // change — it grew by two rows of the same shape. If this count changes again, the
+    // isolation model may well have changed too, and both must be revisited together.
+    expect(tables).toHaveLength(42);
+    expect(Object.values(schema)).toHaveLength(42);
   });
 
   it('names every table and column in snake_case', () => {

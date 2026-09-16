@@ -10,7 +10,13 @@
  * emitted bundle alongside the tests themselves.
  */
 
-import type { ApiServerConfig } from './server.js';
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify';
+
+import { PERMISSIONS, type KnownPermission, type Principal } from '@assaybank/auth';
+
+import { requirePermission } from './authorisation.js';
+import { setPrincipal } from './principal.js';
+import { buildServer, type ApiServerConfig } from './server.js';
 
 /**
  * A configuration literal that satisfies exactly what the server reads.
@@ -26,6 +32,59 @@ export function testConfig(overrides: Partial<ApiServerConfig> = {}): ApiServerC
     telemetry: { serviceName: 'hiring-api-test' },
     ...overrides,
   };
+}
+
+/** The path the permission-matrix server serves for one permission key. */
+export function matrixPath(permission: KnownPermission): string {
+  return `/test-matrix/${permission}`;
+}
+
+/** Options for {@link permissionMatrixServer}. */
+export interface PermissionMatrixOptions {
+  /** Attached to every request by an `onRequest` hook. Omitted means no credential. */
+  readonly principal?: Principal | undefined;
+  /** Passed through to `buildServer`, for a suite that wants to read the log. */
+  readonly logger?: FastifyBaseLogger | false | undefined;
+}
+
+/**
+ * A real server carrying one route per seeded permission, each declaring exactly that
+ * permission and nothing else.
+ *
+ * The shape every authorisation assertion wants: drive all eleven routes with one
+ * principal and compare the set that answered 200 against the set the principal holds.
+ * A per-test bespoke route proves that *a* permission is checked; the matrix proves that
+ * the *right* one is, which is the failure a single route cannot see — a check that
+ * accidentally asks for `question.read` everywhere passes every single-route test ever
+ * written.
+ *
+ * The routes are registered as a plugin, deferred, for the reason server.ts gives: a
+ * route added synchronously to a returned instance is added before the deferred
+ * `onRoute` hooks of the plugins registered above it exist.
+ */
+export function permissionMatrixServer(options: PermissionMatrixOptions = {}): FastifyInstance {
+  const app = buildServer({ config: testConfig(), logger: options.logger ?? false });
+
+  const { principal } = options;
+  if (principal !== undefined) {
+    // Stands in for the authentication plugin of P1 step 3: something earlier in the
+    // lifecycle than the check deposits a principal it has already verified.
+    app.addHook('onRequest', (request, _reply, done) => {
+      setPrincipal(request, principal);
+      done();
+    });
+  }
+
+  void app.register((instance, _opts, done) => {
+    for (const permission of PERMISSIONS) {
+      instance.get(matrixPath(permission), { config: requirePermission(permission) }, () => ({
+        permission,
+      }));
+    }
+    done();
+  });
+
+  return app;
 }
 
 /** A pino destination that keeps every line in memory, for asserting on what was logged. */

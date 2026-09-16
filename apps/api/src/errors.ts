@@ -24,10 +24,12 @@
 
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-import { ApiError, toErrorEnvelope, type ErrorDetails } from '@assaybank/contracts';
-
-/** How many validation failures are described to the client before the list is cut. */
-const MAX_VALIDATION_DETAILS = 20;
+import {
+  ApiError,
+  MAX_VALIDATION_FIELDS,
+  toErrorEnvelope,
+  type ErrorDetails,
+} from '@assaybank/contracts';
 
 /**
  * Describes a schema failure in a form that carries no internal detail.
@@ -38,18 +40,22 @@ const MAX_VALIDATION_DETAILS = 20;
  * and together they are enough for a client developer to fix the call. The validator's
  * message is left out because "must match pattern ^(?=.*[A-Z])…" hands an attacker the
  * shape of a rule for free.
+ *
+ * The list is cut at `MAX_VALIDATION_FIELDS`, which comes from `@assaybank/contracts`
+ * rather than being declared here: `parseRequestPart` builds the same `details.fields`
+ * from a zod failure, and two bounds on one thing is one bound that is wrong.
  */
 function validationDetails(error: FastifyError): ErrorDetails | undefined {
   const failures = error.validation;
   if (failures === undefined || failures.length === 0) return undefined;
 
   const part = typeof error.validationContext === 'string' ? error.validationContext : 'request';
-  const fields = failures.slice(0, MAX_VALIDATION_DETAILS).map((failure) => ({
+  const fields = failures.slice(0, MAX_VALIDATION_FIELDS).map((failure) => ({
     field: `${part}${failure.instancePath}`,
     rule: failure.keyword,
   }));
 
-  return { fields, truncated: failures.length > MAX_VALIDATION_DETAILS };
+  return { fields, truncated: failures.length > MAX_VALIDATION_FIELDS };
 }
 
 /**

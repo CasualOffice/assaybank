@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (backend lead)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-16
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`09-ats-integration.md`](09-ats-integration.md)
 
 ---
@@ -417,6 +417,51 @@ GET    /permissions
 
 GET    /audit-log                   ?actor=&action=&entity_type=&from=&to=
 GET    /org/settings
-PATCH  /org/settings                {retention_days, proctoring_defaults, branding}
+PATCH  /org/settings                {branding?, proctoring_defaults?}
 POST   /org/export                  → 202 full data export
 ```
+
+### `/org/settings`, as built
+
+The first endpoint implemented against the tenancy spine (P1 step 7), and the shape every
+staff endpoint after it follows: session cookie, an explicit `org.admin` permission, a read
+scoped by row-level security rather than by a `WHERE` clause, and — on the write — one
+`audit_log` row in the same transaction as the change.
+
+```json
+{
+  "org": { "id": "…", "name": "Acme Ltd", "slug": "acme" },
+  "settings": {
+    "branding": { "display_name": "Acme Talent", "primary_colour": "#1f6feb", "logo_url": null },
+    "proctoring_defaults": {
+      "require_webcam": false,
+      "require_screen_recording": false,
+      "require_id_check": false
+    }
+  },
+  "server_time": "2026-10-14T09:30:00.000Z"
+}
+```
+
+| Property | Behaviour |
+|---|---|
+| Permission | `org.admin`, on both verbs |
+| Scope | The calling session's own organisation. There is no path parameter, and no way to name another |
+| `PATCH` semantics | Partial per **field**: `{"branding": {"logo_url": null}}` clears the logo and leaves the rest. `null` clears, an omitted field is unchanged |
+| Unknown fields | `422 validation_failed`, naming the field — never silently discarded |
+| Empty body | `422`. A change that names no section would write an audit row recording nothing |
+| Response projection | Only the fields above are served. `organizations.settings` is `jsonb`, and a key this build does not define is neither served nor destroyed by a write |
+| Audit | Action `org.settings.update`, entity `organization`, with `before` and `after`. Reads are not audited |
+| Absent organisation | `404 not_found`, never `403` — a 403 would confirm that another tenant holds the row (ADR-010) |
+
+**`retention_days` is not accepted.** [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md) §4.2
+supersedes it with a typed object over five clocks, each with a floor, a ceiling and a
+direction it may be moved in, enforced by `CHECK` constraints on `org_retention_policy`
+rather than by the API alone. A `jsonb` blob carries no constraint, so the field arrives
+with that table and its constraints rather than as a number this endpoint cannot stand
+behind. A request carrying it is refused rather than ignored.
+
+**`proctoring_defaults` governs capture, never outcome.** Each flag turns a capture on or
+off for assessments created afterwards. No field here rejects a candidate, voids a sitting
+or changes a score, and [ADR-007](04-ADRs.md) makes that a product constraint rather than a
+configuration option.

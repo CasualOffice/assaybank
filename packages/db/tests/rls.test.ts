@@ -30,6 +30,8 @@
  */
 
 import { getContainerRuntimeClient } from 'testcontainers';
+import { readdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import postgres from 'postgres';
 import { sql } from 'drizzle-orm';
@@ -139,6 +141,19 @@ async function seed(client: postgres.Sql, label: string): Promise<Seed> {
 
   await client`
     INSERT INTO user_roles (org_id, key, name) VALUES (${orgId}, 'recruiter', 'Recruiter')
+  `;
+
+  // Identity tables added in P1. Every tenant table needs a seeded row or its positive
+  // control ("is visible to the organisation that owns it") fails with zero rows — which
+  // is the generated suite telling you a table was added and the seed was not updated.
+  await client`
+    INSERT INTO staff_accounts (org_id, user_id, account_id, provider_id, password)
+    VALUES (${orgId}, ${userId}, ${`acct-${label}`}, 'credential', ${`hash-${label}`})
+  `;
+
+  await client`
+    INSERT INTO staff_verifications (org_id, identifier, value, expires_at)
+    VALUES (${orgId}, ${`verify@${label}.example`}, ${`token-${label}`}, now() + interval '1 day')
   `;
 
   const [skill] = await client<{ id: string }[]>`
@@ -259,6 +274,13 @@ async function rowsTouched(
 }
 
 describe.skipIf(!runtime.available)(SUITE_NAME, () => {
+  const MIGRATIONS_DIR = join(import.meta.dirname, '..', 'migrations');
+
+  // Counted from the directory rather than hardcoded. A literal here breaks every time a
+  // migration is added — which is exactly what it did — and the assertion that matters is
+  // "all of them applied", not "there were exactly N".
+  let migrationCount = 0;
+
   beforeAll(async () => {
     container = await new PostgreSqlContainer(POSTGRES_IMAGE)
       .withDatabase(DATABASE)
@@ -270,8 +292,9 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
     const port = container.getPort();
     const ownerUrl = `postgres://${OWNER_USER}:${OWNER_PASSWORD}@${host}:${port}/${DATABASE}`;
 
+    migrationCount = (await readdir(MIGRATIONS_DIR)).filter((f) => f.endsWith('.sql')).length;
     const first = await migrate({ url: ownerUrl });
-    expect(first.applied).toBe(2);
+    expect(first.applied).toBe(migrationCount);
 
     owner = postgres(ownerUrl, { max: 1 });
 
@@ -490,7 +513,7 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
     const url = `postgres://${OWNER_USER}:${OWNER_PASSWORD}@${started.getHost()}:${started.getPort()}/${DATABASE}`;
     const again = await migrate({ url });
     expect(again.applied).toBe(0);
-    expect(again.total).toBe(2);
+    expect(again.total).toBe(migrationCount);
   });
 
   it('left every seeded row intact: nothing above actually deleted anything', async () => {

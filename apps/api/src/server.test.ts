@@ -14,10 +14,13 @@
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { ApiError, ERROR_CODE_MESSAGES } from '@assaybank/contracts';
+import { PERMISSIONS, type StaffPrincipal } from '@assaybank/auth';
+import { ApiError, ERROR_CODE_MESSAGES, OrgIdSchema, UserIdSchema } from '@assaybank/contracts';
 import { createLogger } from '@assaybank/observability';
 
+import { requirePermission } from './authorisation.js';
 import type { DependencyProbe } from './health.js';
+import { setPrincipal } from './principal.js';
 import { RATE_LIMITS } from './rate-limit.js';
 import { REQUEST_ID_HEADER, REQUEST_ID_PATTERN } from './request-context.js';
 import { buildServer, type BuildServerOptions } from './server.js';
@@ -32,8 +35,33 @@ afterEach(async () => {
   }
 });
 
+/**
+ * Every route declares the permission it requires, including the synthetic ones below —
+ * route-authorisation.test.ts enumerates the table and fails on any that does not, and a
+ * route that skipped the declaration would be refused rather than served.
+ *
+ * `ANY_ACTION` and the principal that holds the whole catalogue are therefore scaffolding
+ * for *these* tests, which are about the error envelope, the request id and the limiter:
+ * an authorisation refusal would answer every one of them with a 403 and prove nothing.
+ * What the check itself does is authorisation.test.ts's subject.
+ */
+const ANY_ACTION = requirePermission('org.admin');
+
+const TEST_PRINCIPAL: StaffPrincipal = {
+  kind: 'staff',
+  userId: UserIdSchema.parse('2bb0f1a6-0a8b-4d5e-9c53-9a8f6d2e4b17'),
+  orgId: OrgIdSchema.parse('6f1f8c26-0e3a-4a7f-9c1e-5f0a1a8b2c31'),
+  permissions: new Set(PERMISSIONS),
+};
+
 function build(options: Partial<BuildServerOptions> = {}): FastifyInstance {
   const app = buildServer({ config: testConfig(), logger: false, ...options });
+  // Stands in for the authentication plugin: something earlier in the lifecycle than the
+  // authorisation check deposits a principal it has already verified.
+  app.addHook('onRequest', (request, _reply, done) => {
+    setPrincipal(request, TEST_PRINCIPAL);
+    done();
+  });
   server = app;
   return app;
 }
@@ -177,7 +205,7 @@ describe('the error envelope', () => {
 
   function withBoom(options: Partial<BuildServerOptions> = {}): FastifyInstance {
     const app = build(options);
-    app.get('/__boom', () => {
+    app.get('/__boom', { config: ANY_ACTION }, () => {
       throw new Error(SECRET);
     });
     return app;
@@ -243,7 +271,7 @@ describe('the error envelope', () => {
 
   it('serves an authored ApiError exactly as authored', async () => {
     const app = build();
-    app.get('/__expired', () => {
+    app.get('/__expired', { config: ANY_ACTION }, () => {
       throw ApiError.attemptExpired(undefined, {
         details: { deadline_at: '2026-09-14T10:30:00Z' },
       });
@@ -279,6 +307,7 @@ describe('the error envelope', () => {
     app.post(
       '/__validated',
       {
+        config: ANY_ACTION,
         schema: {
           body: {
             type: 'object',
@@ -302,7 +331,7 @@ describe('the error envelope', () => {
 
   it('answers a malformed JSON body with validation_failed, not internal', async () => {
     const app = build();
-    app.post('/__json', () => ({ ok: true }));
+    app.post('/__json', { config: ANY_ACTION }, () => ({ ok: true }));
 
     const response = await app.inject({
       method: 'POST',
@@ -319,7 +348,10 @@ describe('the error envelope', () => {
 describe('the request id', () => {
   it('is served on every response and is the id the handler saw', async () => {
     const app = build();
-    app.get('/__echo', (request) => ({ seen: request.requestId, trace: request.traceId }));
+    app.get('/__echo', { config: ANY_ACTION }, (request) => ({
+      seen: request.requestId,
+      trace: request.traceId,
+    }));
 
     const response = await app.inject({ method: 'GET', url: '/__echo' });
     const header = response.headers[REQUEST_ID_HEADER];
@@ -449,7 +481,7 @@ describe('rate limiting', () => {
 
   it('applies the documented staff ceiling to a route that asks for nothing', async () => {
     const app = withRoutes((instance) => {
-      instance.get('/__plain', () => ({ ok: true }));
+      instance.get('/__plain', { config: ANY_ACTION }, () => ({ ok: true }));
     });
 
     const response = await app.inject({ method: 'GET', url: '/__plain' });
@@ -464,6 +496,7 @@ describe('rate limiting', () => {
         '/__limited',
         {
           config: {
+            ...ANY_ACTION,
             rateLimit: { max: 1, timeWindow: '1 minute' },
             rateLimitScope: 'candidate_autosave',
           },
@@ -491,6 +524,7 @@ describe('rate limiting', () => {
         '/__autosave',
         {
           config: {
+            ...ANY_ACTION,
             rateLimit: { max: 1, timeWindow: '1 minute' },
             rateLimitScope: 'candidate_autosave',
           },

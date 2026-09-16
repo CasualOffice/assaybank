@@ -11,27 +11,34 @@
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "tsconfig*.json", "vite.config.ts", "vitest.config.ts"],
+      "inputs": [
+        "src/**",
+        "test/**",
+        "tests/**",
+        "tsconfig*.json",
+        "vite.config.ts",
+        "vitest.config.ts"
+      ],
       "outputs": []
     },
     "lint": {
       "dependsOn": [],
-      "inputs": ["src/**", "test/**", "../../eslint.config.js", "package.json"],
+      "inputs": ["src/**", "test/**", "tests/**", "../../eslint.config.js", "package.json"],
       "outputs": []
     },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "vitest.config.ts"],
+      "inputs": ["src/**", "test/**", "tests/**", "migrations/**", "vitest.config.ts"],
       "outputs": []
     },
     "test:unit": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "vitest.config.ts"],
+      "inputs": ["src/**", "migrations/**", "vitest.config.ts"],
       "outputs": []
     },
     "test:integration": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "vitest.config.ts"],
+      "inputs": ["src/**", "test/**", "tests/**", "migrations/**", "vitest.config.ts"],
       "outputs": [],
       "cache": false
     },

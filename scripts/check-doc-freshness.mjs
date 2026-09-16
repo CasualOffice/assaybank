@@ -43,6 +43,7 @@ const IGNORED_DIRS = new Set([
   'node_modules',
   'dist',
   'build',
+  'out',
   'coverage',
   'sbom',
   'test-results',

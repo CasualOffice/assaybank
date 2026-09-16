@@ -37,17 +37,25 @@
  *   the same `unauthenticated` envelope.
  * - A candidate principal is authorised for no staff permission, present or future.
  *
- * ## Still to come
+ * ## Staff sessions, and why they are not in this file
  *
- * Staff sessions and the OIDC flow (`createStaffSession`, `verifyStaffSession`,
- * `startOidc`, `completeOidc`) land in P1 with the tenancy spine underneath them, per
- * CODE-GRAPH.md. They will be built on the primitives in this file.
+ * P0 planned `createStaffSession`, `verifyStaffSession`, `startOidc` and `completeOidc`
+ * to land here in P1. They did not, and deliberately so: the session is Better Auth's,
+ * wired directly in `apps/api/src/auth/` against the tenancy spine, because docs/17
+ * forbids wrapping a library used exactly once and there is no second session
+ * implementation to abstract over (P1 plan, step 3; "the two ways this phase fails", #2).
+ * A `createStaffSession` here would be four functions that each forward to one Better
+ * Auth call, and the forwarding is where the subtle bugs would live.
+ *
+ * What *is* here is the part that is ours whoever manages the session: the password
+ * hashing in `password.ts`, which the admin provisioning path and the login path both
+ * need and which no library choice should be able to change silently.
  */
 
 export type { Clock } from './clock.js';
 export { fixedClock, systemClock } from './clock.js';
 
-export { constantTimeEquals } from './crypto.js';
+export { constantTimeEquals, hmacHex } from './crypto.js';
 
 export type { Result } from './result.js';
 export { err, ok } from './result.js';
@@ -58,6 +66,17 @@ export { AUTH_ERROR_REASONS, AuthError } from './errors.js';
 export { MAX_CREDENTIAL_LENGTH } from './envelope.js';
 
 export { TOKEN_BYTES, TOKEN_HASH_VERSION, generateToken, hashToken, verifyToken } from './token.js';
+
+export {
+  ARGON2ID_PREFIX,
+  ARGON2_PARAMETERS,
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  hashPassword,
+  hashPasswordUnchecked,
+  verifyPassword,
+  verifyPasswordAgainstNothing,
+} from './password.js';
 
 export type { AttemptTokenClaims } from './attempt-token.js';
 export { ATTEMPT_TOKEN_PREFIX, issueAttemptToken, verifyAttemptToken } from './attempt-token.js';

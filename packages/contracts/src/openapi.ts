@@ -11,9 +11,14 @@
  * disagree with the schemas the server actually validates against, because it is the
  * same objects.
  *
- * What lives here in P0 is the cross-cutting half of the contract: the primitives, the
+ * What lives here from P0 is the cross-cutting half of the contract: the primitives, the
  * identifiers, the error envelope, the two authentication schemes and the reusable error
- * responses. Route definitions arrive with the routes.
+ * responses. Route definitions arrive with the routes — `GET` and `PATCH /org/settings`
+ * are the first of them (P1 step 7, `./org-settings.ts`), and the shape of that
+ * registration is the pattern every endpoint from P2 onward follows: one `registerPath`
+ * per operation, request and response bodies referencing the same zod schemas the server
+ * parses with, and failures pointing at the shared error responses rather than restating
+ * the envelope.
  */
 
 import './openapi-extension.js';
@@ -22,6 +27,11 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 
 import { ERROR_CODE_MESSAGES, ErrorCodeSchema, ErrorEnvelopeSchema } from './errors.js';
 import { ID_SCHEMAS } from './ids.js';
+import {
+  ORG_SETTINGS_PATH,
+  OrgSettingsPatchSchema,
+  OrgSettingsResponseSchema,
+} from './org-settings.js';
 import { CursorSchema, PaginationQuerySchema, Rfc3339Schema, UuidSchema } from './primitives.js';
 
 /**
@@ -106,6 +116,8 @@ export function buildOpenApiDocument(): OpenApiDocument {
     });
   }
 
+  registerOrgSettings(registry);
+
   return new OpenApiGeneratorV31(registry.definitions).generateDocument({
     openapi: '3.1.0',
     info: {
@@ -118,5 +130,88 @@ export function buildOpenApiDocument(): OpenApiDocument {
       license: { name: 'MPL-2.0', url: 'https://mozilla.org/MPL/2.0/' },
     },
     servers: [{ url: API_BASE_PATH, description: 'Versioned API root.' }],
+  });
+}
+
+/**
+ * The failure responses every staff route can produce, as references to the shared
+ * components above.
+ *
+ * Written once rather than per route: docs/03 §2 has one envelope, and a route that
+ * documented a different shape for its 403 would be documenting a bug. `429` is included
+ * on every staff route because the limiter in `apps/api/src/rate-limit.ts` is global —
+ * an endpoint that does not opt into a scope still has the staff ceiling applied to it.
+ */
+const STAFF_ROUTE_ERRORS = {
+  401: { $ref: '#/components/responses/Unauthenticated' },
+  403: { $ref: '#/components/responses/Forbidden' },
+  404: { $ref: '#/components/responses/NotFound' },
+  429: { $ref: '#/components/responses/RateLimited' },
+  500: { $ref: '#/components/responses/InternalError' },
+} as const;
+
+/**
+ * `GET` and `PATCH /org/settings` — docs/03 §13, and the first business endpoint the
+ * document describes.
+ *
+ * Both are documented as requiring `staffSession`; the `org.admin` permission is stated
+ * in the description rather than expressed in the security scheme, because OpenAPI's
+ * scopes belong to OAuth flows and this API's permissions are rows in
+ * `user_role_permissions` (FR-27). Writing them as scopes would imply a client could ask
+ * for one.
+ *
+ * The `404` is not decoration. An organisation that row-level security did not admit
+ * answers `not_found` rather than `forbidden`, because a 403 would confirm that some
+ * other tenant holds the row — a cross-tenant disclosure made of nothing but a status
+ * code (ADR-010).
+ */
+function registerOrgSettings(registry: OpenAPIRegistry): void {
+  registry.registerPath({
+    method: 'get',
+    path: ORG_SETTINGS_PATH,
+    tags: ['Admin'],
+    summary: 'Read this organisation’s settings',
+    description:
+      'Returns the calling session’s own organisation and its settings. Requires the ' +
+      '`org.admin` permission. The response is a projection of the stored settings ' +
+      'document: fields this API does not define are never served, and fields it defines ' +
+      'that the document does not carry are served as their defaults.',
+    security: [{ staffSession: [] }],
+    responses: {
+      200: {
+        description: 'The organisation’s settings as they now stand.',
+        content: { 'application/json': { schema: OrgSettingsResponseSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'patch',
+    path: ORG_SETTINGS_PATH,
+    tags: ['Admin'],
+    summary: 'Change this organisation’s settings',
+    description:
+      'Partially updates the calling session’s own organisation settings. Requires the ' +
+      '`org.admin` permission, and writes one `audit_log` row carrying the before and ' +
+      'after states in the same transaction as the change. An unrecognised field is ' +
+      'refused with `validation_failed` rather than ignored. Retention clocks are not ' +
+      'settable here — see docs/11 §4.2.',
+    security: [{ staffSession: [] }],
+    request: {
+      body: {
+        required: true,
+        description: 'The settings to change. Omitted fields are left as they are.',
+        content: { 'application/json': { schema: OrgSettingsPatchSchema } },
+      },
+    },
+    responses: {
+      200: {
+        description: 'The organisation’s settings after the change.',
+        content: { 'application/json': { schema: OrgSettingsResponseSchema } },
+      },
+      422: { $ref: '#/components/responses/ValidationFailed' },
+      ...STAFF_ROUTE_ERRORS,
+    },
   });
 }

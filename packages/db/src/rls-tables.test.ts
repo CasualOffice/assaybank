@@ -17,7 +17,7 @@
  * with the table's name in the message.
  */
 
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
@@ -35,10 +35,29 @@ const read = (name: string): string =>
 
 const initialSql = read('0001_initial.sql');
 const rlsSql = read('0002_rls.sql');
+const platformSql = read('0003_platform_org.sql');
 
 const journal = JSON.parse(read('meta/_journal.json')) as {
   entries: { idx: number; tag: string; when: number; breakpoints: boolean }[];
 };
+
+/**
+ * Every migration, concatenated in journal order.
+ *
+ * The completeness claims below — every table created, every table policied — are about
+ * the schema as it stands, not about one file. A table introduced in 0006 is as much a
+ * leak as one introduced in 0001 if it has no policy, and reading only `0001_initial.sql`
+ * would have quietly stopped checking the tables that arrive later, which is exactly the
+ * failure this suite exists to catch. Reading the journal rather than the directory keeps
+ * the input to the check identical to the input the migrator uses.
+ */
+const migrationsSql = journal.entries.map((entry) => read(`${entry.tag}.sql`)).join('\n');
+
+/** The tags on disk, sorted, so the journal can be checked against reality. */
+const migrationTags: readonly string[] = readdirSync(new URL('../migrations/', import.meta.url))
+  .filter((name) => name.endsWith('.sql'))
+  .map((name) => name.replace(/\.sql$/, ''))
+  .sort((a, b) => a.localeCompare(b));
 
 /** Every table that must carry a policy: the root, the tenant-keyed, and the children. */
 const POLICIED_TABLES: readonly string[] = [
@@ -80,14 +99,45 @@ describe('TENANT_TABLES', () => {
   });
 });
 
-describe('migration 0001_initial', () => {
+describe('the migrations, taken together', () => {
   it('creates every table in the Drizzle schema', () => {
+    // Across all migrations, not only 0001: staff_accounts and staff_verifications
+    // arrive in 0006 and are as much a tenant table as anything in the first file.
     const missing = ALL_TABLES.filter(
-      (table) => !new RegExp(`CREATE TABLE IF NOT EXISTS ${table}\\b`).test(initialSql),
+      (table) => !new RegExp(`CREATE TABLE IF NOT EXISTS ${table}\\b`).test(migrationsSql),
     );
     expect(missing).toEqual([]);
   });
 
+  it('enables row-level security on every table that is not explicitly exempt', () => {
+    const missing = POLICIED_TABLES.filter(
+      (table) => !migrationsSql.includes(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('creates an org_isolation policy on every table that is not explicitly exempt', () => {
+    const missing = POLICIED_TABLES.filter(
+      (table) => !new RegExp(`CREATE POLICY org_isolation ON ${table}\\b`).test(migrationsSql),
+    );
+    expect(missing).toEqual([]);
+  });
+
+  it('compares the tenant key against app.current_org on every directly keyed table', () => {
+    for (const table of TENANT_TABLES) {
+      const start = migrationsSql.indexOf(`CREATE POLICY org_isolation ON ${table}\n`);
+      const body = migrationsSql.slice(
+        start,
+        migrationsSql.indexOf('--> statement-breakpoint', start),
+      );
+      expect(body, `${table} must compare org_id to app_current_org()`).toContain(
+        'org_id = public.app_current_org()',
+      );
+    }
+  });
+});
+
+describe('migration 0001_initial', () => {
   it('creates the three extensions the schema depends on', () => {
     for (const extension of ['pgcrypto', 'pg_trgm', 'citext']) {
       expect(initialSql).toContain(`CREATE EXTENSION IF NOT EXISTS ${extension};`);
@@ -107,30 +157,6 @@ describe('migration 0001_initial', () => {
 });
 
 describe('migration 0002_rls', () => {
-  it('enables row-level security on every table that is not explicitly exempt', () => {
-    const missing = POLICIED_TABLES.filter(
-      (table) => !rlsSql.includes(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`),
-    );
-    expect(missing).toEqual([]);
-  });
-
-  it('creates an org_isolation policy on every table that is not explicitly exempt', () => {
-    const missing = POLICIED_TABLES.filter(
-      (table) => !new RegExp(`CREATE POLICY org_isolation ON ${table}\\b`).test(rlsSql),
-    );
-    expect(missing).toEqual([]);
-  });
-
-  it('compares the tenant key against app.current_org on every directly keyed table', () => {
-    for (const table of TENANT_TABLES) {
-      const policy = rlsSql.slice(rlsSql.indexOf(`CREATE POLICY org_isolation ON ${table}\n`));
-      const body = policy.slice(0, policy.indexOf('--> statement-breakpoint'));
-      expect(body, `${table} must compare org_id to app_current_org()`).toContain(
-        'org_id = public.app_current_org()',
-      );
-    }
-  });
-
   it('lets the two nullable-org_id tables be read but never written as global rows', () => {
     // USING admits org_id IS NULL so a tenant can read the shared taxonomy; WITH CHECK
     // must not, or a tenant could edit every other tenant's rows.
@@ -173,10 +199,43 @@ describe('migration 0002_rls', () => {
   });
 });
 
+describe('migration 0003_platform_org', () => {
+  it('reserves the nil UUID so no organisation can hold it', () => {
+    // apps/api runs its readiness probe as the nil organisation and packages/db files
+    // platform-scoped elevation audit rows against it, both on the strength of it owning
+    // no rows. A convention protecting an isolation boundary is not a protection.
+    expect(platformSql).toContain('ADD CONSTRAINT organizations_id_not_platform');
+    expect(platformSql).toContain("CHECK (id <> '00000000-0000-0000-0000-000000000000'::uuid)");
+  });
+
+  it('adds the constraint NOT VALID and validates it separately (docs/17 §4)', () => {
+    // Expand-contract. On a populated table the split is what keeps it readable and
+    // writable while the scan runs; doing it the cheap way here teaches the wrong habit
+    // for the migration where it matters.
+    expect(platformSql).toContain('NOT VALID');
+    expect(platformSql).toContain('VALIDATE CONSTRAINT organizations_id_not_platform');
+    expect(platformSql.indexOf('NOT VALID')).toBeLessThan(
+      platformSql.indexOf('VALIDATE CONSTRAINT'),
+    );
+  });
+
+  it('is guarded, so a replay applies nothing', () => {
+    expect(platformSql).toContain('FROM pg_constraint');
+    expect(platformSql).toContain('NOT convalidated');
+  });
+
+  it('adds no table, so it cannot have missed a policy', () => {
+    expect(platformSql).not.toMatch(/CREATE TABLE/i);
+  });
+});
+
 describe('the migration journal', () => {
-  it('lists both migrations, in order, with strictly increasing timestamps', () => {
+  it('lists every migration, in order, with strictly increasing timestamps', () => {
+    // Derived from the directory rather than written out: a hard-coded list turns every
+    // new migration into an unrelated test edit, and the property worth asserting is
+    // "the journal and the folder agree", not "there are exactly three files".
     const tags = journal.entries.map((entry) => entry.tag);
-    expect(tags).toEqual(['0001_initial', '0002_rls']);
+    expect(tags).toEqual(migrationTags);
 
     for (let i = 1; i < journal.entries.length; i += 1) {
       const previous = journal.entries[i - 1];

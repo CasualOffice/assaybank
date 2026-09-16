@@ -33,11 +33,23 @@ import Fastify, {
 
 import type { CoreConfig, HttpConfig, TelemetryConfig } from '@assaybank/config';
 import { buildOpenApiDocument, type OpenApiDocument } from '@assaybank/contracts';
+import type { Database } from '@assaybank/db';
 import { logger as defaultLogger, metrics, metricsHandler } from '@assaybank/observability';
 
+import { registerAudit } from './audit.js';
+import { registerAuthorisation } from './authorisation.js';
+import { registerStaffAuthRoutes, type StaffIdentityServices } from './auth/routes.js';
+import { registerStaffAuthentication } from './auth/staff-session.js';
+import { registerCsrfProtection } from './csrf.js';
+import {
+  registerCandidateAuthentication,
+  registerCredentialRoutes,
+  type CandidateCredentialServices,
+} from './credentials/routes.js';
 import { registerErrorHandling } from './errors.js';
 import { registerHealthRoutes, type DependencyProbe } from './health.js';
 import { registerHttpMetrics } from './http-metrics.js';
+import { registerOrgRoutes } from './org/routes.js';
 import { registerRateLimit } from './rate-limit.js';
 import { newTraceId, registerRequestContext, requestIdFor } from './request-context.js';
 import { DEFAULT_SERVICE_NAME } from './service.js';
@@ -84,6 +96,39 @@ export interface BuildServerOptions {
   readonly now?: (() => Date) | undefined;
   /** Source of the per-request trace id. See `newTraceId`. */
   readonly traceId?: (() => string) | undefined;
+  /**
+   * The candidate credential flow: invitation redemption and WebSocket tickets (P1
+   * step 6).
+   *
+   * Optional, and absent in the unit suite that exercises the skeleton, because
+   * everything in it needs a database and a signing key. When it is absent the two
+   * routes are simply not registered — they are not registered in a disabled state,
+   * which would be a route answering something other than 404 for reasons no client
+   * could work out.
+   */
+  readonly credentials?: CandidateCredentialServices | undefined;
+  /**
+   * The database handle, which is what makes `request.audited(...)` available.
+   *
+   * Optional because the unit suite builds servers that serve `/healthz` and an error
+   * envelope and touch no table, and a builder that demanded a connection pool to do
+   * that would make the cheapest tests the hardest ones to write. Boot always passes it;
+   * a route that calls `request.audited` on an instance built without it fails loudly at
+   * the first request rather than quietly skipping the audit row, because the decorator
+   * simply is not there.
+   */
+  readonly db?: Database | undefined;
+  /**
+   * Staff identity: sessions, password login, OIDC (P1 step 3).
+   *
+   * Optional for the same reason `credentials` is — everything in it needs a database, a
+   * session store and a secret, and the unit suite that exercises the error envelope
+   * should not need all three. When it is absent the five `/auth/*` routes are simply not
+   * registered, and the cookie-to-principal hook is not installed either: a server built
+   * without it cannot authenticate a staff member at all, rather than authenticating them
+   * badly.
+   */
+  readonly staffIdentity?: StaffIdentityServices | undefined;
 }
 
 /**
@@ -207,6 +252,46 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
 
   registerRateLimit(app);
 
+  // docs/14 T-017 / `H-127`. Before the routes and before body parsing: a forged
+  // state-changing request should not reach a handler, a rate-limit bucket or an
+  // allocator. It covers every route on the instance, not only the authentication ones —
+  // `POST /user-roles` and `PATCH /attempts/{id}` are the examples the threat model gives.
+  registerCsrfProtection(app, { allowedOrigins: config.http.corsAllowedOrigins });
+
+  // The bearer-token hook goes in before authorisation, so `request.principal` is
+  // established by the time a route's declaration is enforced. It refuses nothing on its
+  // own — see credentials/routes.ts.
+  const credentials = options.credentials;
+  if (credentials !== undefined) {
+    registerCandidateAuthentication(app, { keys: credentials.keys, clock: credentials.clock });
+  }
+
+  // The session-cookie hook. After the bearer-token hook, so a request carrying both
+  // credentials is seen as such, and before `registerAuthorisation`, so that
+  // `request.principal` exists by the time a route's declaration is enforced — Fastify
+  // runs same-phase hooks in registration order, which is what makes "before" mean
+  // something here. Like the bearer hook, it refuses nothing on its own.
+  const staffIdentity = options.staffIdentity;
+  if (staffIdentity !== undefined) {
+    registerStaffAuthentication(app, { auth: staffIdentity.auth, db: staffIdentity.db });
+  }
+
+  // Last of the cross-cutting registrations, and before any route is added — the route
+  // table is built by an `onRoute` hook, which Fastify runs synchronously as each route
+  // is declared, so a route registered before this call would be absent from the table
+  // and, worse, unchecked. Every route added from here on either names the permission it
+  // requires or appears in the public allow-list; anything else is refused at runtime and
+  // fails the enumeration test (docs/14 §"Defaults").
+  registerAuthorisation(app);
+
+  // The audit seam. After `registerAuthorisation`, which is what declares the `principal`
+  // decorator that `request.audited` reads, and before any route is added, so that every
+  // route can reach it. A request with no principal gets the same `unauthenticated`
+  // envelope as everything else — the audit trail has no anonymous writer.
+  if (options.db !== undefined) {
+    registerAudit(app, { db: options.db, now });
+  }
+
   // --- operational routes ------------------------------------------------------
   //
   // **Inside `after`, and that is load-bearing.** `@fastify/rate-limit` applies itself
@@ -241,6 +326,22 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       void reply.type('application/json; charset=utf-8');
       return openApi();
     });
+
+    if (credentials !== undefined) {
+      registerCredentialRoutes(app, credentials);
+    }
+
+    if (staffIdentity !== undefined) {
+      registerStaffAuthRoutes(app, staffIdentity);
+    }
+
+    // The staff business surface. Registered on the same condition as the audit seam
+    // above, and for the same reason: `PATCH /org/settings` is one `request.audited`
+    // call, so a server built without a database would register a route whose only
+    // possible answer is a 500. Boot always supplies one (index.ts).
+    if (options.db !== undefined) {
+      registerOrgRoutes(app, { db: options.db, now });
+    }
   });
 
   return app;

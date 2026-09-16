@@ -51,6 +51,25 @@ const PUBLIC_SURFACE = [
   'isErrorCode',
   'statusForErrorCode',
   'toErrorEnvelope',
+  // organisation settings (docs/03 §13)
+  'ORG_SETTINGS_PATH',
+  'MAX_BRANDING_NAME_LENGTH',
+  'MAX_LOGO_URL_LENGTH',
+  'OrgBrandingSchema',
+  'OrgBrandingPatchSchema',
+  'OrgIdentitySchema',
+  'OrgProctoringDefaultsSchema',
+  'OrgProctoringDefaultsPatchSchema',
+  'OrgSettingsSchema',
+  'OrgSettingsPatchSchema',
+  'OrgSettingsResponseSchema',
+  'defaultOrgSettings',
+  'mergeOrgSettings',
+  'projectOrgSettings',
+  // parsing at the edge
+  'MAX_VALIDATION_FIELDS',
+  'parseRequestPart',
+  'validationFieldsFor',
   // openapi
   'API_BASE_PATH',
   'buildOpenApiDocument',
@@ -67,7 +86,16 @@ describe('@assaybank/contracts', () => {
 
   it('performs no I/O and reads no environment variable (CODE-GRAPH L3)', async () => {
     const sources = await Promise.all(
-      ['primitives', 'ids', 'errors', 'openapi', 'openapi-extension', 'index'].map(async (name) => {
+      [
+        'primitives',
+        'ids',
+        'errors',
+        'parse',
+        'org-settings',
+        'openapi',
+        'openapi-extension',
+        'index',
+      ].map(async (name) => {
         const { readFile } = await import('node:fs/promises');
         const url = new URL(`./${name}.ts`, import.meta.url);
         return [name, await readFile(url, 'utf8')] as const;

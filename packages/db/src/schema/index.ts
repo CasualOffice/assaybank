@@ -27,6 +27,7 @@ export {
   userRolePermissions,
   userRoleAssignments,
 } from './tenancy-rbac.js';
+export { staffAccounts, staffVerifications } from './staff-identity.js';
 export { skills } from './skills.js';
 export { jobRoles, jobRoleSkills, jobOpenings } from './job-roles.js';
 export {
@@ -99,13 +100,17 @@ import {
   scorecardRatings,
 } from './scorecards.js';
 import { proctorEvents, proctorMedia, auditLog } from './proctoring-audit.js';
+import { staffAccounts, staffVerifications } from './staff-identity.js';
 
 /**
  * Every table in the model, keyed by its Drizzle export name.
  *
- * Forty tables, which is the number `infra/postgres/init/03-rls.sql` accounts for and
- * the number `src/schema/schema.test.ts` asserts. Enums are deliberately absent: this
- * object is walked to find tables, and a `pgEnum` is not one.
+ * Forty-two tables: the forty of `docs/hiring_platform_schema.sql`, plus the two that
+ * staff authentication needs and the schema file never had — see `./staff-identity.ts`
+ * for why they are separate and why they are both tenant tables. `src/schema/schema.test.ts`
+ * asserts the count, and `infra/postgres/init/03-rls.sql` accounts for the original forty.
+ * Enums are deliberately absent: this object is walked to find tables, and a `pgEnum` is
+ * not one.
  */
 export const schema = {
   // 1 — tenancy, users, RBAC
@@ -115,6 +120,9 @@ export const schema = {
   permissions,
   userRolePermissions,
   userRoleAssignments,
+  // 1a — staff authentication (Better Auth; not in docs/hiring_platform_schema.sql)
+  staffAccounts,
+  staffVerifications,
   // 2 — skill taxonomy
   skills,
   // 3 — job roles

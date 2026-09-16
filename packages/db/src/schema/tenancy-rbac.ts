@@ -76,12 +76,34 @@ export const users = pgTable(
     orgId: orgRef(),
     email: citext('email').notNull(),
     fullName: text('full_name').notNull(),
-    /** Null when the account is SSO-only. Never a plaintext password, at any point. */
+    /**
+     * From `docs/hiring_platform_schema.sql`, and **not** where a password lives.
+     *
+     * Staff credentials are Better Auth's `account` model, which is
+     * `staff_accounts.password` (see `./staff-identity.ts`). This column predates that
+     * choice; migration 0006 leaves it in place rather than maintaining two copies of the
+     * same secret, because two places to rotate a password is one place to forget. Never
+     * a plaintext password, at any point, whichever column is being discussed.
+     */
     passwordHash: text('password_hash'),
     ssoSubject: text('sso_subject'),
     timezone: text('timezone').notNull().default('UTC'),
+    /**
+     * Better Auth's `user.emailVerified`. Added by migration 0006.
+     *
+     * Defaults to `true` because there is no self-service staff sign-up to verify against
+     * — an administrator or an identity provider created this row, and that act is the
+     * verification. Nothing gates on it today (`requireEmailVerification` is off); the
+     * column exists because the library's user model has it, and a model field with no
+     * column is an insert that fails at 03:00 rather than at boot.
+     */
+    emailVerified: boolean('email_verified').notNull().default(true),
+    /** Better Auth's `user.image`. An avatar URL from the IdP, when it offers one. */
+    image: text('image'),
     archivedAt: tstz('archived_at'),
     createdAt: tstz('created_at').notNull().defaultNow(),
+    /** Better Auth's `user.updatedAt`. Written by the library on every profile change. */
+    updatedAt: tstz('updated_at').notNull().defaultNow(),
   },
   (t) => [
     unique('users_org_id_email_key').on(t.orgId, t.email),

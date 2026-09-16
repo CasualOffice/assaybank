@@ -97,11 +97,24 @@ async function main(): Promise<void> {
   // Before the database client, the queue client and the HTTP framework are loaded.
   await initTelemetry(serviceName);
 
-  const [{ buildServer }, { createDb, withOrg }, { OrgIdSchema }, { Redis }] = await Promise.all([
+  const [
+    { buildServer },
+    { createDb, withOrg },
+    { OrgIdSchema },
+    { Redis },
+    { systemClock },
+    credentialFlow,
+    { createStaffAuth },
+    { valkeySessionStore },
+  ] = await Promise.all([
     import('./server.js'),
     import('@assaybank/db'),
     import('@assaybank/contracts'),
     import('ioredis'),
+    import('@assaybank/auth'),
+    import('./credentials/index.js'),
+    import('./auth/better-auth.js'),
+    import('./auth/session-store.js'),
   ]);
 
   /**
@@ -121,9 +134,11 @@ async function main(): Promise<void> {
     applicationName: serviceName,
     onElevation: (record) => {
       // ADR-010: the job role bypasses row-level security, and what it owes in exchange
-      // is a record of every time it was used. The audit-table writer arrives with the
-      // audit log in P1; until then the elevation is at least in the log stream, under
-      // the trace id of whatever caused it.
+      // is a record of every time it was used. There are two records and they answer
+      // different questions — the audit_log row written inside the transaction says what
+      // *committed*, and this line, which fires whether or not the block goes on to
+      // succeed, says what was *attempted*. A job that elevates and then fails every
+      // time is invisible in the first and obvious in the second.
       logger.info(
         { event: 'db.elevated', reason: record.reason, at: record.at.toISOString() },
         'elevated database role used',
@@ -147,9 +162,73 @@ async function main(): Promise<void> {
     logger.warn({ event: 'valkey.connection_error', err }, 'valkey connection error');
   });
 
+  /**
+   * The candidate credential flow (P1 step 6), assembled here because this is the only
+   * place allowed to read the environment.
+   *
+   * `systemClock` is passed in rather than reached for: every expiry downstream — the
+   * attempt token's life, the ticket's sixty seconds, the invitation's window — is
+   * measured against this one object, which is what makes each of them a deterministic
+   * assertion in a test rather than a sleep (ADR-006, docs/17 §8).
+   */
+  const credentialKeys = credentialFlow.deriveCredentialKeys(cfg.secrets);
+
+  const candidateCredentials = {
+    keys: credentialKeys,
+    clock: systemClock,
+    redemption: credentialFlow.createRedemptionService({
+      gateway: credentialFlow.createPostgresRedemptionGateway({ db, clock: systemClock }),
+      keys: credentialKeys,
+      clock: systemClock,
+    }),
+    tickets: credentialFlow.createWsTicketService({
+      signingKey: credentialKeys.wsTicket,
+      pepper: credentialKeys.pepper,
+      clock: systemClock,
+      // Valkey rather than this process's memory: single use has to hold across every
+      // replica, and a check-and-set only one instance can see stops being single use
+      // the moment there are two (docs/14 T-013, H-122).
+      store: credentialFlow.valkeySingleUseStore(valkey),
+    }),
+    sessions: credentialFlow.createPostgresSessionGateway(db),
+  };
+
+  /**
+   * Staff identity (P1 step 3), assembled here for the same reason as the credential
+   * flow: this is the only place allowed to read the environment, and Better Auth needs
+   * `SESSION_SECRET`, the public URLs and the OIDC triple.
+   *
+   * Sessions go to Valkey rather than to Postgres — the reasoning is in
+   * `packages/db/src/schema/staff-identity.ts`, and the short version is that a session
+   * table would have to be read before the organisation is known in order to discover the
+   * organisation. It is the same Valkey client the queues and the ticket store use, with
+   * its own key prefix.
+   */
+  const staffAuth = createStaffAuth({
+    config: cfg,
+    store: valkeySessionStore(valkey),
+    // Every deployed tier speaks https, and so does a browser talking to `localhost`.
+    // The flag exists for the test harness, which has no scheme at all.
+    secureCookies: true,
+  });
+
   const app = buildServer({
     config: cfg,
     logger,
+    credentials: candidateCredentials,
+    staffIdentity: {
+      auth: staffAuth,
+      db,
+      sessionSecret: cfg.secrets.sessionSecret,
+      apiUrl: cfg.http.publicUrl,
+      consoleUrl: cfg.http.webPublicUrl,
+      secureCookies: true,
+      oidcEnabled: cfg.oidc.enabled,
+      now: () => systemClock.now(),
+    },
+    // What makes `request.audited(...)` exist on this instance: one transaction per
+    // audited action, carrying both the work and its audit_log row (P1 step 5).
+    db,
     dependencies: [
       {
         name: 'postgres',
