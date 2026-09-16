@@ -133,3 +133,17 @@ export * from './schema/index.js';
  * real export from the first commit.
  */
 export const WORKSPACE_NAME = '@assaybank/db';
+
+export {
+  createSkill,
+  getJobRoleCoverage,
+  listSkills,
+  mergeSkills,
+  TaxonomyDepthError,
+} from './taxonomy.js';
+export type {
+  CoverageRow,
+  ListSkillsFilter,
+  MergeSkillsResult,
+  SkillRow,
+} from './taxonomy.js';

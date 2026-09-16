@@ -51,6 +51,7 @@ import { registerHealthRoutes, type DependencyProbe } from './health.js';
 import { registerHttpMetrics } from './http-metrics.js';
 import { registerOrgRoutes } from './org/routes.js';
 import { registerQuestionRoutes } from './questions/routes.js';
+import { registerTaxonomyRoutes } from './taxonomy/routes.js';
 import { registerRateLimit } from './rate-limit.js';
 import { newTraceId, registerRequestContext, requestIdFor } from './request-context.js';
 import { DEFAULT_SERVICE_NAME } from './service.js';
@@ -347,6 +348,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       // `withOrg` read or a `request.audited` write, so a server built without a database
       // would register ten routes whose only possible answer is a 500.
       registerQuestionRoutes(app, { db: options.db, now });
+      registerTaxonomyRoutes(app, { db: options.db, now });
     }
   });
 

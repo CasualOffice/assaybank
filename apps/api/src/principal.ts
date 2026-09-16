@@ -33,7 +33,7 @@
 
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
-import type { Principal } from '@assaybank/auth';
+import type { Principal, StaffPrincipal } from '@assaybank/auth';
 import { ApiError } from '@assaybank/contracts';
 
 declare module 'fastify' {
@@ -94,5 +94,20 @@ export function setPrincipal(request: FastifyRequest, principal: Principal): voi
 export function currentPrincipal(request: FastifyRequest): Principal {
   const principal = request.principal;
   if (principal === undefined) throw ApiError.unauthenticated();
+  return principal;
+}
+
+/**
+ * The staff principal behind this request, or `forbidden`.
+ *
+ * Extracted here when a third route module needed it. `can()` already denies a candidate
+ * principal every permission, including ones invented after it was written, so this is
+ * unreachable as a refusal — and written as a refusal anyway: a narrowing enforced by an
+ * `if` stays true if somebody moves a route onto the public allow-list by mistake, and a
+ * cast does not.
+ */
+export function staffOnly(request: FastifyRequest): StaffPrincipal {
+  const principal = currentPrincipal(request);
+  if (principal.kind !== 'staff') throw ApiError.forbidden();
   return principal;
 }

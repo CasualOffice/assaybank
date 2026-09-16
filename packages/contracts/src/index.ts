@@ -215,3 +215,5 @@ export type { OpenApiDocument } from './openapi.js';
  * line or a span resource without a second source of truth.
  */
 export const WORKSPACE_NAME = '@assaybank/contracts';
+
+export * from './taxonomy.js';

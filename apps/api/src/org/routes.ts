@@ -57,9 +57,8 @@
  * set the same value twice is a truthful record of what arrived.
  */
 
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
-import type { StaffPrincipal } from '@assaybank/auth';
 import {
   API_BASE_PATH,
   ApiError,
@@ -73,7 +72,7 @@ import {
 import { withOrg, type Database } from '@assaybank/db';
 
 import { requirePermission } from '../authorisation.js';
-import { currentPrincipal } from '../principal.js';
+import { staffOnly } from '../principal.js';
 import { rateLimitFor } from '../rate-limit.js';
 import { assertServable, readOrg, writeOrgSettings, type StoredOrg } from './settings.js';
 
@@ -109,11 +108,6 @@ export interface OrgRouteOptions {
  * enforced by an `if` stays true when somebody moves the route onto the public allow-list
  * by mistake, and a cast does not.
  */
-function staffOnly(request: FastifyRequest): StaffPrincipal {
-  const principal = currentPrincipal(request);
-  if (principal.kind !== 'staff') throw ApiError.forbidden();
-  return principal;
-}
 
 /**
  * The response body, built field by field from the row and the settings document.

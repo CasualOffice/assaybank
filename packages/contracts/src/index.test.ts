@@ -131,6 +131,18 @@ const PUBLIC_SURFACE = [
   'toAuthorVersionView',
   'toAuthorView',
   'toCandidateView',
+  // taxonomy — skills, job roles and the join between them (ADR-009)
+  'SkillKeySchema',
+  'SkillCategorySchema',
+  'CreateSkillSchema',
+  'UpdateSkillSchema',
+  'ListSkillsQuerySchema',
+  'MergeSkillSchema',
+  'CreateJobRoleSchema',
+  'UpdateJobRoleSchema',
+  'ListJobRolesQuerySchema',
+  'JobRoleSkillSchema',
+  'PutJobRoleSkillsSchema',
   // openapi
   'API_BASE_PATH',
   'buildOpenApiDocument',

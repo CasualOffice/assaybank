@@ -56,9 +56,8 @@
  * silent.
  */
 
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 
-import type { StaffPrincipal } from '@assaybank/auth';
 import {
   API_BASE_PATH,
   ApiError,
@@ -109,7 +108,7 @@ import {
 } from '@assaybank/db';
 
 import { requirePermission } from '../authorisation.js';
-import { currentPrincipal } from '../principal.js';
+import { staffOnly } from '../principal.js';
 import { rateLimitFor } from '../rate-limit.js';
 
 /**
@@ -179,11 +178,6 @@ export interface QuestionRouteOptions {
  * candidate principal reaches this handler" is FR-12's first line of defence and the
  * standing leak suite's first assertion.
  */
-function staffOnly(request: FastifyRequest): StaffPrincipal {
-  const principal = currentPrincipal(request);
-  if (principal.kind !== 'staff') throw ApiError.forbidden();
-  return principal;
-}
 
 /**
  * The question named in the path, or `not_found`.
