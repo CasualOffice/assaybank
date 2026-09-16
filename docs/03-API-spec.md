@@ -205,6 +205,43 @@ GET    /questions/export            ?format=qti|json&skill_id=&status=  → 202 
 
 Import is asynchronous and reports per-row errors rather than failing the whole file. `source_license` is mandatory on import — see `05-licensing-and-compliance.md`.
 
+#### The two file formats
+
+The routes above are not built yet. The formats they carry are, as pure codecs in `apps/worker/src/interchange/` (2026-09-17), with round-trip tests over all eight kinds.
+
+**JSON bank document** — the lossless format, for moving a bank between installations:
+
+```
+{ "format": "assaybank.bank", "format_version": 1, "exported_at": "<RFC 3339>",
+  "attributions": [{ "source_license", "dataset", "items" }],
+  "items": [{
+    "ref", "kind", "status", "source_license", "external_ref",
+    "skills":   [{ "key", "weight" }],
+    "versions": [{ "version_no", "published", "locale", "prompt_md", "explanation_md",
+                   "difficulty", "est_seconds", "max_score", "negative_score",
+                   "options":     [{ "body_md", "is_correct", "score_delta", "rationale_md" }],
+                   "coding_spec": { "allowed_languages", "starter_code", "solution_code",
+                                    "time_limit_ms", "memory_limit_kb", "grading_mode",
+                                    "checker_code", "fixture_sql" } | null,
+                   "test_cases":  [{ "label", "stdin", "expected_stdout", "args", "is_sample", "weight" }],
+                   "answer_keys": [{ "match_type", "pattern", "tolerance", "score" }] }] }] }
+```
+
+- Every field is present, `null` where absent. Nothing is defaulted, so the file says what each question *is* without reference to this schema's column defaults.
+- The full version history travels, oldest first, with strictly ascending `version_no`. Publication crosses as a flag, not an instant.
+- Identifiers, timestamps, authors and exposure counts do not cross; the importing organisation mints its own. Skills cross by `key`, because a skill id means nothing in another tenant.
+- `ref` is unique within the file and nothing more — a handle for error reports.
+- Reading: a file that is not JSON, names another `format`, or a `format_version` other than `1` is refused whole. Each item is then validated independently — the schema, a lifecycle that agrees with its versions (a `published` or `retired` question needs a published version; `draft` and `review` must have none), and the kind rule per version at the stage that version is at (publish for a published version, draft otherwise; §4 "What each kind may carry"). A failing item is reported as `{index, ref, path, message}` and skipped; the rest are read.
+
+**QTI 2.1 content package** — for moving items into another assessment tool. A zip with `imsmanifest.xml` and one `items/<ref>.xml` per question.
+
+- Standard QTI carries what QTI can express: the prompt, the explanation and per-option rationale as `modalFeedback`, choices as `choiceInteraction` with `correctResponse`, per-option score overrides as `mapping`, and exact or case-insensitive short-answer keys as `mapEntry` rows (`caseSensitive`).
+- Everything else goes in each manifest resource's `<metadata>` under the namespace `urn:assaybank:bank:v1`: the kind (QTI cannot tell `true_false` from a two-option `mcq_single`), status, difficulty, timing, scoring, skills, licence provenance, the coding spec, test cases, and answer keys QTI cannot express — regular expressions, numeric tolerances, a repeated pattern, or a pattern containing a tab or newline, which an XML attribute would normalise. Those keep their original position.
+- **One version per question**: the last published version, or the last of all if none is published. It imports as version 1. History crosses in the JSON document only.
+- Text XML 1.0 cannot carry exactly — carriage returns, most control characters, unpaired surrogates — is written as base64 of its UTF-16 code units with `encoding="utf16le-base64"`. Everything else is readable escaped text.
+- Reading refuses a package with no manifest, a `DOCTYPE` anywhere, an archive over 20,000 entries, any entry over 16 MiB or a total over 256 MiB (checked from the central directory before inflating, and again after). A resource whose `href` is absolute or contains `..`, or names a file not in the archive, is reported against that item.
+- An item from another tool, with no Assaybank metadata, is read as an unpublished draft: `choiceInteraction` becomes `mcq_single` (one choice) or `mcq_multi`, `textEntryInteraction` becomes `short_answer`, `extendedTextInteraction` becomes `subjective`. QTI has no difficulty, so the importer must supply a default; without one the item is refused by name, never guessed.
+
 ---
 
 ## 5. Assessments

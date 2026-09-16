@@ -15,7 +15,7 @@
 | **Current milestone** | M0 Question bank — P1 complete, P2 three of six tracks complete |
 | **Next milestone** | M1 Async MCQ assessment, phase P3 |
 | **Overall RAG** | amber |
-| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,278 tests**, 0 failing, 0 skipped |
+| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,295 tests**, 0 failing, 0 skipped |
 | **Schedule** | amber — ahead of the re-baselined plan (P0 and P1 are complete before their planned start of 2026-09-21), but the 25-week baseline is still unsigned (OQ-015) and build pace so far says little about the judgement-heavy phases ahead |
 | **Scope** | green — no changes to PRD §6 |
 | **Risk** | amber — eight high risks open, three of them the same question-bank problem (R-03, R-04, R-13) |
@@ -36,7 +36,7 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## In progress
 
-P2 question bank: import/export (the M0 exit criterion — QTI and JSON round-trip) and the authoring console.
+P2 question bank: import/export (the M0 exit criterion) and the authoring console. The two file formats are built and round-trip every kind exactly — the JSON bank document with full history and attribution, the QTI 2.1 package for the served version; the import job, routes and the database round trip are next.
 
 ## Next
 

@@ -18,7 +18,7 @@ Assaybank is a self-hosted technical hiring platform covering async assessments,
 | Path | Owns | Must not |
 |---|---|---|
 | `apps/api` | Every write to a domain table. AuthN/AuthZ, question-bank CRUD and version lifecycle, assessment composition, attempt lifecycle, the server-authoritative timer, enqueuing grading jobs, report generation, webhook emission | Run candidate code, hold WebSocket document state, compute a score synchronously |
-| `apps/worker` | BullMQ grading consumers; scheduled sweeps — deadline sweep, question statistics, retention erasure | Serve HTTP to candidates or staff |
+| `apps/worker` | BullMQ grading consumers; scheduled sweeps — deadline sweep, question statistics, retention erasure; bank import and export, including the interchange formats (JSON bank document, QTI 2.1 package) in `src/interchange/` | Serve HTTP to candidates or staff |
 | `apps/collab` | Live Yjs documents for interview sessions, awareness fanout, periodic snapshots | Write domain tables other than the session snapshot and event append it owns |
 | `apps/web` | Staff console: recruiter, interviewer, admin | Ship in the candidate bundle |
 | `apps/candidate` | Candidate assessment runner and interview join | Import from `apps/web`, or from any package that exposes correct-answer flags, hidden test cases or bank queries |

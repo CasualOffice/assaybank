@@ -354,6 +354,7 @@ Invariants:
 - Re-grading a finalised attempt creates a new grading run rather than mutating the existing scores in place.
 - Writes bank tables only from the bank.jobs import, through the same packages/db repositories and the same validation the API uses; it has no private write path.
 - Holds no candidate-facing HTTP surface; everything it produces reaches a client through Postgres or the API.
+- Bank interchange formats — the JSON bank document and the QTI 2.1 content package — are pure codecs in apps/worker/src/interchange: a file it cannot trust is refused whole, a malformed item is reported by position and skipped, and an uploaded archive is size-limited before it is inflated.
 
 Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/04-ADRs.md`](docs/04-ADRs.md)
 

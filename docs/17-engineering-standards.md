@@ -260,6 +260,12 @@ Full strategy in [`06-testing-strategy.md`](06-testing-strategy.md). The standar
   correctness boundary.
 - **Coverage is risk-weighted, not a single number.** Scoring, attempt lifecycle, tenancy,
   serialisation and token handling approach exhaustive. A React layout shell does not.
+- **A format codec is proven by a round trip that is hostile and strict.** Assert
+  `toStrictEqual`, so `null` against `undefined` and `-0` against `0` fail; feed it the text the
+  format mangles (for XML: carriage returns, NUL, unpaired surrogates, `]]>`, markup that must stay
+  text, whitespace at both ends); and break the codec on purpose once to watch the round trip
+  fail. The bank interchange tests in `apps/worker/src/interchange/` were checked that way:
+  disabling the text encoding and over-mapping answer keys each fail them.
 - **No flaky test is tolerated.** Quarantine within a day, fix or delete within a week. A suite
   people have learned to re-run is a suite that no longer gates anything.
 

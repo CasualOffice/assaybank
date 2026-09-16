@@ -117,6 +117,17 @@ The alternative — one elevated transaction reading every tenant at once — is
 
 The worker composes: `packages/db` moves rows, a pure package computes (`packages/grading` for statistics), and the sweep in `apps/worker/src/jobs/` joins them. Neither package imports the other.
 
+### 3.4b Bank import and export
+
+Long-running bank operations run on the `bank.jobs` queue in the worker, not in the request path: the API accepts a file or an export request, answers `202` with a job id, and the worker does the work (docs/03 §4 "Bulk"). The queue, the job table and the routes are planned.
+
+What exists, as of 2026-09-17, is the part that decides whether an import is lossless — the two interchange codecs, as pure functions in `apps/worker/src/interchange/`:
+
+- a **JSON bank document** carrying each question's full version history, and
+- a **QTI 2.1 content package** carrying each question's served version in standard QTI, with what QTI cannot express in namespaced manifest metadata.
+
+They sit in the worker rather than in a package because nothing else parses them: the API hands the upload over unread. Both map to one explicit interchange type, so a round trip is a property of that type and is tested without a database. An import writes through the same `packages/db` repositories and the same kind rule the API applies, so a file cannot create a question the API would refuse; a file it cannot trust is refused whole, and a bad item is reported and skipped.
+
 ### 3.5 Storage
 
 **PostgreSQL** — all domain data. Row-level security enforces org isolation. Partition `session_events` and `proctor_events` by month.

@@ -66,6 +66,8 @@ Enforced in CI. The build fails on a prohibited license in the dependency tree, 
 | MinIO | **AGPL-3.0** ⚠ | See below |
 | Safe Exam Browser | MPL-2.0 / mixed | Client-side lockdown, distributed to candidates unmodified |
 | Tailwind CSS | MIT | |
+| fast-xml-parser | MIT | QTI 2.1 import, in `apps/worker` |
+| fflate | MIT | QTI content-package zip, in `apps/worker` |
 
 **Test and build tooling** is in the same dependency tree and the gate grades it the same way. Verified from the installed packages on 2026-09-17:
 
@@ -122,6 +124,8 @@ LeetCode, HackerRank, GeeksforGeeks, InterviewBit and Codeforces problem stateme
 ### CC-BY obligations are real
 
 CC-BY-4.0 requires attribution "in any reasonable manner". For a hiring platform that means: an attributions page in the recruiter console listing dataset sources, and the credit preserved in any export. It does *not* require showing attribution to candidates mid-exam.
+
+In the export formats built on 2026-09-17: every item in a JSON bank document keeps its own `source_license` and `external_ref`, and the document header adds an `attributions` list — licence, dataset and item count for every non-proprietary licence — so the obligation is visible without reading every item. A QTI package carries the same two fields per item in its manifest metadata. Neither format drops them, and the round-trip tests assert both.
 
 CC-BY also permits commercial use and modification — so adapting an MBPP problem into your own variant is fine, with credit.
 
