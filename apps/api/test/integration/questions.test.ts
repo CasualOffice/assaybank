@@ -53,10 +53,7 @@ import {
 import { findAnswerKeyFields } from '@assaybank/contracts';
 
 import { setPrincipal } from '../../src/principal.js';
-import {
-  QUESTIONS_ROUTE,
-  QUESTION_ACTIONS,
-} from '../../src/questions/routes.js';
+import { QUESTIONS_ROUTE, QUESTION_ACTIONS } from '../../src/questions/routes.js';
 import { buildServer } from '../../src/server.js';
 import { testConfig } from '../../src/test-support.js';
 import { startTestPostgres, type TestPostgres } from './postgres-fixture.js';
@@ -128,10 +125,22 @@ async function maxAuditId(): Promise<string> {
 
 /** Audit rows written since the watermark, newest last. */
 async function auditSince(): Promise<
-  { action: string; entity_type: string; entity_id: string | null; before: unknown; after: unknown }[]
+  {
+    action: string;
+    entity_type: string;
+    entity_id: string | null;
+    before: unknown;
+    after: unknown;
+  }[]
 > {
   return fixture().owner<
-    { action: string; entity_type: string; entity_id: string | null; before: unknown; after: unknown }[]
+    {
+      action: string;
+      entity_type: string;
+      entity_id: string | null;
+      before: unknown;
+      after: unknown;
+    }[]
   >`
     SELECT action, entity_type, entity_id, before, after
       FROM audit_log
@@ -306,6 +315,27 @@ describe('POST /questions/{id}/versions', () => {
     ]);
   });
 
+  it('refuses a score the column cannot hold as validation, not as a database error', async () => {
+    const created = await post(QUESTIONS_ROUTE, { kind: 'subjective' });
+    const id = asQuestion(created.body).id;
+
+    // numeric(6,2) holds up to 9999.99; 10000 used to reach the INSERT and come back a 500.
+    const overflow = await post(`${QUESTIONS_ROUTE}/${id}/versions`, {
+      prompt_md: 'Explain CAP.',
+      difficulty: 3,
+      max_score: 10_000,
+    });
+    expect(overflow.status).toBe(422);
+
+    // And a third decimal place used to be rounded away silently by PostgreSQL.
+    const rounded = await post(`${QUESTIONS_ROUTE}/${id}/versions`, {
+      prompt_md: 'Explain CAP.',
+      difficulty: 3,
+      max_score: 2.125,
+    });
+    expect(rounded.status).toBe(422);
+  });
+
   it('copies forward everything the body did not name', async () => {
     const { id } = await createQuestionWithVersion('mcq_single', {
       prompt_md: 'What is 2 + 2?',
@@ -342,7 +372,9 @@ describe('POST /questions/{id}/versions', () => {
       answer_keys: [{ match_type: 'ci', pattern: 'paris' }],
     });
 
-    await post(`${QUESTIONS_ROUTE}/${id}/versions`, { prompt_md: 'What is the capital of France?' });
+    await post(`${QUESTIONS_ROUTE}/${id}/versions`, {
+      prompt_md: 'What is the capital of France?',
+    });
 
     const question = asQuestion((await get(`${QUESTIONS_ROUTE}/${id}`)).body);
     // The draft exists and the pointer has not followed it, which is what stops a
@@ -568,12 +600,12 @@ describe('PATCH /questions/{id}', () => {
       difficulty: 2,
     });
 
-    expect(asQuestion((await patch(`${QUESTIONS_ROUTE}/${id}`, { status: 'review' })).body).status).toBe(
-      'review',
-    );
-    expect(asQuestion((await patch(`${QUESTIONS_ROUTE}/${id}`, { status: 'draft' })).body).status).toBe(
-      'draft',
-    );
+    expect(
+      asQuestion((await patch(`${QUESTIONS_ROUTE}/${id}`, { status: 'review' })).body).status,
+    ).toBe('review');
+    expect(
+      asQuestion((await patch(`${QUESTIONS_ROUTE}/${id}`, { status: 'draft' })).body).status,
+    ).toBe('draft');
   });
 
   it('refuses an illegal transition with 409 and the states that were involved', async () => {
@@ -692,7 +724,9 @@ describe('GET /questions', () => {
     expect(firstPage.next_cursor).not.toBeNull();
 
     const secondPage = (
-      await get(`${QUESTIONS_ROUTE}?limit=1&cursor=${encodeURIComponent(firstPage.next_cursor ?? '')}`)
+      await get(
+        `${QUESTIONS_ROUTE}?limit=1&cursor=${encodeURIComponent(firstPage.next_cursor ?? '')}`,
+      )
     ).body as QuestionListResponse;
     expect(secondPage.data).toHaveLength(1);
     expect(secondPage.data[0]?.id).not.toBe(firstPage.data[0]?.id);
@@ -809,8 +843,7 @@ describe('question kinds carry only what they can use', () => {
   /** The fields named in a validation_failed envelope, as the client sent them. */
   function fieldsIn(body: unknown): string[] {
     const details = asEnvelope(body).error.details as
-      | { fields?: Array<{ field: string; rule: string }> }
-      | undefined;
+      { fields?: Array<{ field: string; rule: string }> } | undefined;
     return (details?.fields ?? []).map((f) => `${f.field}:${f.rule}`);
   }
 
@@ -869,7 +902,9 @@ describe('question kinds carry only what they can use', () => {
     expect(fieldsIn(response.body)).toContain('body/test_cases:incomplete');
 
     // The refusal leaves no trace: a version that could not be graded must not be frozen.
-    const after = asVersion((await get(`${QUESTIONS_ROUTE}/${id}/versions/${String(versionNo)}`)).body);
+    const after = asVersion(
+      (await get(`${QUESTIONS_ROUTE}/${id}/versions/${String(versionNo)}`)).body,
+    );
     expect(after.published_at).toBeNull();
   });
 
@@ -891,7 +926,8 @@ describe('question kinds carry only what they can use', () => {
       difficulty: 2,
       coding_spec: {
         allowed_languages: ['sql'],
-        fixture_sql: 'create table orders (customer_id int); insert into orders values (1),(1),(2);',
+        fixture_sql:
+          'create table orders (customer_id int); insert into orders values (1),(1),(2);',
       },
       test_cases: [{ stdin: '', expected_stdout: '1|2\n2|1', is_sample: false }],
     });
@@ -946,7 +982,10 @@ describe('POST /questions/{id}/preview — before the execution service exists',
   });
 
   it('checks the kind before reaching for the execution service', async () => {
-    const { id } = await createQuestionWithVersion('subjective', { prompt_md: 'Discuss.', difficulty: 2 });
+    const { id } = await createQuestionWithVersion('subjective', {
+      prompt_md: 'Discuss.',
+      difficulty: 2,
+    });
 
     const response = await post(previewOf(id));
 
@@ -955,7 +994,10 @@ describe('POST /questions/{id}/preview — before the execution service exists',
   });
 
   it('refuses an unknown body field rather than ignoring it', async () => {
-    const { id } = await createQuestionWithVersion('coding', { prompt_md: 'Reverse.', difficulty: 3 });
+    const { id } = await createQuestionWithVersion('coding', {
+      prompt_md: 'Reverse.',
+      difficulty: 3,
+    });
     expect((await post(previewOf(id), { hidden: true })).status).toBe(422);
   });
 
@@ -965,7 +1007,10 @@ describe('POST /questions/{id}/preview — before the execution service exists',
   });
 
   it('requires question.write — reading the bank is not enough to run code against it', async () => {
-    const { id } = await createQuestionWithVersion('coding', { prompt_md: 'Reverse.', difficulty: 3 });
+    const { id } = await createQuestionWithVersion('coding', {
+      prompt_md: 'Reverse.',
+      difficulty: 3,
+    });
 
     acting = reader();
     const response = await post(previewOf(id));
@@ -977,9 +1022,14 @@ describe('POST /questions/{id}/preview — before the execution service exists',
 
 describe('GET /questions/{id}/stats', () => {
   interface Stats {
-    question_id: string; version_no: number | null; n_attempts: number;
-    p_value: number | null; discrimination: number | null; mean_seconds: number | null;
-    computed_at: string | null; min_responses: number;
+    question_id: string;
+    version_no: number | null;
+    n_attempts: number;
+    p_value: number | null;
+    discrimination: number | null;
+    mean_seconds: number | null;
+    computed_at: string | null;
+    min_responses: number;
   }
 
   it('answers zeros and nulls for a question the sweep has not measured — not 404', async () => {
@@ -1027,7 +1077,9 @@ describe('GET /questions/{id}/stats', () => {
   });
 
   it('answers not_found for a question that does not exist', async () => {
-    expect((await get(`${QUESTIONS_ROUTE}/00000000-0000-4000-8000-000000000000/stats`)).status).toBe(404);
+    expect(
+      (await get(`${QUESTIONS_ROUTE}/00000000-0000-4000-8000-000000000000/stats`)).status,
+    ).toBe(404);
   });
 });
 

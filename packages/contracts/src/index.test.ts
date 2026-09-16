@@ -135,6 +135,10 @@ const PUBLIC_SURFACE = [
   'QUESTION_STATS_PATH',
   'QuestionStatsResponseSchema',
   'QuestionPreviewRequestSchema',
+  'hasAtMostTwoDecimals',
+  'MAX_SCORE_VALUE',
+  'MAX_WEIGHT_VALUE',
+  'scoreValue',
   // taxonomy — skills, job roles and the join between them (ADR-009)
   'SkillKeySchema',
   'SkillCategorySchema',

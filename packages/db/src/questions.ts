@@ -261,7 +261,10 @@ async function loadVersionChildren(
         score: shortAnswerKeys.score,
       })
       .from(shortAnswerKeys)
-      .where(eq(shortAnswerKeys.questionVersionId, versionId)),
+      .where(eq(shortAnswerKeys.questionVersionId, versionId))
+      // Authored order (0009); rows from before it have no ordinal and follow, by id, so the
+      // order is total either way (invariant 3).
+      .orderBy(sql`${shortAnswerKeys.ordinal} ASC NULLS LAST`, asc(shortAnswerKeys.id)),
   ]);
 
   const codingSpec = spec[0];
@@ -309,10 +312,7 @@ async function loadVersionChildren(
 }
 
 /** Builds the complete record for one version row. */
-async function toVersionRecord(
-  tx: DbTransaction,
-  row: VersionRow,
-): Promise<QuestionVersionRecord> {
+async function toVersionRecord(tx: DbTransaction, row: VersionRow): Promise<QuestionVersionRecord> {
   const children = await loadVersionChildren(tx, row.id);
 
   return {
@@ -423,7 +423,10 @@ async function loadSkills(
     .where(eq(questionSkills.questionId, questionId))
     .orderBy(asc(questionSkills.skillId));
 
-  return rows.map((row) => ({ skill_id: SkillIdSchema.parse(row.skillId), weight: num(row.weight, 1) }));
+  return rows.map((row) => ({
+    skill_id: SkillIdSchema.parse(row.skillId),
+    weight: num(row.weight, 1),
+  }));
 }
 
 /** Builds the complete record for one question row, expanding its current version. */
@@ -613,9 +616,7 @@ export async function listQuestions(
   if (keyset !== undefined) {
     // A row comparison, not two predicates joined by OR: `(a, b) < (x, y)` is one
     // operation the planner can drive straight off the composite index 0007 builds.
-    conditions.push(
-      sql`(q.created_at, q.id) < (${keyset.at}::timestamptz, ${keyset.id}::uuid)`,
-    );
+    conditions.push(sql`(q.created_at, q.id) < (${keyset.at}::timestamptz, ${keyset.id}::uuid)`);
   }
 
   const where =
@@ -661,26 +662,24 @@ export async function listQuestions(
   const hasMore = rows.length > limit;
 
   return {
-    rows: page.map(
-      (row): QuestionSummaryRecord => ({
-        id: QuestionIdSchema.parse(row.id),
-        kind: row.kind,
-        status: row.status,
-        external_ref: row.external_ref,
-        source_license: row.source_license,
-        exposure_count: row.exposure_count,
-        archived_at: toDate(row.archived_at),
-        created_at: requireDate(row.created_at, 'questions.created_at'),
-        current_version_id:
-          row.current_version_id === null
-            ? null
-            : QuestionVersionIdSchema.parse(row.current_version_id),
-        current_published_at: toDate(row.current_published_at),
-        latest_version_no: row.latest_version_no,
-        latest_difficulty: row.latest_difficulty,
-        latest_prompt_md: row.latest_prompt_md,
-      }),
-    ),
+    rows: page.map((row): QuestionSummaryRecord => ({
+      id: QuestionIdSchema.parse(row.id),
+      kind: row.kind,
+      status: row.status,
+      external_ref: row.external_ref,
+      source_license: row.source_license,
+      exposure_count: row.exposure_count,
+      archived_at: toDate(row.archived_at),
+      created_at: requireDate(row.created_at, 'questions.created_at'),
+      current_version_id:
+        row.current_version_id === null
+          ? null
+          : QuestionVersionIdSchema.parse(row.current_version_id),
+      current_published_at: toDate(row.current_published_at),
+      latest_version_no: row.latest_version_no,
+      latest_difficulty: row.latest_difficulty,
+      latest_prompt_md: row.latest_prompt_md,
+    })),
     nextCursor:
       hasMore && last !== undefined
         ? encodeKeysetCursor({ at: last.cursor_at, id: last.id })
@@ -841,11 +840,14 @@ async function writeVersionChildren(
 
   if (content.answerKeys.length > 0) {
     await tx.insert(shortAnswerKeys).values(
-      content.answerKeys.map((key) => ({
+      content.answerKeys.map((key, ordinal) => ({
         questionVersionId: versionId,
+        ordinal,
         matchType: key.matchType,
         pattern: key.pattern,
-        tolerance: key.tolerance === null ? null : key.tolerance.toFixed(4),
+        // Exactly, not `toFixed`: the column is unbounded `numeric`, and fixing four places
+        // turned a tolerance of 0.00001 into 0 — a key that only an exact answer could match.
+        tolerance: key.tolerance === null ? null : String(key.tolerance),
         score: key.score.toFixed(2),
       })),
     );
@@ -1014,10 +1016,7 @@ export async function publishVersion(
 
   if (row === undefined) return undefined;
 
-  await tx
-    .update(questions)
-    .set({ currentVersionId: row.id })
-    .where(eq(questions.id, questionId));
+  await tx.update(questions).set({ currentVersionId: row.id }).where(eq(questions.id, questionId));
 
   return toVersionRecord(tx, row);
 }

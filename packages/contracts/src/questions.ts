@@ -210,6 +210,34 @@ export const MAX_ANSWER_KEYS = 50;
 /** The characters an excerpt of a prompt is truncated to, for a list row. */
 export const PROMPT_EXCERPT_LENGTH = 200;
 
+/**
+ * True when `value` has at most two decimal places.
+ *
+ * Scores and weights are `numeric(6,2)` or `numeric(4,2)` (docs/17 §4: money and scores are never
+ * float). PostgreSQL *rounds* excess scale on insert, so without this `0.125` would be stored as
+ * `0.13` and an export would disagree with its import. Checked with a tolerance because `0.07 * 100`
+ * is not an integer in binary floating point.
+ */
+export function hasAtMostTwoDecimals(value: number): boolean {
+  const scaled = value * 100;
+  return Math.abs(scaled - Math.round(scaled)) < 1e-6;
+}
+
+/** The largest magnitude a `numeric(6,2)` column holds. `10000` overflows it. */
+export const MAX_SCORE_VALUE = 9999.99;
+
+/** The largest magnitude a `numeric(4,2)` column holds. */
+export const MAX_WEIGHT_VALUE = 99.99;
+
+/** A value for a `numeric(6,2)` score column, within `[min, 9999.99]`, to the hundredth. */
+export function scoreValue(min: number): z.ZodType<number> {
+  return z
+    .number()
+    .min(min)
+    .max(MAX_SCORE_VALUE)
+    .refine(hasAtMostTwoDecimals, { error: 'At most two decimal places.' });
+}
+
 /** A `source_license` identifier: `MIT`, `Apache-2.0`, `CC-BY-4.0`, `proprietary`. */
 export const SourceLicenseSchema = z
   .string()
@@ -592,7 +620,9 @@ export const CandidateCodingBriefSchema = z
       .number()
       .int()
       .min(0)
-      .describe('How many cases a trial run executes against. The cases themselves stay server-side.'),
+      .describe(
+        'How many cases a trial run executes against. The cases themselves stay server-side.',
+      ),
     hidden_case_count: z
       .number()
       .int()
@@ -734,7 +764,7 @@ export const McqOptionInputSchema = z
   .strictObject({
     body_md: z.string().min(1).max(MAX_PROMPT_LENGTH),
     is_correct: z.boolean().default(false),
-    score_delta: z.number().nullable().optional(),
+    score_delta: scoreValue(-MAX_SCORE_VALUE).nullable().optional(),
     rationale_md: z.string().max(MAX_EXPLANATION_LENGTH).nullable().optional(),
   })
   .describe('One MCQ option to write. Order is the array order.')
@@ -763,7 +793,7 @@ export const TestCaseInputSchema = z
     expected_stdout: z.string().nullable().optional(),
     args: z.array(z.string()).nullable().optional(),
     is_sample: z.boolean().default(false),
-    weight: z.number().positive().optional(),
+    weight: scoreValue(0.01).optional(),
   })
   .describe('One test case to write. Order is the array order.')
   .openapi('TestCaseInput');
@@ -773,8 +803,8 @@ export const AnswerKeyInputSchema = z
   .strictObject({
     match_type: z.enum(['exact', 'ci', 'regex', 'numeric_tolerance']),
     pattern: z.string().min(1).max(2000),
-    tolerance: z.number().nullable().optional(),
-    score: z.number().optional(),
+    tolerance: z.number().min(0).nullable().optional(),
+    score: scoreValue(-MAX_SCORE_VALUE).optional(),
   })
   .describe('One auto-graded short-answer key to write.')
   .openapi('AnswerKeyInput');
@@ -813,8 +843,8 @@ export const QuestionVersionInputSchema = z
     explanation_md: z.string().max(MAX_EXPLANATION_LENGTH).nullable().optional(),
     difficulty: DifficultySchema.optional(),
     est_seconds: z.number().int().min(1).max(86_400).optional(),
-    max_score: z.number().min(0).max(10_000).optional(),
-    negative_score: z.number().min(0).max(10_000).optional(),
+    max_score: scoreValue(0).optional(),
+    negative_score: scoreValue(0).optional(),
     options: z.array(McqOptionInputSchema).max(MAX_OPTIONS).optional(),
     coding_spec: CodingSpecInputSchema.nullable().optional(),
     test_cases: z.array(TestCaseInputSchema).max(MAX_TEST_CASES).optional(),

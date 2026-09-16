@@ -20,7 +20,7 @@ import { z } from 'zod';
 import { JobRoleIdSchema, SkillIdSchema } from './ids.js';
 // Difficulty is defined once, in questions.ts, because a second definition of the same
 // 1-5 band is a place for the two to drift apart.
-import { DifficultySchema } from './questions.js';
+import { DifficultySchema, hasAtMostTwoDecimals, MAX_WEIGHT_VALUE } from './questions.js';
 
 /**
  * A skill key. Lower-case, dot-separated segments: `python`, `sql.window-functions`.
@@ -119,7 +119,11 @@ export const JobRoleParamsSchema = z.strictObject({ id: JobRoleIdSchema });
 export const JobRoleSkillSchema = z
   .strictObject({
     skill_id: SkillIdSchema,
-    weight: z.number().min(0).max(99.99),
+    weight: z
+      .number()
+      .min(0)
+      .max(MAX_WEIGHT_VALUE)
+      .refine(hasAtMostTwoDecimals, { error: 'At most two decimal places.' }),
     min_difficulty: DifficultySchema.optional(),
     max_difficulty: DifficultySchema.optional(),
     is_required: z.boolean().default(true),
@@ -150,7 +154,11 @@ export const PutJobRoleSkillsSchema = z
 /** One skill a question measures, as written by `PUT /questions/{id}/skills`. */
 export const QuestionSkillInputSchema = z.strictObject({
   skill_id: SkillIdSchema,
-  weight: z.number().min(0).max(99.99),
+  weight: z
+    .number()
+    .min(0)
+    .max(MAX_WEIGHT_VALUE)
+    .refine(hasAtMostTwoDecimals, { error: 'At most two decimal places.' }),
 });
 
 /**

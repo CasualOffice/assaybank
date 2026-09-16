@@ -172,7 +172,11 @@ async function seedPublished(
 function isImmutabilityRefusal(error: unknown): boolean {
   let current: unknown = error;
   for (let depth = 0; depth < 8 && typeof current === 'object' && current !== null; depth += 1) {
-    if ('message' in current && typeof current.message === 'string' && /immutable/iu.test(current.message)) {
+    if (
+      'message' in current &&
+      typeof current.message === 'string' &&
+      /immutable/iu.test(current.message)
+    ) {
       return true;
     }
     current = 'cause' in current ? current.cause : undefined;
@@ -287,6 +291,44 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
       expect(version?.test_cases.map((c) => c.ordinal)).toStrictEqual([1, 2]);
     });
 
+    it('reads short-answer keys back in the order they were written, tolerance exact (0009)', async () => {
+      const org = required(acme, 'acme');
+      const patterns = ['zeta', 'alpha', 'omega', 'beta', 'kappa', 'delta', 'sigma', 'gamma'];
+      const questionId = await seedQuestion(org, 'short_answer', {
+        prompt_md: 'Name a Greek letter.',
+        difficulty: 1,
+        answer_keys: [
+          ...patterns.map((pattern) => ({ match_type: 'exact' as const, pattern })),
+        ].map((key, i) =>
+          i === 0
+            ? {
+                ...key,
+                match_type: 'numeric_tolerance' as const,
+                pattern: '3.14159',
+                tolerance: 0.00001,
+              }
+            : key,
+        ),
+      });
+
+      // A fresh heap returns rows in insertion order, which is how the missing ORDER BY went
+      // unnoticed. An UPDATE writes a new tuple at the end of the heap — what any real edit or
+      // vacuum does over time — so after this an unordered read returns the first key last.
+      await ownerSql()`
+        UPDATE short_answer_keys SET score = score
+         WHERE pattern = '3.14159'
+           AND question_version_id = (SELECT id FROM question_versions WHERE question_id = ${questionId})
+      `;
+
+      const version = await withOrg(database(), org, (tx) => getVersion(tx, questionId, 1));
+      expect(version?.answer_keys.map((k) => k.pattern)).toStrictEqual([
+        '3.14159',
+        ...patterns.slice(1),
+      ]);
+      // Written with toFixed(4) before 0009, this came back as 0 — only an exact answer matched.
+      expect(version?.answer_keys[0]?.tolerance).toBe(0.00001);
+    });
+
     it('does not move current_version_id: a draft is never the version served', async () => {
       const org = required(acme, 'acme');
       const questionId = await seedQuestion(org, 'subjective', {
@@ -363,7 +405,9 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
 
       // A second publish changes no rows rather than re-stamping a new instant onto a
       // version candidates may already have been graded against.
-      const again = await withOrg(database(), org, (tx) => publishVersion(tx, questionId, 1, LATER));
+      const again = await withOrg(database(), org, (tx) =>
+        publishVersion(tx, questionId, 1, LATER),
+      );
       expect(again).toBeUndefined();
 
       const unchanged = await withOrg(database(), org, (tx) => getVersion(tx, questionId, 1));
@@ -676,12 +720,17 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
     it('orders newest first and pages with a cursor that loses nothing', async () => {
       const org = required(listOrg, 'list org');
 
-      const first = await withOrg(database(), org, (tx) => listQuestions(tx, listAll({ limit: 2 })));
+      const first = await withOrg(database(), org, (tx) =>
+        listQuestions(tx, listAll({ limit: 2 })),
+      );
       expect(first.rows).toHaveLength(2);
       expect(first.nextCursor).not.toBeNull();
 
       const second = await withOrg(database(), org, (tx) =>
-        listQuestions(tx, listAll({ limit: 2, ...(first.nextCursor === null ? {} : { cursor: first.nextCursor }) })),
+        listQuestions(
+          tx,
+          listAll({ limit: 2, ...(first.nextCursor === null ? {} : { cursor: first.nextCursor }) }),
+        ),
       );
       expect(second.rows).toHaveLength(1);
       expect(second.nextCursor).toBeNull();
@@ -781,7 +830,9 @@ describe.skipIf(!runtime.available)(SUITE_NAME, () => {
       // names as the reason filtering uses explicit parameters and never a query language.
       // Escaped, it means what a person typing it means: prompts containing a per-cent
       // sign, of which the fixture has exactly one.
-      const wildcard = await withOrg(database(), org, (tx) => listQuestions(tx, listAll({ q: '%' })));
+      const wildcard = await withOrg(database(), org, (tx) =>
+        listQuestions(tx, listAll({ q: '%' })),
+      );
       expect(wildcard.rows).toHaveLength(1);
       expect(wildcard.rows.length).toBeLessThan(everything.rows.length);
 

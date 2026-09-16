@@ -240,6 +240,7 @@ CREATE TABLE test_cases (
 CREATE TABLE short_answer_keys (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     question_version_id uuid NOT NULL REFERENCES question_versions(id) ON DELETE CASCADE,
+    ordinal             int,                -- authored order; nullable until contracted (migration 0009)
     match_type          text NOT NULL,      -- exact | ci | regex | numeric_tolerance
     pattern             text NOT NULL,
     tolerance           numeric,

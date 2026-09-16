@@ -252,6 +252,11 @@ export const shortAnswerKeys = pgTable('short_answer_keys', {
   questionVersionId: uuid('question_version_id')
     .notNull()
     .references((): AnyPgColumn => questionVersions.id, { onDelete: 'cascade' }),
+  /**
+   * Authored order, from 0. Nullable until a contract migration: rows written before 0009 have
+   * none, and are read after every ordered row, by id.
+   */
+  ordinal: integer('ordinal'),
   /** `exact` | `ci` | `regex` | `numeric_tolerance`. */
   matchType: text('match_type').notNull(),
   /** ANSWER KEY. */

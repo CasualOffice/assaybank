@@ -151,6 +151,8 @@ POST   /questions/{id}/versions/{v}/publish
 
 Publishing is a distinct action requiring `question.publish`. After publish the version is frozen. A `PATCH` against a published version returns `409 conflict` with code `version_immutable`.
 
+**Numeric bounds (2026-09-17).** `max_score`, `negative_score`, an option's `score_delta`, a test case's `weight` and an answer key's `score` are held to their `numeric(6,2)` columns: at most `9999.99` in magnitude and at most two decimal places, otherwise `422 validation_failed`. Skill weights are `numeric(4,2)`: `0`–`99.99`, two places. An answer key's `tolerance` is non-negative and stored exactly. Before this, `10000` reached the database and answered `500`, and a third decimal place was rounded away without a word. Answer keys are returned in the order they were written.
+
 #### What each kind may carry
 
 A version body does not state its kind — the question does — so the rule is checked where both are known, on the **merged** content (the body copied forward over the previous version). It is enforced at two severities, at different moments:
@@ -231,6 +233,7 @@ The routes above are not built yet. The formats they carry are, as pure codecs i
 - The full version history travels, oldest first, with strictly ascending `version_no`. Publication crosses as a flag, not an instant.
 - Identifiers, timestamps, authors and exposure counts do not cross; the importing organisation mints its own. Skills cross by `key`, because a skill id means nothing in another tenant.
 - `ref` is unique within the file and nothing more — a handle for error reports.
+- Values carry the API's numeric bounds, and no string may contain U+0000 or an unpaired surrogate: PostgreSQL `text` cannot store either, so an item carrying one is refused with the field named rather than failing at the write or being silently altered.
 - Reading: a file that is not JSON, names another `format`, or a `format_version` other than `1` is refused whole. Each item is then validated independently — the schema, a lifecycle that agrees with its versions (a `published` or `retired` question needs a published version; `draft` and `review` must have none), and the kind rule per version at the stage that version is at (publish for a published version, draft otherwise; §4 "What each kind may carry"). A failing item is reported as `{index, ref, path, message}` and skipped; the rest are read.
 
 **QTI 2.1 content package** — for moving items into another assessment tool. A zip with `imsmanifest.xml` and one `items/<ref>.xml` per question.
@@ -240,6 +243,7 @@ The routes above are not built yet. The formats they carry are, as pure codecs i
 - **One version per question**: the last published version, or the last of all if none is published. It imports as version 1. History crosses in the JSON document only.
 - Text XML 1.0 cannot carry exactly — carriage returns, most control characters, unpaired surrogates — is written as base64 of its UTF-16 code units with `encoding="utf16le-base64"`. Everything else is readable escaped text.
 - Reading refuses a package with no manifest, a `DOCTYPE` anywhere, an archive over 20,000 entries, any entry over 16 MiB or a total over 256 MiB (checked from the central directory before inflating, and again after). A resource whose `href` is absolute or contains `..`, or names a file not in the archive, is reported against that item.
+- **Through the database** (`apps/worker/src/jobs/bank-transfer.ts`): an import writes one transaction per item through the repositories the API uses, restores the lifecycle (a published item arrives published), mints its own ids and instants, stamps each version a millisecond apart so the history lists in order, audits each created question as `question.import` to the person who asked, and applies the request's `source_license` only to items with none of their own. Skills resolve by key within the importing organisation — its own skill before a global one with the same key — and an unknown key fails that item by name rather than creating a skill. An export lists every non-archived question oldest first, with positional refs (`q-00001`), all versions ascending, and skills sorted by key.
 - An item from another tool, with no Assaybank metadata, is read as an unpublished draft: `choiceInteraction` becomes `mcq_single` (one choice) or `mcq_multi`, `textEntryInteraction` becomes `short_answer`, `extendedTextInteraction` becomes `subjective`. QTI has no difficulty, so the importer must supply a default; without one the item is refused by name, never guessed.
 
 ---

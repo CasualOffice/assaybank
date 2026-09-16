@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`TRACKER.md`](TRACKER.md), [`RISKS.md`](RISKS.md), [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md), [`STATUS.md`](STATUS.md), [`DEFINITION-OF-DONE.md`](DEFINITION-OF-DONE.md), [`../docs/01-PRD.md`](../docs/01-PRD.md), [`../docs/02-HLD.md`](../docs/02-HLD.md), [`../docs/04-ADRs.md`](../docs/04-ADRs.md)
 
 ---
@@ -135,14 +135,14 @@ None directly. M-1 is the substrate for FR-26 (RLS needs a database), FR-27 (per
 - [ ] Fastify app skeleton: request id, error envelope, cursor pagination, `server_time` on every response
 - [ ] `Idempotency-Key` handling and the five documented rate-limit scopes
 - [ ] Append-only audit log and audit middleware for privileged actions
-- [ ] Skills and job roles CRUD, `job_role_skills` weights, `GET /job-roles/{id}/coverage`
-- [ ] Question CRUD for all eight kinds: `mcq_single`, `mcq_multi`, `true_false`, `short_answer`, `coding`, `sql`, `subjective`, `system_design`
-- [ ] Version lifecycle draft → review → published → retired, with `PATCH` on a published version returning `409 version_immutable`
-- [ ] Question-to-skill tagging, with job-role tagging structurally impossible
+- [x] Skills and job roles CRUD, `job_role_skills` weights, `GET /job-roles/{id}/coverage` — 2026-09-17, `apps/api/test/integration/taxonomy.test.ts`
+- [x] Question CRUD for all eight kinds: `mcq_single`, `mcq_multi`, `true_false`, `short_answer`, `coding`, `sql`, `subjective`, `system_design` — 2026-09-17, `apps/api/test/integration/questions.test.ts`
+- [x] Version lifecycle draft → review → published → retired, with `PATCH` on a published version returning `409 version_immutable` — 2026-09-17, `apps/api/test/integration/questions.test.ts` and the database trigger test in `packages/db/tests/question-bank.test.ts`
+- [x] Question-to-skill tagging, with job-role tagging structurally impossible — 2026-09-17, `PUT /questions/{id}/skills`; the contract has no job-role field and a body carrying one is refused
 - [ ] Import adapters for HumanEval, MBPP, LBPP and Exercism with `source_license` mandatory and `external_ref` preserved
-- [ ] QTI 2.1 and JSON import/export, round-trip lossless
+- [ ] QTI 2.1 and JSON import/export, round-trip lossless — _formats, import and export through the database done 2026-09-17; the `bank.jobs` job, the routes and the job table remain_
 - [ ] Attributions page in the staff console for CC-BY sources, credit preserved in exports
-- [ ] Nightly `question_stats` job computing p-value and point-biserial discrimination once n ≥ 30
+- [x] Nightly `question_stats` job computing p-value and point-biserial discrimination once n ≥ 30 — 2026-09-17, as the corrected item-total correlation (rest score), `apps/worker/test/integration/question-stats.integration.test.ts`
 - [ ] `exposure_count` maintenance and a retirement flag over a configurable threshold
 - [ ] Staff console shell and the question authoring UI including the test-case editor
 
@@ -154,7 +154,7 @@ None directly. M-1 is the substrate for FR-26 (RLS needs a database), FR-27 (per
 |---|---|
 | 200 questions loaded | `SELECT count(*) FROM questions WHERE status = 'published'` in the seeded staging database after the import run; task H-040 |
 | Tagged to at least 3 job roles | `GET /job-roles/{id}/coverage` returns non-zero coverage for three distinct roles; the query goes role → `job_role_skills` → `question_skills`, never role → question (FR-2, ADR-009) |
-| Exportable and re-importable without loss | Round-trip integration test: export QTI 2.1 and JSON, re-import into an empty org, assert deep equality of question versions, options, test cases and answer keys excluding generated ids and timestamps. Specified in [`../docs/06-testing-strategy.md`](../docs/06-testing-strategy.md); task H-033 |
+| Exportable and re-importable without loss | Round-trip integration test: export QTI 2.1 and JSON, re-import into an empty org, assert deep equality of question versions, options, test cases and answer keys excluding generated ids and timestamps. Specified in [`../docs/06-testing-strategy.md`](../docs/06-testing-strategy.md); task H-033. **Met at the job layer 2026-09-17** — `apps/worker/test/integration/bank-transfer.integration.test.ts` imports every kind into one organisation, exports it, carries it as JSON and as QTI into two empty organisations, and asserts `toStrictEqual` on their exports. JSON carries every version; QTI carries the served version per question, which is the format's limit. Not yet reachable by a user: the import and export routes are unbuilt |
 | Immutability actually holds | Contract test asserting `PATCH /questions/{id}/versions/{v}` on a published version returns `409` with code `version_immutable` (FR-1, ADR-003) |
 | Tenant isolation actually holds | Per-table negative RLS test: a session with org A's `app.current_org` reads zero org B rows (FR-26, ADR-010); task H-017 |
 

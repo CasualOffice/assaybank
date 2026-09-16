@@ -143,6 +143,18 @@ And a table with shared global rows gets per-command policies: `USING (org_id IS
 policy covering every command lets a tenant delete or claim the shared row (migration 0008,
 [`14-threat-model.md`](14-threat-model.md) T-041).
 
+**Validate a `numeric` value against its column's precision and scale at the contract.** PostgreSQL
+*rounds* excess scale on insert and raises an overflow past the precision, so `0.125` into a
+`numeric(6,2)` is silently stored as `0.13`, and `10000` is a `500`. Every score and weight input is
+bounded to what its column holds and refused past two decimal places (`scoreValue` in
+`packages/contracts`). Both defects existed until 2026-09-17, found when an export disagreed with its
+own import.
+
+**Every child collection is read with a total order.** A query without `ORDER BY` returns heap order,
+which is insertion order in a fresh table and in no table after a few updates — so a missing
+`ORDER BY` passes every test on freshly seeded data. `short_answer_keys` had no ordinal until
+migration 0009. A test that proves an order must first move a row in the heap (an `UPDATE` does).
+
 **Migrations are expand-contract, always:**
 
 ```

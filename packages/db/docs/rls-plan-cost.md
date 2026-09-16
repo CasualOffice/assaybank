@@ -185,6 +185,10 @@ per command, so a tenant can no longer delete or claim a shared global row. Neit
 gated list, and the `SELECT` predicate is character-for-character the one 0002 created, so no plan
 above is affected. Nothing was re-measured.
 
+Migration 0009 (2026-09-17) adds a nullable `ordinal` column to `short_answer_keys` and changes no
+policy. The table is not on the gated list; its read now sorts by `ordinal NULLS LAST, id` over the
+handful of keys one version carries, which is not a plan whose cost scales.
+
 ## When to re-read this
 
 - Any migration that adds, drops or redefines a policy on a table in the list above.

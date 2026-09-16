@@ -29,6 +29,10 @@ import { z } from 'zod';
 import {
   DifficultySchema,
   ExternalRefSchema,
+  hasAtMostTwoDecimals,
+  MAX_SCORE_VALUE,
+  MAX_WEIGHT_VALUE,
+  scoreValue,
   MAX_ANSWER_KEYS,
   MAX_EXPLANATION_LENGTH,
   MAX_OPTIONS,
@@ -46,7 +50,7 @@ import { validateKindContent, type KindContentShape } from '@assaybank/core-doma
 export const BankOptionSchema = z.strictObject({
   body_md: z.string().min(1).max(MAX_PROMPT_LENGTH),
   is_correct: z.boolean(),
-  score_delta: z.number().nullable(),
+  score_delta: scoreValue(-MAX_SCORE_VALUE).nullable(),
   rationale_md: z.string().max(MAX_EXPLANATION_LENGTH).nullable(),
 });
 
@@ -67,14 +71,14 @@ export const BankTestCaseSchema = z.strictObject({
   expected_stdout: z.string().nullable(),
   args: z.array(z.string()).nullable(),
   is_sample: z.boolean(),
-  weight: z.number().positive(),
+  weight: scoreValue(0.01),
 });
 
 export const BankAnswerKeySchema = z.strictObject({
   match_type: z.enum(['exact', 'ci', 'regex', 'numeric_tolerance']),
   pattern: z.string().min(1).max(2000),
-  tolerance: z.number().nullable(),
-  score: z.number(),
+  tolerance: z.number().min(0).nullable(),
+  score: scoreValue(-MAX_SCORE_VALUE),
 });
 
 export const BankVersionSchema = z.strictObject({
@@ -86,8 +90,9 @@ export const BankVersionSchema = z.strictObject({
   explanation_md: z.string().max(MAX_EXPLANATION_LENGTH).nullable(),
   difficulty: DifficultySchema,
   est_seconds: z.number().int().min(1).max(86_400),
-  max_score: z.number().min(0).max(10_000),
-  negative_score: z.number().min(0).max(10_000),
+  // The columns' own bounds and scale, so an import can never be silently rounded or overflow.
+  max_score: scoreValue(0),
+  negative_score: scoreValue(0),
   options: z.array(BankOptionSchema).max(MAX_OPTIONS),
   coding_spec: BankCodingSpecSchema.nullable(),
   test_cases: z.array(BankTestCaseSchema).max(MAX_TEST_CASES),
@@ -96,11 +101,48 @@ export const BankVersionSchema = z.strictObject({
 
 export const BankSkillSchema = z.strictObject({
   key: SkillKeySchema,
-  weight: z.number().min(0).max(99.99),
+  weight: z
+    .number()
+    .min(0)
+    .max(MAX_WEIGHT_VALUE)
+    .refine(hasAtMostTwoDecimals, { error: 'At most two decimal places.' }),
 });
 
 /** The most versions one exported question may carry. A bound, not an expectation. */
 export const MAX_BANK_VERSIONS = 500;
+
+/**
+ * Every string in `value` that PostgreSQL `text` cannot store, by path.
+ *
+ * U+0000 is refused by PostgreSQL outright, and an unpaired surrogate has no UTF-8 encoding, so the
+ * driver would substitute U+FFFD and the stored question would differ from the file. Either would
+ * surface as an unexplained write failure or a silent change; caught here, it is a named problem
+ * on the field.
+ */
+function unstorableStrings(value: unknown, path: (string | number)[] = []): (string | number)[][] {
+  if (typeof value === 'string') {
+    for (let i = 0; i < value.length; i += 1) {
+      const c = value.charCodeAt(i);
+      if (c === 0) return [path];
+      if (c >= 0xd800 && c <= 0xdbff) {
+        const next = value.charCodeAt(i + 1);
+        if (!(next >= 0xdc00 && next <= 0xdfff)) return [path];
+        i += 1;
+      } else if (c >= 0xdc00 && c <= 0xdfff) {
+        return [path];
+      }
+    }
+    return [];
+  }
+  if (Array.isArray(value)) return value.flatMap((v, i) => unstorableStrings(v, [...path, i]));
+  if (typeof value === 'object' && value !== null) {
+    return Object.entries(value).flatMap(([k, v]) => [
+      ...unstorableStrings(k, [...path, k]),
+      ...unstorableStrings(v, [...path, k]),
+    ]);
+  }
+  return [];
+}
 
 export const BankItemSchema = z
   .strictObject({
@@ -126,6 +168,13 @@ export const BankItemSchema = z
     versions: z.array(BankVersionSchema).min(1).max(MAX_BANK_VERSIONS),
   })
   .superRefine((item, ctx) => {
+    for (const path of unstorableStrings(item)) {
+      ctx.addIssue({
+        code: 'custom',
+        path,
+        message: 'contains U+0000 or an unpaired surrogate, which a question bank cannot store',
+      });
+    }
     const numbers = item.versions.map((v) => v.version_no);
     for (let i = 1; i < numbers.length; i += 1) {
       if ((numbers[i] ?? 0) <= (numbers[i - 1] ?? 0)) {
