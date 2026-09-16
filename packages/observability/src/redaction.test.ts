@@ -64,7 +64,7 @@ describe('isDeniedKey', () => {
  */
 describe('the redaction deny-list', () => {
   const secrets = {
-    password: 'hunter2-plaintext',
+    password: 'example-plaintext-password',
     token: 'tok_live_9c3f',
     attempt_token: 'att_7f3a1c',
     invitation_token: 'inv_44bd0e',
@@ -156,7 +156,7 @@ describe('redaction by value shape', () => {
   });
 
   it('redacts a DSN carrying an inline password', () => {
-    expect(redactValue('postgres://app:s3cr3t@db:5432/assaybank')).toBe(REDACTED);
+    expect(redactValue('postgres://app:example-password@db:5432/assaybank')).toBe(REDACTED);
   });
 
   it('never emits binary content — proctoring media does not reach a log line', () => {

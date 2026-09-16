@@ -15,7 +15,7 @@ import {
   verifyPasswordAgainstNothing,
 } from './password.js';
 
-const PASSWORD = 'correct-horse-battery-staple';
+const PASSWORD = 'example-staff-password';
 
 describe('hashPassword', () => {
   it('produces an Argon2id PHC string, not a bare digest', async () => {

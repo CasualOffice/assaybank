@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`14-threat-model.md`](14-threat-model.md), [`../CLAUDE.md`](../CLAUDE.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md)
 
 ---
@@ -212,7 +212,7 @@ Derived from [`14-threat-model.md`](14-threat-model.md); that document holds the
 - **Treat every submission as hostile.** Execution nodes hold no secrets, no database credentials
   and no cloud role, have no egress, and are recycled. The posture assumes the sandbox will be
   escaped rather than trusting that it will not.
-- **Secrets are injected at runtime**, never in the repository, never in an image, never in a log.
+- **Secrets are injected at runtime**, never in the repository, never in an image, never in a log. A password a test needs must look fake on sight — `scripts/check-secrets.mjs` fails the build on one that could pass for real, because a realistic fake is indistinguishable from a leak to both a scanner and a reviewer.
   Rotation cadence per class is in [`13-environments-and-release.md`](13-environments-and-release.md).
 - **Tokens are high-entropy, hashed at rest, single-purpose and expiring.** The plaintext is
   returned exactly once. An attempt token grants exactly one attempt and nothing else.

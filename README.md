@@ -11,7 +11,7 @@
 
 **Status:** design-complete, implementation not started
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`docs/README.md`](docs/README.md), [`CLAUDE.md`](CLAUDE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE-GRAPH.md`](CODE-GRAPH.md), [`project/STATUS.md`](project/STATUS.md)
 
 ---
@@ -220,7 +220,7 @@ Documentation rots when it is nobody's job and nothing checks it. Four mechanism
 1. **[`project/TRACKER.md`](project/TRACKER.md) is the single backlog.** A work item that is not in the tracker is not planned; a tracker item marked done that has no merged change is a bug in the tracker. [`project/STATUS.md`](project/STATUS.md) summarises it for anyone who wants one screen instead of the whole list.
 2. **[`CODE-GRAPH.md`](CODE-GRAPH.md) is generated, never hand-edited.** `code-graph.json` is the source and `node scripts/gen-code-graph.mjs` renders it. Any change to a service boundary, package, queue or external dependency updates the JSON in the same change. A hand edit to the Markdown is reverted by the next generation.
 3. **[`docs/DOC-OWNERSHIP.md`](docs/DOC-OWNERSHIP.md) assigns every document a role-level owner** and a review cadence, so "who decides this" never has to be worked out from git blame.
-4. **CI enforces freshness.** `scripts/check-doc-freshness.mjs` fails the build when a document changes without its `**Last updated:**` line moving, and when a document exceeds its review cadence. `scripts/check-links.mjs` fails on a broken relative link. `scripts/check-licences.mjs` fails on a prohibited dependency licence. A Claude Code `PostToolUse` hook warns locally before you ever reach CI.
+4. **CI enforces freshness.** `scripts/check-doc-freshness.mjs` fails the build when a document changes without its `**Last updated:**` line moving, and when a document exceeds its review cadence. `scripts/check-links.mjs` fails on a broken relative link. `scripts/check-licences.mjs` fails on a prohibited dependency licence. `scripts/check-secrets.mjs` fails when a committed password — in a connection string or a password-named constant — could be mistaken for a real one. A Claude Code `PostToolUse` hook warns locally before you ever reach CI.
 
 The contract those mechanisms implement is written out as numbered rules in [`CLAUDE.md`](CLAUDE.md) under "Keeping the docs true". Read it before your first change.
 

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (delivery lead)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`../../CLAUDE.md`](../../CLAUDE.md), [`../../docs/DOC-OWNERSHIP.md`](../../docs/DOC-OWNERSHIP.md), [`invariants.md`](invariants.md), [`review-checklist.md`](review-checklist.md)
 
 ---
@@ -44,6 +44,8 @@ The frequently-fired ones, in the order you are most likely to meet them:
 | `packages/db/schema/**` | `docs/hiring_platform_schema.sql` and `docs/11-data-retention-and-dpia.md` |
 | `packages/observability/**`, `infra/otel/**`, `infra/prometheus/**` | `docs/12-observability-and-runbooks.md` |
 | `docs/04-ADRs.md` | [`invariants.md`](invariants.md) — a new ADR may add or change an invariant |
+
+**Test-only changes do not fire triggers.** A file named `*.test.*` or `*.spec.*`, or living under a `test/`, `tests/`, `__tests__/` or `fixtures/` directory, is ignored when the gate decides which documents a diff must touch. A test asserts behaviour the source already has; when the behaviour changes, the source changes too and fires the trigger itself. Before this rule, renaming a fixture value demanded an edit to the observability runbook, and the only way to satisfy it was to bump a date on a document nobody had re-read.
 
 If a trigger genuinely does not apply to your change, the answer is to narrow the pattern in the registry and say why in the pull request. It is never to bypass the gate.
 

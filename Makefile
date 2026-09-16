@@ -217,6 +217,9 @@ sbom: ## Produce a CycloneDX SBOM for the current dependency tree
 # Documentation
 # -----------------------------------------------------------------------------
 
+secrets: ## Fail if a committed password could be mistaken for a real one
+	@node scripts/check-secrets.mjs
+
 licence-headers: ## Check every source file carries the MPL-2.0 notice (ADR-020)
 	@node scripts/check-licence-headers.mjs
 

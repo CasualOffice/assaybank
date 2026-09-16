@@ -66,7 +66,7 @@ const API_URL = 'https://api.example.test';
 const SESSION_SECRET = 'an-integration-test-session-secret-0123456789';
 
 /** Long enough for `MIN_PASSWORD_LENGTH`, and not a password anybody would reuse. */
-const PASSWORD = 'correct-horse-battery-staple';
+const PASSWORD = 'example-staff-password';
 
 const ACME: OrgId = OrgIdSchema.parse('4a1c9e70-2b83-4d51-8f6a-0c7d5e91b204');
 const RIVAL: OrgId = OrgIdSchema.parse('9f3d81b2-6c47-4e05-9a1d-73b5e0c82f61');
@@ -309,7 +309,7 @@ describe('POST /auth/login', () => {
   });
 
   it('refuses a wrong password with the standard envelope', async () => {
-    const response = await login(build(), { email: ADA, password: 'not-the-password' });
+    const response = await login(build(), { email: ADA, password: 'example-wrong-password' });
 
     expect(response.statusCode).toBe(401);
     expect(response.json<{ error: { code: string } }>().error.code).toBe('unauthenticated');
@@ -337,10 +337,10 @@ describe('a failed login discloses nothing about whether the address exists (doc
   it('answers identically for a wrong password and for no such account', async () => {
     const instance = build();
 
-    const wrongPassword = await login(instance, { email: ADA, password: 'not-the-password' });
+    const wrongPassword = await login(instance, { email: ADA, password: 'example-wrong-password' });
     const noSuchUser = await login(instance, {
       email: 'nobody@acme.example',
-      password: 'not-the-password',
+      password: 'example-wrong-password',
     });
 
     expect(noSuchUser.statusCode).toBe(wrongPassword.statusCode);
@@ -380,14 +380,14 @@ describe('a failed login discloses nothing about whether the address exists (doc
     const instance = build();
     const scrub = (raw: string): string => raw.replace(/req_[0-9a-f]{32}/gu, 'req_x');
 
-    const known = await login(instance, { email: ADA, password: 'short' });
+    const known = await login(instance, { email: ADA, password: 'too-short' });
     const unknown = await login(instance, {
       email: 'nobody@acme.example',
-      password: 'short',
+      password: 'too-short',
       org: 'acme',
     });
     // Found the user, found no password: Better Auth's other dummy-hash branch.
-    const federated = await login(instance, { email: FEDERATED, password: 'short' });
+    const federated = await login(instance, { email: FEDERATED, password: 'too-short' });
 
     for (const response of [known, unknown, federated]) {
       expect(response.statusCode).toBe(401);
@@ -835,7 +835,7 @@ describe('the login rate limit', () => {
     const instance = build();
 
     for (let i = 0; i < 10; i += 1) {
-      const response = await login(instance, { email: ADA, password: 'wrong-password-here' });
+      const response = await login(instance, { email: ADA, password: 'example-wrong-password' });
       expect(response.statusCode).toBe(401);
     }
 

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`../project/TRACKER.md`](../project/TRACKER.md), [`../project/RISKS.md`](../project/RISKS.md)
 
 ---
@@ -656,7 +656,7 @@ These flow into [`06-testing-strategy.md`](06-testing-strategy.md) and are liste
 
 **SBOM.** Generated per release and retained for the life of the release plus the audit-log retention period. Required by [`02-HLD.md`](02-HLD.md) §7 and referenced from [`13-environments-and-release.md`](13-environments-and-release.md).
 
-**Secret management.** No secrets in the repository, ever — enforced by secret scanning on commits and on history, not by convention. Secrets are injected at runtime and validated at boot by `packages/config`, which fails fast if one is missing or malformed. `SESSION_SECRET`, `TOKEN_PEPPER` and the webhook signing secrets have documented rotation procedures; `WEBHOOK_SIGNING_SECRET_ROTATION_DAYS` makes webhook rotation automatic with an overlap window. Logs are redacted by the `packages/observability` serialiser, with an explicit deny list covering tokens, signed URL query parameters, `Authorization` headers and cookie values.
+**Secret management.** No secrets in the repository, ever. As of 2026-09-17 this is enforced by two repository gates in CI — a format scan for provider tokens (`.github/workflows/security.yml`) and `scripts/check-secrets.mjs`, which fails on any committed password that could pass for a real one. **GitHub-native secret scanning and push protection are not enabled on this repository**; the API reports them disabled. Until an administrator enables them there is no scan of history and no block at push time — only the CI gates, which run after the push. Earlier versions of this section described history scanning as in place; it was not. TBD — owner: security lead, enable both by 2026-09-24. Secrets are injected at runtime and validated at boot by `packages/config`, which fails fast if one is missing or malformed. `SESSION_SECRET`, `TOKEN_PEPPER` and the webhook signing secrets have documented rotation procedures; `WEBHOOK_SIGNING_SECRET_ROTATION_DAYS` makes webhook rotation automatic with an overlap window. Logs are redacted by the `packages/observability` serialiser, with an explicit deny list covering tokens, signed URL query parameters, `Authorization` headers and cookie values.
 
 **Code review rules.** Ordinary changes follow the normal review in [`../CONTRIBUTING.md`](../CONTRIBUTING.md). Four paths require a second reviewer and an explicit statement in the pull request of what was checked:
 

@@ -111,7 +111,7 @@ describe('check-bundle — the deliberate violation', () => {
 
   it('fails when a server secret was inlined at build time', () => {
     const dir = fixtureBundle({
-      'app.js': 'const c={url:"postgres://app:hunter2@db:5432/assaybank"};',
+      'app.js': 'const c={url:"postgres://app:example-inlined-secret@db:5432/assaybank"};',
     });
 
     const result = runCheck(dir);

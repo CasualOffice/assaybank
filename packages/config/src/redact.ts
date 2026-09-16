@@ -27,7 +27,7 @@ export const INSPECT_CUSTOM: symbol = Symbol.for('nodejs.util.inspect.custom');
  * Replaces the password component of a connection string, keeping the parts an
  * operator needs in order to recognise which host they are looking at.
  *
- * `postgres://hiring_app:s3cret@db:5432/hiring` → `postgres://hiring_app:[redacted]@db:5432/hiring`
+ * `postgres://hiring_app:example-password@db:5432/hiring` → `postgres://hiring_app:[redacted]@db:5432/hiring`
  *
  * An unparseable value is redacted whole: if the structure is not understood, no part
  * of it can be shown to be safe.

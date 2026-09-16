@@ -93,6 +93,15 @@ jobs:
       # CLAUDE.md rule 10 is that secrets never enter the repository, because a
       # revert does not un-publish a credential — rotation does, and rotation of
       # TOKEN_PEPPER is a two-phase release (docs/13 §5).
+      # Passwords have no format, so the pattern scan below cannot see them. This one
+      # enforces that any committed password looks fake on sight — added after an
+      # external scanner flagged realistic-looking fixture values on 2026-09-17.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Committed passwords must look fake
+        run: node scripts/check-secrets.mjs
+
       - name: Scan for committed credentials
         run: |
           set -u

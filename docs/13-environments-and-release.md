@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`14-threat-model.md`](14-threat-model.md), [`../CLAUDE.md`](../CLAUDE.md), [`../.env.example`](../.env.example), [`../docker-compose.yml`](../docker-compose.yml), [`../docker-compose.prod.yml`](../docker-compose.prod.yml), [`../project/MILESTONES.md`](../project/MILESTONES.md)
 
 ---
@@ -271,6 +271,8 @@ Validation is not only presence. Required in production: URLs parse and use `htt
 ### 5.1 Rules
 
 1. **No secret enters the repository.** Not in `.env.example`, not in a test fixture, not as a compose default, not in a commented-out line, not in a CI log. Placeholders are obviously fake (`CHANGE_ME_openssl_rand_hex_32`) and config validation rejects them in production.
+
+   A password a test genuinely needs must **look fake on sight** — `example-fixture-app`, never a random-looking string that could pass for a generated credential. A value that is fake but indistinguishable from a real credential is still a defect: an external scanner reported exactly that on 2026-09-17, and a fixture that trips an alert trains everyone to dismiss the next one, which may be real. `scripts/check-secrets.mjs` enforces this in CI (`make secrets`); it accepts the documented development defaults, which `packages/config` refuses in every deployed tier, and values that name themselves as fixtures.
 2. **Injection at runtime.** Production reads secrets from files mounted at `/run/secrets/<name>` via the `*_FILE` variants declared in [`../docker-compose.prod.yml`](../docker-compose.prod.yml). A file is preferable to an environment variable: environment variables leak through `/proc`, crash dumps, orchestrator inspection APIs and child processes.
 3. **No secret reaches an exec node.** Ever. [`../docker-compose.prod.yml`](../docker-compose.prod.yml) declares no `secrets:` and no `*_FILE` variable on the `piston` service, deliberately, and a change that adds one is wrong by construction. The sandbox is assumed to be escapable (HLD §7); the mitigation is that there is nothing on the node worth stealing.
 4. **Environments never share secrets.** Staging and production have disjoint values for every secret. A staging credential that works in production makes staging a production access path.

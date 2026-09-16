@@ -146,7 +146,7 @@ describe('redaction — console.log(config) cannot leak a secret', () => {
 
 describe('redactDsn', () => {
   it('replaces the password and keeps everything an operator needs to recognise', () => {
-    expect(redactDsn('postgres://hiring_app:hunter2@db.internal:5432/hiring')).toBe(
+    expect(redactDsn('postgres://hiring_app:example-dsn-password@db.internal:5432/hiring')).toBe(
       'postgres://hiring_app:[redacted]@db.internal:5432/hiring',
     );
   });

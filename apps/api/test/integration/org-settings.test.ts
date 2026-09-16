@@ -85,7 +85,7 @@ const API_URL = 'https://api.example.test';
 const SESSION_SECRET = 'an-org-settings-integration-session-secret-0123';
 
 /** Long enough for `MIN_PASSWORD_LENGTH`, and not a password anybody would reuse. */
-const PASSWORD = 'correct-horse-battery-staple';
+const PASSWORD = 'example-staff-password';
 
 /** Injected, and never the wall clock (ADR-006, docs/17 §8). */
 const AT = new Date('2026-10-14T09:30:00.000Z');

@@ -110,7 +110,7 @@ describe('trace and tenant context', () => {
  */
 describe('the logger never emits a secret, an answer, hidden content or PII', () => {
   const secrets = {
-    password: 'hunter2-plaintext',
+    password: 'example-plaintext-password',
     token: 'tok_live_9c3f',
     attempt_token: 'att_7f3a1c',
     invitation_token: 'inv_44bd0e',

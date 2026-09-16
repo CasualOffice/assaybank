@@ -254,6 +254,14 @@ function globToRegExp(pattern) {
   return new RegExp(`^${re}$`);
 }
 
+/** A test, a test fixture, or a test-support module — by name or by directory. */
+function isTestFile(path) {
+  return (
+    /\.(test|spec)\.[cm]?[jt]sx?$/u.test(path) ||
+    /(^|\/)(tests?|__tests__|fixtures)\//u.test(path)
+  );
+}
+
 const globCache = new Map();
 function matchesGlob(path, pattern) {
   let re = globCache.get(pattern);
@@ -406,6 +414,13 @@ function run(opts) {
       for (const pattern of row.triggers) {
         for (const file of opts.changed) {
           if (file === row.path) continue;
+          // A change confined to a test never fires a document trigger. A test asserts
+          // behaviour the source already has; when the behaviour changes, the source file
+          // changes too and fires the trigger on its own. Without this, renaming a fixture
+          // value demanded an edit to the observability runbook — and the only way to
+          // satisfy that was to bump a date on a document nobody had re-read, which is the
+          // one thing this gate exists to prevent (.claude/rules/doc-maintenance.md).
+          if (isTestFile(file)) continue;
           if (matchesGlob(file, pattern)) fired.push({ pattern, file });
         }
       }

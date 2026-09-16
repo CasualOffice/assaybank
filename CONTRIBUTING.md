@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`CLAUDE.md`](CLAUDE.md), [`README.md`](README.md), [`project/DEFINITION-OF-DONE.md`](project/DEFINITION-OF-DONE.md), [`docs/04-ADRs.md`](docs/04-ADRs.md), [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md)
 
 ---
@@ -104,6 +104,7 @@ The template in [`.github/pull_request_template.md`](.github/pull_request_templa
 - [ ] No hidden test-case content, reference solution or `is_correct` flag is reachable from a candidate-scoped response, including error output
 - [ ] No proctoring signal drives an automatic reject, void or score adjustment
 - [ ] New or changed dependency passes `make licences`
+- [ ] `make secrets` passes — any password in a fixture, test or example must look fake on sight
 - [ ] `code-graph.json` updated and `make graph` re-run if a service boundary, package, queue or external dependency changed
 - [ ] [`project/TRACKER.md`](project/TRACKER.md) and [`project/STATUS.md`](project/STATUS.md) updated for any completed item
 - [ ] [`project/MILESTONES.md`](project/MILESTONES.md) updated if an exit criterion was met
