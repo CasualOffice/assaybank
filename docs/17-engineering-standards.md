@@ -205,6 +205,8 @@ enforce it, and each must have a named test.
 
 ---
 
+- **A sweep that crosses tenants enumerates them elevated and works under RLS.** List organisations through `withElevated` — audited, and named `job.<verb>` so the null-actor row reads as a machine — then do the work per organisation inside `withOrg`. One elevated transaction over every tenant would let a query bug pool one organisation's candidates into another's results with nothing in the database to refuse it. See [`02-HLD.md`](02-HLD.md) §3.4a.
+
 ## 7. Security
 
 Derived from [`14-threat-model.md`](14-threat-model.md); that document holds the reasoning.

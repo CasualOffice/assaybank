@@ -137,7 +137,7 @@ and picking it up anyway is how two people end up editing the same file.
 | H-032 | P2 | Import job adapters for HumanEval, MBPP, LBPP and Exercism, rejecting any row without `source_license`, preserving `external_ref`, emitting per-row errors instead of failing the file, and driving an attributions page in the staff console | worker | M0 | H-029 | FR-3 | L | todo | _unassigned_ |
 | H-033 | P2 | QTI 2.1 import and export, round-trip without loss across all eight question kinds | worker | M0 | H-032 | M0 exit | L | todo | _unassigned_ |
 | H-034 | P2 | JSON bank export in an open, documented shape, with CC-BY attribution preserved in the payload | worker | M0 | H-032 | FR-29, G6 | M | todo | _unassigned_ |
-| H-035 | P1 | Nightly `question_stats` job computing p-value and point-biserial discrimination per question version once n ≥ 30 | worker | M0 | H-015 | FR-5 | M | todo | _unassigned_ |
+| H-035 | P1 | Nightly `question_stats` job computing p-value and point-biserial discrimination per question version once n ≥ 30 | worker | M0 | H-015 | FR-5 | M | done | _unassigned_ |
 | H-036 | P0 | `exposure_count` increment on attempt materialisation plus a retirement flag above a configurable threshold | api | M0 | H-030 | FR-4 | S | todo | _unassigned_ |
 | H-037 | P0 | Staff console shell: TanStack Router, auth guard, layout, shared design tokens in `packages/ui` — _partial 2026-09-17: router, layout and design tokens done; the auth guard remains_ | web | M0 | H-021 | — | M | todo | _unassigned_ |
 | H-038 | P1 | Question authoring UI: markdown prompt editor, option editor, test-case editor, explicit publish action that reads as irreversible | web | M0 | H-037 | ADR-003 | L | todo | _unassigned_ |

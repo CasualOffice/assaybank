@@ -21,6 +21,8 @@ describe('@assaybank/grading', () => {
         'gradeShortAnswer',
         'scoreSubmission',
         'weightedTotal',
+        'computeItemStatistics',
+        'MIN_RESPONSES_FOR_STATS',
       ].sort(),
     );
   });

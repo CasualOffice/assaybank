@@ -147,3 +147,11 @@ export type {
   MergeSkillsResult,
   SkillRow,
 } from './taxonomy.js';
+
+export {
+  getQuestionStats,
+  listOrganisationIds,
+  readItemResponses,
+  upsertQuestionStats,
+} from './question-stats.js';
+export type { ItemResponseRow, QuestionStatsRow, StoredQuestionStats } from './question-stats.js';

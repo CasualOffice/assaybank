@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`../CODE-GRAPH.md`](../CODE-GRAPH.md)
 
 ---
@@ -105,6 +105,17 @@ Pipeline per job:
 6. If all questions in the attempt are graded, finalise `attempts`
 
 Idempotent by submission ID. Retries are safe. Failures after N attempts go to a dead-letter queue with an alert, and the attempt sits in `under_review` rather than silently scoring zero.
+
+### 3.4a Scheduled sweeps that cross tenants
+
+A nightly sweep — question statistics first; retention erasure and the deadline sweep follow the same shape — has to work across every organisation, and no organisation can see the others. The pattern:
+
+1. **Enumerate organisations elevated**, through `withElevated`, which writes an audit row whose action names the job (`job.question_stats`). This is the only elevated step.
+2. **Do the work one organisation at a time inside `withOrg`**, so row-level security bounds each computation to one tenant's rows exactly as it bounds a request.
+
+The alternative — one elevated transaction reading every tenant at once — is simpler and would let a bug in a sweep's query pool one organisation's candidates into another's numbers, with nothing in the database to stop it. Enumerating elevated and computing under RLS keeps the elevated surface to a single `SELECT id FROM organizations`.
+
+The worker composes: `packages/db` moves rows, a pure package computes (`packages/grading` for statistics), and the sweep in `apps/worker/src/jobs/` joins them. Neither package imports the other.
 
 ### 3.5 Storage
 

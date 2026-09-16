@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`01-PRD.md`](01-PRD.md) · [`03-API-spec.md`](03-API-spec.md) · [`04-ADRs.md`](04-ADRs.md) · [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md) · [`10-certification-and-credentials.md`](10-certification-and-credentials.md) · [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md) · [`15-accessibility-conformance.md`](15-accessibility-conformance.md) · [`hiring_platform_schema.sql`](hiring_platform_schema.sql)
 
 ---
@@ -241,7 +241,7 @@ Add a periodic, offline calibration of the bank. For each published coding quest
 
 This tells authors which questions have become free points. A question a model solves first try at difficulty 4 is mislabelled, and it is the question most likely to be silently doing nothing in your screening funnel.
 
-**This does not conflict with ADR-011.** ADR-011 forbids AI in the scoring and decision path. The baseline run touches no candidate, no attempt and no submission; it consumes a question and produces a property of that question, reviewed by a human author who decides what to do about it. It is question-bank maintenance, in the same category as the p-value and discrimination statistics FR-5 already computes. The boundary that matters — no AI anywhere near a candidate's score — is untouched, and the schema enforces it by giving the baseline result no path to `attempts` or `answers`.
+**This does not conflict with ADR-011.** ADR-011 forbids AI in the scoring and decision path. The baseline run touches no candidate, no attempt and no submission; it consumes a question and produces a property of that question, reviewed by a human author who decides what to do about it. It is question-bank maintenance, in the same category as the p-value and discrimination statistics FR-5 requires — computed since 2026-09-17 by `computeItemStatistics` in `packages/grading`: descriptive statistics over recorded scores, which rank questions for an author to review and feed nothing back into any candidate's outcome. The boundary that matters — no AI anywhere near a candidate's score — is untouched, and the schema enforces it by giving the baseline result no path to `attempts` or `answers`.
 
 Cadence: quarterly, and on any new model release the question-bank owner judges material. Owner: question bank owner. First run: after the bank passes 200 published questions, expected 2027-02-26.
 

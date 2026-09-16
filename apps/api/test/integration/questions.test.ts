@@ -975,6 +975,62 @@ describe('POST /questions/{id}/preview — before the execution service exists',
   });
 });
 
+describe('GET /questions/{id}/stats', () => {
+  interface Stats {
+    question_id: string; version_no: number | null; n_attempts: number;
+    p_value: number | null; discrimination: number | null; mean_seconds: number | null;
+    computed_at: string | null; min_responses: number;
+  }
+
+  it('answers zeros and nulls for a question the sweep has not measured — not 404', async () => {
+    const { id, versionNo } = await createQuestionWithVersion('subjective', {
+      prompt_md: 'Discuss.',
+      difficulty: 2,
+    });
+
+    const response = await get(`${QUESTIONS_ROUTE}/${id}/stats`);
+
+    expect(response.status).toBe(200);
+    const stats = response.body as Stats;
+    expect(stats).toMatchObject({
+      question_id: id,
+      n_attempts: 0,
+      p_value: null,
+      discrimination: null,
+      computed_at: null,
+      min_responses: 30,
+    });
+    // A draft version is not current until published, so there is no measured version yet.
+    expect([null, versionNo]).toContain(stats.version_no);
+  });
+
+  it('reads what the sweep recorded for the current version', async () => {
+    const { id } = await publishedQuestion('subjective', { prompt_md: 'Discuss.', difficulty: 2 });
+    const current = asQuestion((await get(`${QUESTIONS_ROUTE}/${id}`)).body).current_version;
+    if (current === null) throw new Error('published question should have a current version');
+
+    // Written directly, as the nightly sweep would: this test is about the read, and the
+    // sweep's computation is proven against real attempts in apps/worker.
+    await fixture().owner.unsafe(
+      `INSERT INTO question_stats (question_version_id, n_attempts, p_value, discrimination, mean_seconds, computed_at)
+       VALUES ('${current.id}', 40, 0.7500, 0.2531, 49.50, '2026-10-20T02:30:00Z')`,
+    );
+
+    const stats = (await get(`${QUESTIONS_ROUTE}/${id}/stats`)).body as Stats;
+    expect(stats).toMatchObject({
+      n_attempts: 40,
+      p_value: 0.75,
+      discrimination: 0.2531,
+      mean_seconds: 49.5,
+      computed_at: '2026-10-20T02:30:00.000Z',
+    });
+  });
+
+  it('answers not_found for a question that does not exist', async () => {
+    expect((await get(`${QUESTIONS_ROUTE}/00000000-0000-4000-8000-000000000000/stats`)).status).toBe(404);
+  });
+});
+
 describe('the permission set is real', () => {
   it('names every permission this surface uses, so a typo is not a silent grant', () => {
     // A guard against the vacuous pass: if these keys were not in the seeded set, every

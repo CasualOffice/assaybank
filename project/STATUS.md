@@ -15,7 +15,7 @@
 | **Current milestone** | M0 Question bank — P1 complete, P2 three of six tracks complete |
 | **Next milestone** | M1 Async MCQ assessment, phase P3 |
 | **Overall RAG** | amber |
-| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,203 tests**, 0 failing, 0 skipped |
+| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,221 tests**, 0 failing, 0 skipped |
 | **Schedule** | amber — ahead of the re-baselined plan (P0 and P1 are complete before their planned start of 2026-09-21), but the 25-week baseline is still unsigned (OQ-015) and build pace so far says little about the judgement-heavy phases ahead |
 | **Scope** | green — no changes to PRD §6 |
 | **Risk** | amber — eight high risks open, three of them the same question-bank problem (R-03, R-04, R-13) |
@@ -25,17 +25,17 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## Shipped this period (2026-09-15 → 2026-09-17)
 
-**Application code now exists.** 50 of 135 backlog tasks are done, reconciled against the code.
+**Application code now exists.** 51 of 135 backlog tasks are done, reconciled against the code.
 
 - **P0 foundation** — fourteen workspaces, strict TypeScript, lint-enforced layering, CI enforcing, MPL-2.0 with a header gate, the licence gate proven to fail on a planted AGPL dependency
 - **P1 tenancy, identity and audit** — per-checkout org context proven by an interleaved test, RLS proven per table against real Postgres, OIDC and password login, per-action permissions with a route-enumeration test, append-only audit at the database
-- **P2 question bank, three tracks** — immutable versions with a database trigger (ADR-003); an audience-typed serialisation boundary where a candidate view that could carry an answer key fails to compile; skills, merging and role coverage that reports a required skill with no questions rather than dropping it; and the kind rule — content a kind can never use is refused on every write, content it still lacks is refused at publish, so an ungradeable question cannot become immutable
+- **P2 question bank, four tracks** — immutable versions with a database trigger (ADR-003); an audience-typed serialisation boundary where a candidate view that could carry an answer key fails to compile; skills, merging and role coverage that reports a required skill with no questions rather than dropping it; and the kind rule — content a kind can never use is refused on every write, content it still lacks is refused at publish, so an ungradeable question cannot become immutable; and nightly question statistics — difficulty and discrimination against the rest score, not the total, null below 30 responses, computed per tenant under RLS and matched to values computed independently in Python
 - **Security** — an external scanner flagged realistic-looking fixture passwords on the public repository. None was a real credential. All renamed to look fake on sight, and a new gate enforces it. `docs/14` had claimed history secret scanning was in place; it was not, and now says so
 - **CI green for the first time** — it had been red since the first push without being checked
 
 ## In progress
 
-P2 question bank: import/export (the M0 exit criterion — QTI and JSON round-trip), question statistics, and the authoring console.
+P2 question bank: import/export (the M0 exit criterion — QTI and JSON round-trip) and the authoring console.
 
 ## Next
 

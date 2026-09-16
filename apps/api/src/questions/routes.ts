@@ -71,9 +71,11 @@ import {
   QUESTION_VERSIONS_PATH,
   QUESTION_VERSION_PATH,
   QUESTION_PREVIEW_PATH,
+  QUESTION_STATS_PATH,
   QUESTION_VERSION_PUBLISH_PATH,
   QuestionParamsSchema,
   QuestionPreviewRequestSchema,
+  type QuestionStatsResponse,
   QuestionVersionInputSchema,
   QuestionVersionParamsSchema,
   parseRequestPart,
@@ -90,6 +92,7 @@ import {
 } from '@assaybank/contracts';
 import { isErr, transitionQuestion, type QuestionEvent } from '@assaybank/core-domain';
 import {
+  getQuestionStats,
   archiveQuestion,
   createQuestion,
   createVersion,
@@ -108,6 +111,8 @@ import {
   type Database,
   type DbTransaction,
 } from '@assaybank/db';
+
+import { MIN_RESPONSES_FOR_STATS } from '@assaybank/grading';
 
 import { requirePermission } from '../authorisation.js';
 import { assertKindContent, shapeOfContent, shapeOfRecord } from './kind-content.js';
@@ -138,6 +143,8 @@ export const QUESTION_VERSION_ROUTE = fastifyPath(QUESTION_VERSION_PATH);
 export const QUESTION_VERSION_PUBLISH_ROUTE = fastifyPath(QUESTION_VERSION_PUBLISH_PATH);
 /** `POST /questions/:id/preview` */
 export const QUESTION_PREVIEW_ROUTE = fastifyPath(QUESTION_PREVIEW_PATH);
+/** `GET /questions/:id/stats` */
+export const QUESTION_STATS_ROUTE = fastifyPath(QUESTION_STATS_PATH);
 
 /**
  * The `audit_log.action` each write is recorded under.
@@ -716,5 +723,35 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
       'Previewing runs code, and the execution service arrives in P4. Nothing was run.',
       { details: { available_from_phase: 'P4', ran: false } },
     );
+  });
+
+  // --- GET /questions/:id/stats ------------------------------------------------
+  //
+  // The current version's statistics, as the nightly sweep last recorded them. A question the
+  // sweep has not reached — or one with no current version — answers zeros and nulls rather
+  // than 404: the question exists, it has simply not been measured, and conflating the two
+  // would tell a caller the question is missing.
+  app.get(QUESTION_STATS_ROUTE, { config: read }, async (request): Promise<QuestionStatsResponse> => {
+    const principal = staffOnly(request);
+    const { id } = parseRequestPart(QuestionParamsSchema, request.params, 'params');
+
+    return withOrg(db, principal.orgId, async (tx) => {
+      const question = await getQuestionWithCurrentVersion(tx, id);
+      if (question === undefined) throw ApiError.notFound();
+
+      const version = question.current_version;
+      const stats = version === null ? undefined : await getQuestionStats(tx, version.id);
+
+      return {
+        question_id: question.id,
+        version_no: version?.version_no ?? null,
+        n_attempts: stats?.nAttempts ?? 0,
+        p_value: stats?.pValue ?? null,
+        discrimination: stats?.discrimination ?? null,
+        mean_seconds: stats?.meanSeconds ?? null,
+        computed_at: stats?.computedAt?.toISOString() ?? null,
+        min_responses: MIN_RESPONSES_FOR_STATS,
+      };
+    });
   });
 }

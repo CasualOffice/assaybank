@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (legal counsel)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`04-ADRs.md`](04-ADRs.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`16-ai-usage-policy.md`](16-ai-usage-policy.md)
 
 ---
@@ -66,6 +66,17 @@ Enforced in CI. The build fails on a prohibited license in the dependency tree, 
 | MinIO | **AGPL-3.0** ⚠ | See below |
 | Safe Exam Browser | MPL-2.0 / mixed | Client-side lockdown, distributed to candidates unmodified |
 | Tailwind CSS | MIT | |
+
+**Test and build tooling** is in the same dependency tree and the gate grades it the same way. Verified from the installed packages on 2026-09-17:
+
+| Component | License | Used by |
+|---|---|---|
+| TypeScript | Apache-2.0 | every workspace |
+| Vitest | MIT | every workspace's tests |
+| Testcontainers, `@testcontainers/postgresql` | MIT | real-Postgres integration suites in `packages/db` and `apps/worker` |
+| ESLint, typescript-eslint | MIT | lint, including the layering rule |
+| Prettier | MIT | formatting |
+| Turborepo | MIT | the task pipeline |
 
 ### Two traps worth naming
 

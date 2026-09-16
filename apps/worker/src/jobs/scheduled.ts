@@ -23,6 +23,9 @@
  * in the file `CODE-GRAPH.md` reserves for it.
  */
 
+import type { Database } from '@assaybank/db';
+
+import { runQuestionStats } from './question-stats.js';
 import type { Logger } from '@assaybank/observability';
 
 import { idempotent } from '../idempotency.js';
@@ -56,7 +59,7 @@ export interface ScheduledJobSpec {
   readonly title: string;
   readonly cadence: Cadence;
   /** The milestone that implements it. Until then the handler is a placeholder. */
-  readonly milestone: 'M1' | 'M3' | 'M4';
+  readonly milestone: 'M0' | 'M1' | 'M3' | 'M4';
   /** The file `CODE-GRAPH.md` reserves for the implementation. */
   readonly implementedIn: string;
   /** What breaks if this sweep stops running. Copied from `code-graph.json`. */
@@ -79,7 +82,7 @@ export const SCHEDULED_JOBS: { readonly [K in ScheduledJobName]: ScheduledJobSpe
     name: 'question-stats',
     title: 'Nightly question stats',
     cadence: { kind: 'cron', pattern: '30 2 * * *', tz: 'UTC' },
-    milestone: 'M1',
+    milestone: 'M0',
     implementedIn: 'apps/worker/src/jobs/question-stats.ts',
     invariant:
       'Exposure, p-value, discrimination and mean time are recomputed from the record ' +
@@ -174,6 +177,13 @@ export interface ScheduledJobDeps {
   readonly logger: Logger;
   /** The instant this tick was scheduled for, from the job's timestamp. */
   readonly scheduledFor: Date;
+  /**
+   * The database, for sweeps that have been implemented. Optional so a sweep can be exercised
+   * without one — it then reports the placeholder rather than failing.
+   */
+  readonly db?: Database;
+  /** The composition root's clock. Stamps what a sweep writes; never read inside the sweep. */
+  readonly now?: () => Date;
 }
 
 /**
@@ -194,7 +204,33 @@ export async function runScheduledJob(
 
   return idempotent<ScheduledJobOutcome>(
     key,
-    () => {
+    async () => {
+      // Implemented sweeps. Each moves out of the placeholder as its milestone lands; the
+      // registration, the key, the idempotency and the job metrics around it do not change.
+      if (name === 'question-stats' && deps.db !== undefined) {
+        const outcome = await runQuestionStats({
+          db: deps.db,
+          now: deps.now ?? ((): Date => deps.scheduledFor),
+        });
+        deps.logger.info(
+          {
+            event: 'sweep.completed',
+            job: name,
+            scheduled_for: deps.scheduledFor.toISOString(),
+            organisations: outcome.organisations,
+            versions_written: outcome.versionsWritten,
+            versions_with_statistics: outcome.versionsWithStatistics,
+          },
+          `${spec.title} completed`,
+        );
+        return {
+          job: name,
+          ran: true,
+          scheduledFor: deps.scheduledFor.toISOString(),
+          milestone: spec.milestone,
+        };
+      }
+
       deps.logger.info(
         {
           event: 'sweep.placeholder',
@@ -207,12 +243,12 @@ export async function runScheduledJob(
         `${spec.title} is scheduled but not yet implemented; it lands in ${spec.milestone}`,
       );
 
-      return Promise.resolve({
+      return {
         job: name,
         ran: false,
         scheduledFor: deps.scheduledFor.toISOString(),
         milestone: spec.milestone,
-      });
+      };
     },
     { queue: 'maintenance.cron' },
   );

@@ -35,3 +35,6 @@ export type { AnswerKey } from './short-answer.js';
 
 export { scoreSubmission, weightedTotal } from './aggregate.js';
 export type { CaseResult, WeightedSection } from './aggregate.js';
+
+export { computeItemStatistics, MIN_RESPONSES_FOR_STATS } from './psychometrics.js';
+export type { ItemResponse, ItemStatistics } from './psychometrics.js';

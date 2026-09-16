@@ -843,6 +843,33 @@ export const QuestionPreviewRequestSchema = z
 
 export type QuestionPreviewRequest = z.infer<typeof QuestionPreviewRequestSchema>;
 
+/** `GET` — the recorded statistics for a question's current version. */
+export const QUESTION_STATS_PATH = '/questions/{id}/stats';
+
+/**
+ * Item statistics for the question's **current version** (FR-5).
+ *
+ * Per version, never per question: a statistic pooled across versions describes a question
+ * nobody was ever asked (ADR-003). `p_value` and `discrimination` stay null until
+ * `min_responses` finalised responses exist, and a question the nightly sweep has not reached
+ * answers zeros and nulls rather than 404 — it exists, it simply has not been measured.
+ */
+export const QuestionStatsResponseSchema = z
+  .object({
+    question_id: z.string().uuid(),
+    version_no: z.number().int().nullable(),
+    n_attempts: z.number().int().min(0),
+    p_value: z.number().min(0).max(1).nullable(),
+    discrimination: z.number().min(-1).max(1).nullable(),
+    mean_seconds: z.number().min(0).nullable(),
+    computed_at: z.string().nullable(),
+    min_responses: z.number().int(),
+  })
+  .describe('Item statistics for the current version of a question.')
+  .openapi('QuestionStatsResponse');
+
+export type QuestionStatsResponse = z.infer<typeof QuestionStatsResponseSchema>;
+
 /**
  * The fields a question's *first* version must carry, because there is nothing to copy
  * them forward from.

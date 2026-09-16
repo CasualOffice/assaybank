@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`15-accessibility-conformance.md`](15-accessibility-conformance.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md), [`../project/MILESTONES.md`](../project/MILESTONES.md)
 
 ---
@@ -376,6 +376,12 @@ M1's exit criterion is that scores reproduce exactly on re-grade. "Exactly" mean
 A committed corpus of complete, frozen inputs: attempt, served question versions, answers, submissions with their code, recorded runtime identity, and the expected outputs. Roughly forty attempts covering every question kind, every grading mode, partial credit, negative marking, compile failure, timeout, memory kill, output flood, an unassessed skill, and a manual override.
 
 The corpus is the regression net for every future change to grading. A change that alters any corpus output is either a bug or a deliberate scoring change; a deliberate change updates the corpus in the same commit, with the diff visible in review and a note in the release. A scoring change that lands without a visible corpus diff is exactly the change nobody will be able to explain to a candidate six months later.
+
+### 8.2a Expected values are computed independently of the code under test
+
+A golden value copied from the implementation's own output proves only that the implementation agrees with itself. Expectations for anything numerical — scores, statistics, shuffles — are computed by a separate route and the method recorded beside the fixture.
+
+The question-statistics fixtures are the worked example: discrimination was computed in Python with a hand-written Pearson correlation over the same rows, then asserted in three places that share nothing but the numbers — the pure function in `packages/grading`, the sweep against a real Postgres in `apps/worker`, and the response from the API. The same fixture also records the uncorrected value (0.3233 against the correct 0.2531), so a regression to correlating an item with a total that contains it fails by name rather than by drift.
 
 ### 8.3 The re-grade test
 

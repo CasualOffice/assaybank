@@ -258,6 +258,16 @@ importers:
       zod:
         specifier: ^4.6.5
         version: 4.6.5
+    devDependencies:
+      '@testcontainers/postgresql':
+        specifier: ^12.1.0
+        version: 12.1.0
+      postgres:
+        specifier: ^3.4.9
+        version: 3.4.9
+      testcontainers:
+        specifier: ^12.1.0
+        version: 12.1.0
 
   packages/auth:
     dependencies:

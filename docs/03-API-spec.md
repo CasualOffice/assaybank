@@ -163,9 +163,12 @@ A refusal is `422 validation_failed`, reporting every problem at once. `details.
 
 ```
 PUT    /questions/{id}/skills       [{skill_id, weight}]
-GET    /questions/{id}/stats        → {n_attempts, p_value, discrimination, mean_seconds}
+GET    /questions/{id}/stats        → {question_id, version_no, n_attempts, p_value, discrimination,
+                                       mean_seconds, computed_at, min_responses}
 POST   /questions/{id}/preview      {language?, code?}  → dry-run against sample cases
 ```
+
+`stats` reports the **current version**, never a pool across versions (ADR-003), as the nightly sweep last recorded it. `p_value` and `discrimination` are null until `min_responses` (30) finalised responses exist, and discrimination is also null when either the item or the rest score has no variance — `null` means "cannot tell", which a `0` would misreport as "does not discriminate". A question the sweep has not reached answers `200` with zeros and nulls, not `404`. Requires `question.read`.
 
 `preview` lets an author verify their reference solution passes before publishing. It runs through the same execution path as candidate submissions, against **sample cases only** — a preview's output is shown to whoever asked. With an empty body it runs the question's own reference solution.
 

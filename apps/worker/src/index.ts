@@ -27,6 +27,7 @@
  */
 
 import { config } from '@assaybank/config';
+import { createDb, type Database } from '@assaybank/db';
 import { createLogger, initTelemetry, shutdownTelemetry } from '@assaybank/observability';
 import type { Logger } from '@assaybank/observability';
 import { UnrecoverableError } from 'bullmq';
@@ -141,6 +142,14 @@ export async function start(options: StartOptions = {}): Promise<WorkerRuntime> 
   });
   setIdempotencyStore(createRedisIdempotencyStore(redis));
 
+  // Opened from validated configuration. The application pool runs each tenant's work under
+  // row-level security; the job pool is used only through withElevated, which audits it.
+  const db = createDb({
+    url: config.database.url,
+    jobUrl: config.database.jobUrl,
+    poolMax: config.database.poolMax,
+  });
+
   const maintenanceQueue = createQueue<unknown, unknown>('maintenance.cron', { connection });
 
   const handler: JobHandler<unknown, unknown> = async (job) => {
@@ -151,7 +160,7 @@ export async function start(options: StartOptions = {}): Promise<WorkerRuntime> 
       // The tick this job was scheduled for. Derived from the job rather than from its
       // payload, because a scheduler template is static and two replicas processing the
       // same tick must compute the same idempotency key.
-      return runScheduledJob(job.name, { logger, scheduledFor: new Date(job.timestamp) });
+      return runScheduledJob(job.name, { logger, scheduledFor: new Date(job.timestamp), db, now });
     }
     // Retrying cannot turn an unknown job name into a known one, so the attempt budget is
     // not spent on it: it goes straight to the dead-letter queue, where an operator can
@@ -202,6 +211,7 @@ export async function start(options: StartOptions = {}): Promise<WorkerRuntime> 
       sampler,
       telemetryServer,
       redis,
+      db,
       shutdownOtel: options.telemetry !== false,
     });
     return stopping;
@@ -274,6 +284,7 @@ interface ShutdownInput {
   readonly sampler: RunningSampler;
   readonly telemetryServer: RunningTelemetryServer;
   readonly redis: Redis;
+  readonly db: Database;
   readonly shutdownOtel: boolean;
 }
 
@@ -308,6 +319,8 @@ async function shutdown(input: ShutdownInput): Promise<void> {
     input.queue.close(),
     input.telemetryServer.close(),
     input.redis.quit(),
+    // After the drain: a sweep still running holds a connection from this pool.
+    input.db.close(),
   ]);
 
   if (input.shutdownOtel) await shutdownTelemetry();

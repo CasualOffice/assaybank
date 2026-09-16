@@ -32,7 +32,7 @@ Assaybank is a self-hosted technical hiring platform covering async assessments,
 | `packages/observability` | Logger, OTel tracing, metrics | Log candidate answers, tokens or proctor media |
 | `packages/ui` | Shared React components and design tokens for `web` and `candidate` | Contain staff-only strings, routes or data shapes |
 
-**`apps/api` is the only writer of domain tables.** Workers and the collab service read what they need and go through the API — or, where a worker genuinely owns a table (grading results, session events), that ownership is recorded explicitly in `code-graph.json` and the table is listed there. Anything else writing domain state means two clocks, two validation paths and a state machine that can be driven from outside itself.
+**`apps/api` is the only writer of domain tables.** Workers and the collab service read what they need and go through the API — or, where a worker genuinely owns a table (grading results, session events, `question_stats`), that ownership is recorded explicitly in `code-graph.json` and the table is listed there. Anything else writing domain state means two clocks, two validation paths and a state machine that can be driven from outside itself.
 
 ## Read before you write
 

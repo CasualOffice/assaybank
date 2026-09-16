@@ -218,40 +218,40 @@ Solid arrows are runtime calls, labelled by kind. Dotted arrows are compile-time
 
 | ID | Node | Type | Milestone | Status | Path | Purpose |
 |---|---|---|---|---|---|---|
-| `api` | Core API | app | M0 | planned | `apps/api` | Fastify 5 HTTP and SSE surface that owns authentication, authorisation, the question bank, assessment composition, the attempt lifecycle and the server-authoritative clock. |
-| `candidate` | Candidate app | app | M1 | planned | `apps/candidate` | React 19 assessment runner and interview join surface, built as a separate bundle so no staff-only code, correct-answer flag or bank access can ever ship to a candidate. |
-| `collab` | Collaboration service | app | M3 | planned | `apps/collab` | y-websocket server holding one Yjs document per live interview room, with awareness fan-out and periodic snapshots to Postgres. |
-| `web` | Staff console | app | M0 | planned | `apps/web` | React 19 console for recruiters, interviewers and admins covering the bank, assessment builder, results, live interview host view and org administration. |
-| `worker` | Grading and maintenance worker | app | M1 | planned | `apps/worker` | BullMQ consumer that grades submissions, delivers webhooks and e-mail, runs bank import and export jobs, and hosts every scheduled sweep. |
-| `auth` | auth | package | M0 | planned | `packages/auth` | Staff sessions and OIDC, candidate attempt tokens, WebSocket tickets and the per-action permission checks. |
-| `config` | config | package | M0 | planned | `packages/config` | Parses and validates the environment once at boot and exposes a typed, frozen configuration object. |
-| `contracts` | contracts | package | M0 | planned | `packages/contracts` | zod schemas, the generated OpenAPI 3.1 document and the error-code catalogue - the single source of truth for every request and response shape. |
-| `core-domain` | core-domain | package | M0 | planned | `packages/core-domain` | Pure domain logic: the attempt state machine, section-rule resolution and the question draw, weighted scoring aggregation and skill roll-up. |
+| `api` | Core API | app | M0 | in-progress | `apps/api` | Fastify 5 HTTP and SSE surface that owns authentication, authorisation, the question bank, assessment composition, the attempt lifecycle and the server-authoritative clock. |
+| `candidate` | Candidate app | app | M1 | in-progress | `apps/candidate` | React 19 assessment runner and interview join surface, built as a separate bundle so no staff-only code, correct-answer flag or bank access can ever ship to a candidate. |
+| `collab` | Collaboration service | app | M3 | in-progress | `apps/collab` | y-websocket server holding one Yjs document per live interview room, with awareness fan-out and periodic snapshots to Postgres. |
+| `web` | Staff console | app | M0 | in-progress | `apps/web` | React 19 console for recruiters, interviewers and admins covering the bank, assessment builder, results, live interview host view and org administration. |
+| `worker` | Grading and maintenance worker | app | M1 | in-progress | `apps/worker` | BullMQ consumer that grades submissions, delivers webhooks and e-mail, runs bank import and export jobs, and hosts every scheduled sweep. |
+| `auth` | auth | package | M0 | built | `packages/auth` | Staff sessions and OIDC, candidate attempt tokens, WebSocket tickets and the per-action permission checks. |
+| `config` | config | package | M0 | built | `packages/config` | Parses and validates the environment once at boot and exposes a typed, frozen configuration object. |
+| `contracts` | contracts | package | M0 | in-progress | `packages/contracts` | zod schemas, the generated OpenAPI 3.1 document and the error-code catalogue - the single source of truth for every request and response shape. |
+| `core-domain` | core-domain | package | M0 | in-progress | `packages/core-domain` | Pure domain logic: the attempt state machine, section-rule resolution and the question draw, weighted scoring aggregation and skill roll-up. |
 | `credentials` | credentials | package | M4 | planned | `packages/credentials` | Open Badges 3.0 claim-set construction, JWS signing and verification, status-list generation, and the deterministic PDF rendering of an issued credential (ADR-016). |
-| `db` | db | package | M0 | planned | `packages/db` | Drizzle schema, migrations, row-level-security policies and the seed data that mirror docs/hiring_platform_schema.sql. |
+| `db` | db | package | M0 | in-progress | `packages/db` | Drizzle schema, migrations, row-level-security policies and the seed data that mirror docs/hiring_platform_schema.sql. |
 | `exec-adapter` | exec-adapter | package | M2 | planned | `packages/exec-adapter` | Thin adapter over Piston behind execute(language, version, files, stdin, args, limits) so the sandbox stays swappable. |
-| `grading` | grading | package | M1 | planned | `packages/grading` | Pure comparison and weighted scoring: MCQ and short-answer matching, test-case comparison per grading mode, partial credit and optional negative marking. |
-| `observability` | observability | package | M0 | planned | `packages/observability` | Structured logger, OpenTelemetry tracing setup and the metric registry shared by every service. |
-| `ui` | ui | package | M0 | planned | `packages/ui` | Shared React components and Tailwind design tokens used by both front ends. |
+| `grading` | grading | package | M1 | in-progress | `packages/grading` | Pure comparison and weighted scoring: MCQ and short-answer matching, test-case comparison per grading mode, partial credit and optional negative marking. |
+| `observability` | observability | package | M0 | built | `packages/observability` | Structured logger, OpenTelemetry tracing setup and the metric registry shared by every service. |
+| `ui` | ui | package | M0 | in-progress | `packages/ui` | Shared React components and Tailwind design tokens used by both front ends. |
 | `object-store` | SeaweedFS (S3-compatible) | datastore | M0 | planned | `service: seaweedfs S3 :8333 (S3_ENDPOINT)` | Object storage for export files, packaged session replays, archived event partitions, large submission artefacts and proctor media. |
-| `postgres` | PostgreSQL 16 | datastore | M0 | planned | `service: postgres:5432` | The single source of truth for all domain data, with row-level security for org isolation and monthly partitions on the two event tables. |
-| `valkey` | Valkey 8 | datastore | M0 | planned | `service: valkey:6379 (REDIS_URL)` | BSD-licensed Redis-protocol server carrying the BullMQ queues, pub/sub fan-out, rate-limit counters and the short-lived candidate session cache. |
+| `postgres` | PostgreSQL 16 | datastore | M0 | built | `service: postgres:5432` | The single source of truth for all domain data, with row-level security for org isolation and monthly partitions on the two event tables. |
+| `valkey` | Valkey 8 | datastore | M0 | built | `service: valkey:6379 (REDIS_URL)` | BSD-licensed Redis-protocol server carrying the BullMQ queues, pub/sub fan-out, rate-limit counters and the short-lived candidate session cache. |
 | `q-bank-jobs` | bank.jobs | queue | M0 | planned | `logical queue on Valkey` | Long-running bank operations: QTI and JSON import, dataset import, question and report export, candidate bulk CSV, org data export. |
 | `q-grading-run` | grading.run | queue | M2 | planned | `logical queue on Valkey` | Interactive trial runs against sample cases only, kept on a separate high-priority queue so a grading backlog never stalls the editor. |
 | `q-grading-submit` | grading.submit | queue | M2 | planned | `logical queue on Valkey` | Batch grading of scored coding submissions against the full hidden test-case set. |
-| `q-maintenance` | maintenance.cron | queue | M1 | planned | `logical queue on Valkey` | Repeatable-job carrier for every scheduled sweep, so schedules survive a worker restart and never run twice concurrently. |
+| `q-maintenance` | maintenance.cron | queue | M1 | in-progress | `logical queue on Valkey` | Repeatable-job carrier for every scheduled sweep, so schedules survive a worker restart and never run twice concurrently. |
 | `q-notifications` | notifications.email | queue | M1 | planned | `logical queue on Valkey` | Invitation, reminder and result e-mail delivery, off the request path. |
 | `q-webhooks` | webhooks.deliver | queue | M1 | planned | `logical queue on Valkey` | At-least-once outbound delivery of org webhooks to the ATS. |
 | `job-deadline-sweep` | Deadline sweep | job | M1 | planned | `apps/worker/src/jobs/deadline-sweep.ts` | Transitions attempts whose deadline_at has passed to expired and grades whatever was autosaved. |
 | `job-partition-roll` | Monthly partition roll | job | M3 | planned | `apps/worker/src/jobs/partition-roll.ts` | Creates next month's partitions for session_events and proctor_events and archives partitions older than 90 days to object storage. |
 | `job-proctor-media-deletion` | Proctor media deletion | job | M4 | planned | `apps/worker/src/jobs/proctor-media-deletion.ts` | Deletes proctor media objects and their rows once proctor_media.delete_after has passed. |
-| `job-question-stats` | Nightly question stats | job | M1 | planned | `apps/worker/src/jobs/question-stats.ts` | Recomputes question_stats - exposure count, p-value, discrimination and mean seconds - from attempt_questions and answers. |
+| `job-question-stats` | Nightly question stats | job | M0 | built | `apps/worker/src/jobs/question-stats.ts` | Recomputes question_stats - exposure count, p-value, discrimination and mean seconds - from attempt_questions and answers. |
 | `job-retention-erasure` | Retention erasure | job | M1 | planned | `apps/worker/src/jobs/retention-erasure.ts` | Erases candidate PII past candidates.erase_after and prunes attempt data, session recordings and archived partitions past their RETENTION_* ceilings. |
 | `job-webhook-reaper` | Webhook retry reaper | job | M1 | planned | `apps/worker/src/jobs/webhook-reaper.ts` | Closes out deliveries that have exhausted the 24-hour retry window, marks them failed and surfaces the endpoint for operator attention. |
 | `ats` | Customer ATS | external | M1 | planned | `external: customer-configured webhook endpoints` | Receives signed webhooks for invitation, attempt, session and scorecard events. |
 | `livekit` | LiveKit | external | M3 | planned | `service: self-hosted SFU (LIVEKIT_URL)` | Apache-2.0 self-hosted SFU carrying audio and video for live interview rounds. |
-| `oidc` | OIDC identity provider | external | M0 | planned | `external: OIDC_ISSUER` | Customer SSO for staff accounts via the authorisation-code flow. |
-| `otel-collector` | OpenTelemetry collector | external | M0 | planned | `service: otel-collector OTLP :4317 (OTEL_EXPORTER_OTLP_ENDPOINT)` | Receives traces and metrics from every service and forwards them to Prometheus and the trace backend. |
+| `oidc` | OIDC identity provider | external | M0 | built | `external: OIDC_ISSUER` | Customer SSO for staff accounts via the authorisation-code flow. |
+| `otel-collector` | OpenTelemetry collector | external | M0 | in-progress | `service: otel-collector OTLP :4317 (OTEL_EXPORTER_OTLP_ENDPOINT)` | Receives traces and metrics from every service and forwards them to Prometheus and the trace backend. |
 | `piston` | Piston | external | M2 | planned | `service: piston:2000 (PISTON_URL), self-hosted` | MIT-licensed sandboxed code execution, self-hosted on dedicated network-isolated nodes. |
 | `seb` | Safe Exam Browser | external | M4 | planned | `external: candidate-installed lockdown browser` | Lockdown client for certification-mode exams; loads the candidate app under a signed configuration. |
 | `smtp` | SMTP relay (Mailpit in dev) | external | M1 | planned | `service: mailpit SMTP :1025, UI :8025 (SMTP_URL)` | Outbound mail transport for invitations, reminders and result notifications. |
@@ -260,7 +260,7 @@ Solid arrows are runtime calls, labelled by kind. Dotted arrows are compile-time
 
 #### `api` — Core API
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -282,7 +282,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/03-API-spec.md`](docs/0
 
 #### `candidate` — Candidate app
 
-**Owner:** _unassigned_ (expected: frontend lead) · **Milestone:** M1 · **Status:** planned
+**Owner:** _unassigned_ (expected: frontend lead) · **Milestone:** M1 · **Status:** in-progress
 
 Public surface:
 
@@ -300,7 +300,7 @@ Specified by: [`docs/01-PRD.md`](docs/01-PRD.md), [`docs/03-API-spec.md`](docs/0
 
 #### `collab` — Collaboration service
 
-**Owner:** _unassigned_ (expected: backend engineer (realtime)) · **Milestone:** M3 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend engineer (realtime)) · **Milestone:** M3 · **Status:** in-progress
 
 Public surface:
 
@@ -320,7 +320,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/03-API-spec.md`](docs/0
 
 #### `web` — Staff console
 
-**Owner:** _unassigned_ (expected: frontend lead) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: frontend lead) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -337,7 +337,7 @@ Specified by: [`docs/01-PRD.md`](docs/01-PRD.md), [`docs/03-API-spec.md`](docs/0
 
 #### `worker` — Grading and maintenance worker
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M1 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M1 · **Status:** in-progress
 
 Public surface:
 
@@ -359,7 +359,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/03-API-spec.md`](docs/0
 
 #### `auth` — auth
 
-**Owner:** _unassigned_ (expected: backend engineer (security)) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend engineer (security)) · **Milestone:** M0 · **Status:** built
 
 Public surface:
 
@@ -376,7 +376,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/03-API-spec.md`](docs/0
 
 #### `config` — config
 
-**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** built
 
 Public surface:
 
@@ -392,7 +392,7 @@ Specified by: [`.env.example`](.env.example), [`docs/13-environments-and-release
 
 #### `contracts` — contracts
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -409,7 +409,7 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md)
 
 #### `core-domain` — core-domain
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -442,7 +442,7 @@ Specified by: [`docs/10-certification-and-credentials.md`](docs/10-certification
 
 #### `db` — db
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -478,7 +478,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/04-ADRs.md`](docs/04-AD
 
 #### `grading` — grading
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M1 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M1 · **Status:** in-progress
 
 Public surface:
 
@@ -495,7 +495,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/04-ADRs.md`](docs/04-AD
 
 #### `observability` — observability
 
-**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** built
 
 Public surface:
 
@@ -511,7 +511,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/12-observability-and-ru
 
 #### `ui` — ui
 
-**Owner:** _unassigned_ (expected: frontend lead) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: frontend lead) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -544,7 +544,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/05-licensing-and-compli
 
 #### `postgres` — PostgreSQL 16
 
-**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** built
 
 Public surface:
 
@@ -562,7 +562,7 @@ Specified by: [`docs/hiring_platform_schema.sql`](docs/hiring_platform_schema.sq
 
 #### `valkey` — Valkey 8
 
-**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** built
 
 Public surface:
 
@@ -628,7 +628,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/04-ADRs.md`](docs/04-AD
 
 #### `q-maintenance` — maintenance.cron
 
-**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M1 · **Status:** planned
+**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M1 · **Status:** in-progress
 
 Public surface:
 
@@ -721,7 +721,7 @@ Specified by: [`docs/11-data-retention-and-dpia.md`](docs/11-data-retention-and-
 
 #### `job-question-stats` — Nightly question stats
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M1 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** built
 
 Public surface:
 
@@ -797,7 +797,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/11-data-retention-and-d
 
 #### `oidc` — OIDC identity provider
 
-**Owner:** _unassigned_ (expected: backend engineer (security)) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend engineer (security)) · **Milestone:** M0 · **Status:** built
 
 Public surface:
 
@@ -812,7 +812,7 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/14-threat-mod
 
 #### `otel-collector` — OpenTelemetry collector
 
-**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -992,7 +992,7 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/13-environmen
 | Job | Cadence | Milestone | Specified by | Invariant it protects |
 |---|---|---|---|---|
 | Deadline sweep (`job-deadline-sweep`) | every 60 seconds | M1 | [`docs/04-ADRs.md`](docs/04-ADRs.md), [`docs/03-API-spec.md`](docs/03-API-spec.md) | No attempt stays in_progress past deadline_at. The server sets expired, not the client, and whatever was autosaved is graded (ADR-006). |
-| Nightly question stats (`job-question-stats`) | daily at 02:30 UTC | M1 | [`docs/hiring_platform_schema.sql`](docs/hiring_platform_schema.sql), [`docs/03-API-spec.md`](docs/03-API-spec.md) | Exposure, p-value, discrimination and mean time are recomputed from the record rather than incremented at request time, so they cannot drift and a re-grade cannot distort them. |
+| Nightly question stats (`job-question-stats`) | daily at 02:30 UTC | M0 | [`docs/hiring_platform_schema.sql`](docs/hiring_platform_schema.sql), [`docs/03-API-spec.md`](docs/03-API-spec.md) | Exposure, p-value, discrimination and mean time are recomputed from the record rather than incremented at request time, so they cannot drift and a re-grade cannot distort them. |
 | Retention erasure (`job-retention-erasure`) | daily at 03:30 UTC | M1 | [`docs/11-data-retention-and-dpia.md`](docs/11-data-retention-and-dpia.md), [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md) | Candidate PII disappears on the clock set by RETENTION_CANDIDATE_PII_MONTHS and candidates.erase_after, while de-identified scores and the audit log survive their own periods. |
 | Webhook retry reaper (`job-webhook-reaper`) | every 5 minutes | M1 | [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/09-ats-integration.md`](docs/09-ats-integration.md) | At-least-once delivery inside a bounded 24-hour window. Every delivery reaches a terminal, visible state; none is retried forever and none vanishes. |
 | Proctor media deletion (`job-proctor-media-deletion`) | hourly | M4 | [`docs/11-data-retention-and-dpia.md`](docs/11-data-retention-and-dpia.md), [`docs/04-ADRs.md`](docs/04-ADRs.md) | Biometric media carries a hard ceiling of RETENTION_PROCTOR_MEDIA_DAYS that applies even to an attempt under review; deletion is unconditional and has no extension path (ADR-007). |
