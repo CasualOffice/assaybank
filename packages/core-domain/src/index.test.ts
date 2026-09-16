@@ -15,15 +15,20 @@ describe('@assaybank/core-domain', () => {
     expect(Object.keys(coreDomain).sort()).toStrictEqual(
       [
         'ATTEMPT_STATUSES',
+        'QUESTION_EVENTS',
         'QUESTION_KINDS',
+        'QUESTION_LIFECYCLE_STATUSES',
         'WORKSPACE_NAME',
         'canTransition',
+        'canTransitionQuestion',
         'computeDeadline',
         'domainError',
         'err',
         'isErr',
         'isOk',
         'isPastDeadline',
+        'isServableStatus',
+        'isTerminalQuestionStatus',
         'isTerminalStatus',
         'mapResult',
         'ok',
@@ -32,6 +37,7 @@ describe('@assaybank/core-domain', () => {
         'secondsRemaining',
         'shuffleOptions',
         'transition',
+        'transitionQuestion',
         'unwrapOr',
       ].sort(),
     );

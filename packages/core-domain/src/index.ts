@@ -5,10 +5,11 @@
 /**
  * @assaybank/core-domain — pure, deterministic domain logic. No I/O, ever.
  *
- * Owns: the attempt state machine (`transition`, `canTransition`), server-computed
- * deadlines (`computeDeadline`, `isPastDeadline`, `secondsRemaining`), section-rule
- * resolution and the question draw (`resolveDraw`, `shuffleOptions`), and the per-skill
- * roll-up (`rollUpSkillScores`).
+ * Owns: the attempt state machine (`transition`, `canTransition`), the question
+ * lifecycle (`transitionQuestion`, ADR-003), server-computed deadlines
+ * (`computeDeadline`, `isPastDeadline`, `secondsRemaining`), section-rule resolution and
+ * the question draw (`resolveDraw`, `shuffleOptions`), and the per-skill roll-up
+ * (`rollUpSkillScores`).
  *
  * No database client, no HTTP client, no filesystem and no clock read that was not
  * passed in as an argument (CODE-GRAPH L2, enforced by eslint). The draw is a function
@@ -38,6 +39,16 @@ export type { Clock } from './deadline.js';
 
 export { QUESTION_KINDS, resolveDraw } from './draw.js';
 export type { DrawCandidate, QuestionKind, SectionRule } from './draw.js';
+
+export {
+  QUESTION_EVENTS,
+  QUESTION_LIFECYCLE_STATUSES,
+  canTransitionQuestion,
+  isServableStatus,
+  isTerminalQuestionStatus,
+  transitionQuestion,
+} from './question-lifecycle.js';
+export type { QuestionEvent, QuestionStatus } from './question-lifecycle.js';
 
 export { shuffleOptions } from './shuffle.js';
 

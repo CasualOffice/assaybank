@@ -33,6 +33,24 @@ import {
   OrgSettingsResponseSchema,
 } from './org-settings.js';
 import { CursorSchema, PaginationQuerySchema, Rfc3339Schema, UuidSchema } from './primitives.js';
+import {
+  AuthorQuestionSchema,
+  AuthorQuestionVersionSchema,
+  CandidateQuestionSchema,
+  CreateQuestionSchema,
+  ListQuestionsQuerySchema,
+  PatchQuestionSchema,
+  QUESTIONS_PATH,
+  QUESTION_PATH,
+  QUESTION_VERSIONS_PATH,
+  QUESTION_VERSION_PATH,
+  QUESTION_VERSION_PUBLISH_PATH,
+  QuestionListResponseSchema,
+  QuestionParamsSchema,
+  QuestionVersionInputSchema,
+  QuestionVersionListResponseSchema,
+  QuestionVersionParamsSchema,
+} from './questions.js';
 
 /**
  * The generated document. Typed from the generator rather than by importing
@@ -117,6 +135,7 @@ export function buildOpenApiDocument(): OpenApiDocument {
   }
 
   registerOrgSettings(registry);
+  registerQuestionBank(registry);
 
   return new OpenApiGeneratorV31(registry.definitions).generateDocument({
     openapi: '3.1.0',
@@ -211,6 +230,265 @@ function registerOrgSettings(registry: OpenAPIRegistry): void {
         content: { 'application/json': { schema: OrgSettingsResponseSchema } },
       },
       422: { $ref: '#/components/responses/ValidationFailed' },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+}
+
+/**
+ * The question bank — docs/03 §4, and the surface P2 builds.
+ *
+ * Seven operations over two resources, each naming the permission it requires in its
+ * description for the reason given above: this API's permissions are rows in
+ * `user_role_permissions` (FR-27), not OAuth scopes a client could ask for.
+ *
+ * Three things in here are worth reading as documentation rather than as plumbing.
+ *
+ * **`409 version_immutable` on `PATCH …/versions/{v}`.** ADR-003 says a published version
+ * is frozen; the database trigger from migration 0001 is what enforces it and this status
+ * is the friendly version of that exception, not a substitute for it. It is documented on
+ * the operation so that a client author reads "edits create a new version" before writing
+ * the retry loop rather than after.
+ *
+ * **Publishing is its own operation.** Not a `PATCH` setting `status: 'published'`, which
+ * is why {@link PatchQuestionSchema} cannot express that value. A permission gate a
+ * sibling endpoint routes around is not a gate.
+ *
+ * **{@link CandidateQuestionSchema} is registered although no route here serves it.** It
+ * is the candidate half of the boundary (docs/17 §3) and it arrives in P3 attached to the
+ * attempt endpoints. Publishing the component now means the difference between the two
+ * audiences is visible in the document a client author reads — one schema carries
+ * `is_correct`, `solution_code` and `expected_stdout`, the other is structurally
+ * incapable of carrying any of them — rather than being an internal detail somebody has
+ * to take on trust.
+ */
+function registerQuestionBank(registry: OpenAPIRegistry): void {
+  // Registered so the component exists in the document from P2, ahead of the P3 routes
+  // that serve it. See the note above.
+  registry.register('CandidateQuestion', CandidateQuestionSchema);
+
+  const questionParams = { params: QuestionParamsSchema };
+  const versionParams = { params: QuestionVersionParamsSchema };
+
+  registry.registerPath({
+    method: 'get',
+    path: QUESTIONS_PATH,
+    tags: ['Question bank'],
+    summary: 'List questions',
+    description:
+      'Cursor-paginated, newest first. Requires `question.read`. Filters are explicit ' +
+      'query parameters, never a generic query language (docs/17 §3). Archived questions ' +
+      'are excluded unless `include_archived` asks for them.',
+    security: [{ staffSession: [] }],
+    request: { query: ListQuestionsQuerySchema },
+    responses: {
+      200: {
+        description: 'One page of the bank.',
+        content: { 'application/json': { schema: QuestionListResponseSchema } },
+      },
+      422: { $ref: '#/components/responses/ValidationFailed' },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: QUESTIONS_PATH,
+    tags: ['Question bank'],
+    summary: 'Create a question',
+    description:
+      'Creates an empty question in `draft`. Requires `question.write`. Content arrives ' +
+      'as its first version through `POST /questions/{id}/versions`, which is the same ' +
+      'path an edit takes (ADR-003).',
+    security: [{ staffSession: [] }],
+    request: {
+      body: {
+        required: true,
+        content: { 'application/json': { schema: CreateQuestionSchema } },
+      },
+    },
+    responses: {
+      201: {
+        description: 'The question as created.',
+        content: { 'application/json': { schema: AuthorQuestionSchema } },
+      },
+      422: { $ref: '#/components/responses/ValidationFailed' },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: QUESTION_PATH,
+    tags: ['Question bank'],
+    summary: 'Read a question, current version expanded',
+    description: 'Requires `question.read`.',
+    security: [{ staffSession: [] }],
+    request: questionParams,
+    responses: {
+      200: {
+        description: 'The question and its current version.',
+        content: { 'application/json': { schema: AuthorQuestionSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'patch',
+    path: QUESTION_PATH,
+    tags: ['Question bank'],
+    summary: 'Move a question through its lifecycle, or archive it',
+    description:
+      'Requires `question.write`. `status` may be `draft`, `review` or `retired`; ' +
+      '`published` is not settable here because publishing is a distinct action ' +
+      'requiring `question.publish`. An illegal transition is `409 conflict`.',
+    security: [{ staffSession: [] }],
+    request: {
+      ...questionParams,
+      body: { required: true, content: { 'application/json': { schema: PatchQuestionSchema } } },
+    },
+    responses: {
+      200: {
+        description: 'The question after the change.',
+        content: { 'application/json': { schema: AuthorQuestionSchema } },
+      },
+      409: { $ref: '#/components/responses/Conflict' },
+      422: { $ref: '#/components/responses/ValidationFailed' },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'delete',
+    path: QUESTION_PATH,
+    tags: ['Question bank'],
+    summary: 'Archive a question (soft delete)',
+    description:
+      'Sets `archived_at` from the server clock and answers the archived question. ' +
+      'Requires `question.write`. Nothing is removed: attempts reference versions, and a ' +
+      'hard delete would unexplain every score the question ever produced (ADR-003).',
+    security: [{ staffSession: [] }],
+    request: questionParams,
+    responses: {
+      200: {
+        description: 'The question, now archived.',
+        content: { 'application/json': { schema: AuthorQuestionSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: QUESTION_VERSIONS_PATH,
+    tags: ['Question bank'],
+    summary: 'List a question’s versions',
+    description: 'Newest first, cursor-paginated. Requires `question.read`.',
+    security: [{ staffSession: [] }],
+    request: { ...questionParams, query: PaginationQuerySchema },
+    responses: {
+      200: {
+        description: 'One page of versions.',
+        content: { 'application/json': { schema: QuestionVersionListResponseSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: QUESTION_VERSIONS_PATH,
+    tags: ['Question bank'],
+    summary: 'Create the next version',
+    description:
+      'Requires `question.write`. Fields the body omits are copied forward from the ' +
+      'previous version, so fixing a typo does not mean retyping the question; a named ' +
+      'child collection replaces the previous one wholesale. The first version of a ' +
+      'question must carry `prompt_md` and `difficulty`, because it has nothing to copy ' +
+      'forward from.',
+    security: [{ staffSession: [] }],
+    request: {
+      ...questionParams,
+      body: {
+        required: true,
+        content: { 'application/json': { schema: QuestionVersionInputSchema } },
+      },
+    },
+    responses: {
+      201: {
+        description: 'The new version, in draft.',
+        content: { 'application/json': { schema: AuthorQuestionVersionSchema } },
+      },
+      422: { $ref: '#/components/responses/ValidationFailed' },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: QUESTION_VERSION_PATH,
+    tags: ['Question bank'],
+    summary: 'Read one version',
+    description: 'Addressed by `version_no`, not by uuid. Requires `question.read`.',
+    security: [{ staffSession: [] }],
+    request: versionParams,
+    responses: {
+      200: {
+        description: 'The version in full.',
+        content: { 'application/json': { schema: AuthorQuestionVersionSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'patch',
+    path: QUESTION_VERSION_PATH,
+    tags: ['Question bank'],
+    summary: 'Edit a draft version in place',
+    description:
+      'Requires `question.write`. Legal only while `published_at` is null. A `PATCH` ' +
+      'against a published version answers `409` with code `version_immutable`: a ' +
+      'published version is frozen, and the edit belongs in a new version (ADR-003, FR-1).',
+    security: [{ staffSession: [] }],
+    request: {
+      ...versionParams,
+      body: {
+        required: true,
+        content: { 'application/json': { schema: QuestionVersionInputSchema } },
+      },
+    },
+    responses: {
+      200: {
+        description: 'The version after the edit.',
+        content: { 'application/json': { schema: AuthorQuestionVersionSchema } },
+      },
+      409: { $ref: '#/components/responses/Conflict' },
+      422: { $ref: '#/components/responses/ValidationFailed' },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: QUESTION_VERSION_PUBLISH_PATH,
+    tags: ['Question bank'],
+    summary: 'Publish a version',
+    description:
+      'Requires `question.publish`. Irreversible for that version: `published_at` is set ' +
+      'from the server clock and the row becomes read-only, enforced by a database ' +
+      'trigger rather than by this API alone. The question becomes the published version’s ' +
+      'current version and its status moves to `published`. Publishing an already ' +
+      'published version is `409 conflict`.',
+    security: [{ staffSession: [] }],
+    request: versionParams,
+    responses: {
+      200: {
+        description: 'The version, now frozen.',
+        content: { 'application/json': { schema: AuthorQuestionVersionSchema } },
+      },
+      409: { $ref: '#/components/responses/Conflict' },
       ...STAFF_ROUTE_ERRORS,
     },
   });

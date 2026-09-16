@@ -24,9 +24,20 @@
  * owner as well as the application roles, and refuses to store a voiding, an override, a
  * re-grade or an elevated access with no reason (FR-21, FR-25, ADR-010).
  *
- * Contains no business rules. Deciding *which* rows to read is the caller's job; this
- * package only guarantees that the rows it can reach belong to the right tenant, and
- * that whatever it did to them is on the record.
+ * From P2 it also owns the question-bank repository: `createQuestion`, `listQuestions`
+ * and the version functions that ADR-003 turns on. `createVersion` copies forward from
+ * the previous version rather than demanding a complete body, because an edit that means
+ * retyping the question is an edit that introduces a second difference nobody asked for —
+ * the merge is pure and lives in `version-content.ts` so the whole of that behaviour is
+ * provable without a database. Every write against a version carries
+ * `AND published_at IS NULL`, so the API answers `409 version_immutable` instead of
+ * provoking the trigger that migrations 0001 and 0007 install; the guard is the polite
+ * path and the trigger is the guarantee.
+ *
+ * Contains no business rules. Deciding *which* rows to read is the caller's job, and
+ * whether a lifecycle transition is legal is `@assaybank/core-domain`'s; this package
+ * only guarantees that the rows it can reach belong to the right tenant, and that
+ * whatever it did to them is on the record.
  */
 
 export {
@@ -64,6 +75,42 @@ export type {
   Elevation,
   ElevationRecord,
 } from './client.js';
+
+export { decodeKeysetCursor, encodeKeysetCursor } from './cursor.js';
+export type { Keyset } from './cursor.js';
+
+export {
+  archiveQuestion,
+  createQuestion,
+  createVersion,
+  getLatestVersion,
+  getQuestionWithCurrentVersion,
+  getVersion,
+  listQuestions,
+  listVersions,
+  publishVersion,
+  restoreQuestion,
+  retireQuestion,
+  setQuestionSkills,
+  setQuestionStatus,
+  updateVersion,
+} from './questions.js';
+export type {
+  CreateQuestionInput,
+  Page,
+  ReadQuestionOptions,
+  ReadVersionOptions,
+  VersionAuthorship,
+} from './questions.js';
+
+export { mergeVersionContent, missingFirstVersionFields } from './version-content.js';
+export type {
+  AnswerKeyContent,
+  CodingSpecContent,
+  McqOptionContent,
+  TestCaseContent,
+  VersionContent,
+} from './version-content.js';
 
 export { MIGRATIONS_DIR, migrate } from './migrate.js';
 export type { MigrateOptions, MigrateResult } from './migrate.js';

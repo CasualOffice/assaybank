@@ -50,6 +50,7 @@ import { registerErrorHandling } from './errors.js';
 import { registerHealthRoutes, type DependencyProbe } from './health.js';
 import { registerHttpMetrics } from './http-metrics.js';
 import { registerOrgRoutes } from './org/routes.js';
+import { registerQuestionRoutes } from './questions/routes.js';
 import { registerRateLimit } from './rate-limit.js';
 import { newTraceId, registerRequestContext, requestIdFor } from './request-context.js';
 import { DEFAULT_SERVICE_NAME } from './service.js';
@@ -341,6 +342,11 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     // possible answer is a 500. Boot always supplies one (index.ts).
     if (options.db !== undefined) {
       registerOrgRoutes(app, { db: options.db, now });
+      // The question bank (P2, docs/03 §4). Registered on the same condition and in the
+      // same place as the settings routes: every one of its ten handlers is either a
+      // `withOrg` read or a `request.audited` write, so a server built without a database
+      // would register ten routes whose only possible answer is a 500.
+      registerQuestionRoutes(app, { db: options.db, now });
     }
   });
 

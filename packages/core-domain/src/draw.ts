@@ -2,7 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { type QuestionVersionId, type SkillId } from '@assaybank/contracts';
+import {
+  QUESTION_KINDS as CONTRACT_QUESTION_KINDS,
+  type QuestionKind,
+  type QuestionVersionId,
+  type SkillId,
+} from '@assaybank/contracts';
 
 import { domainError, type DomainError } from './errors.js';
 import { err, ok, type Result } from './result.js';
@@ -21,27 +26,18 @@ import { shuffleWith } from './shuffle.js';
  * cannot be satisfied must fail at publish time, not in front of a candidate.
  */
 
-/** `question_kind` from docs/hiring_platform_schema.sql. */
-export type QuestionKind =
-  | 'mcq_single'
-  | 'mcq_multi'
-  | 'true_false'
-  | 'short_answer'
-  | 'coding'
-  | 'sql'
-  | 'subjective'
-  | 'system_design';
+/**
+ * `question_kind` from docs/hiring_platform_schema.sql §4.
+ *
+ * Aliased from `@assaybank/contracts` rather than restated. The union is also a
+ * PostgreSQL enum and a wire value, and a draw rule filtering on a kind the bank cannot
+ * hold is a bug that surfaces as an assessment which silently fails to compose — so there
+ * is one list, in the package both the server and the two browser bundles already read.
+ */
+export type { QuestionKind };
 
-export const QUESTION_KINDS: readonly QuestionKind[] = [
-  'mcq_single',
-  'mcq_multi',
-  'true_false',
-  'short_answer',
-  'coding',
-  'sql',
-  'subjective',
-  'system_design',
-];
+/** Every kind, for an exhaustive test or a filter default. */
+export const QUESTION_KINDS: readonly QuestionKind[] = CONTRACT_QUESTION_KINDS;
 
 /** Difficulty is `smallint CHECK (difficulty BETWEEN 1 AND 5)` in the schema. */
 const MIN_DIFFICULTY = 1;

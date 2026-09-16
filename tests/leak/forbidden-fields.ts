@@ -37,6 +37,44 @@ export const FORBIDDEN_CANDIDATE_FIELDS: readonly string[] = Object.freeze([
   'rubricInternal',
   'integrity_verdict',
   'integrityVerdict',
+
+  // --- P2: the question bank's own answer-key columns -----------------------
+  //
+  // Added with the question-bank serialisers (P2 step 4). Each is a column
+  // `packages/db/src/schema/question-bank.ts` marks as answer-key material, in both the
+  // snake_case the wire uses and the camelCase a Drizzle row carries — a serialiser that
+  // forwarded a row object rather than building a view would leak the camel spelling, so
+  // both are refused.
+  //
+  // `question-bank.test.ts` asserts that this list stays a superset of the contract
+  // package's own `ANSWER_KEY_FIELDS`, which is what keeps the two from drifting: a name
+  // added to the compile-time predicate and forgotten here would leave the standing suite
+  // quietly narrower than the type system it exists to back up.
+  'answer_keys',
+  'answerKeys',
+  /** `mcq_options.score_delta` — the credit an option carries, which names the right one. */
+  'score_delta',
+  'scoreDelta',
+  /** `mcq_options.rationale_md` — why an option is right or wrong. */
+  'rationale_md',
+  'rationaleMd',
+  /** `coding_specs.solution_code` — the reference solution. Never leaves the server. */
+  'solution_code',
+  'solutionCode',
+  /** `coding_specs.checker_code` — a custom checker reveals the shape of the answer. */
+  'checker_code',
+  'checkerCode',
+  // The whole of a `short_answer_keys` row. `pattern` and `tolerance` are generic words,
+  // and banning them costs a candidate-facing type the right to use them for something
+  // innocent. That is the correct trade: the innocent use can be renamed, and an answer
+  // key reaching a candidate cannot be taken back.
+  'match_type',
+  'matchType',
+  'pattern',
+  'tolerance',
+  /** `question_versions.explanation_md` — the worked answer, written for the review screen. */
+  'explanation_md',
+  'explanationMd',
 ]);
 
 const FORBIDDEN = new Set(FORBIDDEN_CANDIDATE_FIELDS);
