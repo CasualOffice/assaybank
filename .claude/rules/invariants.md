@@ -2,12 +2,12 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`../../docs/04-ADRs.md`](../../docs/04-ADRs.md), [`../../docs/06-testing-strategy.md`](../../docs/06-testing-strategy.md), [`doc-maintenance.md`](doc-maintenance.md), [`review-checklist.md`](review-checklist.md)
 
 ---
 
-Sixteen statements that must be true of this system at every moment. Each comes from a decision that is expensive to reverse, and each is guarded by a test that is release-blocking rather than advisory. Nothing here is a preference, a style, or a thing we currently happen to do.
+Seventeen statements that must be true of this system at every moment. Each comes from a decision that is expensive to reverse, and each is guarded by a test that is release-blocking rather than advisory. Nothing here is a preference, a style, or a thing we currently happen to do.
 
 None of these is built yet — the guarding tests are specified in [`docs/06-testing-strategy.md`](../../docs/06-testing-strategy.md) and land with the milestone named in the last column. What the table records is the obligation, so that the test arrives with the code rather than after it.
 
@@ -41,9 +41,10 @@ None of these is built yet — the guarding tests are specified in [`docs/06-tes
 | 14 | An exhausted grading job never finalises a candidate at whatever score it has. It moves the attempt to `under_review` and alerts. | ADR-008, HLD §9 | Integration test driving a job past `QUEUE_MAX_ATTEMPTS` and asserting the attempt is `under_review`, not `finalised` | M2 |
 | 15 | Migrations are expand-contract across separate deploys. No single migration both adds and destroys. | HLD §10 | Migration test from the previous release against a database with an exam window open; a destructive step in one file fails review | M0 |
 | 16 | Every timestamp column is `timestamptz` stored in UTC and serialised as RFC 3339. Every id is an application-generated UUIDv4. | CLAUDE.md conventions | Schema assertion over `information_schema` in the migration test suite | M0 |
+| 17 | A bank import writes each item at most once. Its checkpoint advances in the transaction that writes the item, and a retried job resumes at the checkpoint; a request's job row and its audit row commit together, and nothing is enqueued outside that commit. | ADR-021 | `apps/worker/test/integration/bank-job.integration.test.ts` — a job with a checkpoint of 3 writes only the remaining items, checked by mutation to fail when the checkpoint is ignored | M0 — built 2026-09-17 |
 
 ## When your change appears to need an exception
 
 Invariants 6 and 4 — no automated rejection, and no AI in the scoring or decision path — are product constraints with legal exposure attached. They are not reviewer judgement calls. A change that needs either softened requires a new ADR that supersedes ADR-007 or ADR-011 and a conversation with counsel, recorded in [`project/RISKS.md`](../../project/RISKS.md) as R-17. A reviewer who is asked to approve one of these anyway should decline and escalate.
 
-For the remaining fourteen: the exception process is an ADR, not a comment. Write down the context, the decision, the consequences and what would make you revisit it, append it to [`docs/04-ADRs.md`](../../docs/04-ADRs.md), and update this file in the same change — the registry in [`docs/DOC-OWNERSHIP.md`](../../docs/DOC-OWNERSHIP.md) makes any ADR edit fire the trigger that brings you back here. If the invariant survives, say so in the ADR's consequences; the useful record is what we considered, not only what we chose.
+For the remaining fifteen: the exception process is an ADR, not a comment. Write down the context, the decision, the consequences and what would make you revisit it, append it to [`docs/04-ADRs.md`](../../docs/04-ADRs.md), and update this file in the same change — the registry in [`docs/DOC-OWNERSHIP.md`](../../docs/DOC-OWNERSHIP.md) makes any ADR edit fire the trigger that brings you back here. If the invariant survives, say so in the ADR's consequences; the useful record is what we considered, not only what we chose.

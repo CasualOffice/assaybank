@@ -134,7 +134,7 @@ flowchart LR
   n_api -->|"queue"| n_q_grading_run
   n_api -->|"queue"| n_q_webhooks
   n_api -->|"queue"| n_q_notifications
-  n_api -->|"queue"| n_q_bank_jobs
+  n_worker -->|"queue"| n_q_bank_jobs
   n_q_grading_submit -->|"queue"| n_worker
   n_q_grading_run -->|"queue"| n_worker
   n_q_webhooks -->|"queue"| n_worker
@@ -236,7 +236,7 @@ Solid arrows are runtime calls, labelled by kind. Dotted arrows are compile-time
 | `object-store` | SeaweedFS (S3-compatible) | datastore | M0 | planned | `service: seaweedfs S3 :8333 (S3_ENDPOINT)` | Object storage for export files, packaged session replays, archived event partitions, large submission artefacts and proctor media. |
 | `postgres` | PostgreSQL 16 | datastore | M0 | built | `service: postgres:5432` | The single source of truth for all domain data, with row-level security for org isolation and monthly partitions on the two event tables. |
 | `valkey` | Valkey 8 | datastore | M0 | built | `service: valkey:6379 (REDIS_URL)` | BSD-licensed Redis-protocol server carrying the BullMQ queues, pub/sub fan-out, rate-limit counters and the short-lived candidate session cache. |
-| `q-bank-jobs` | bank.jobs | queue | M0 | planned | `logical queue on Valkey` | Long-running bank operations: QTI and JSON import, dataset import, question and report export, candidate bulk CSV, org data export. |
+| `q-bank-jobs` | bank.jobs | queue | M0 | in-progress | `logical queue on Valkey` | Long-running bank operations: QTI and JSON import, dataset import, question and report export, candidate bulk CSV, org data export. |
 | `q-grading-run` | grading.run | queue | M2 | planned | `logical queue on Valkey` | Interactive trial runs against sample cases only, kept on a separate high-priority queue so a grading backlog never stalls the editor. |
 | `q-grading-submit` | grading.submit | queue | M2 | planned | `logical queue on Valkey` | Batch grading of scored coding submissions against the full hidden test-case set. |
 | `q-maintenance` | maintenance.cron | queue | M1 | in-progress | `logical queue on Valkey` | Repeatable-job carrier for every scheduled sweep, so schedules survive a worker restart and never run twice concurrently. |
@@ -581,7 +581,7 @@ Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/05-licensing-and-compli
 
 #### `q-bank-jobs` — bank.jobs
 
-**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** planned
+**Owner:** _unassigned_ (expected: backend lead) · **Milestone:** M0 · **Status:** in-progress
 
 Public surface:
 
@@ -592,8 +592,9 @@ Invariants:
 
 - An import is transactional per question; a malformed row is skipped and reported, never partially written.
 - Licence provenance from an imported dataset is preserved on the question row.
+- Fed by an outbox, not by producers: a job exists only as a committed bank_jobs row, and a retried import resumes at its checkpoint (ADR-021).
 
-Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md)
+Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md), [`docs/04-ADRs.md`](docs/04-ADRs.md)
 
 #### `q-grading-run` — grading.run
 
@@ -884,7 +885,7 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/13-environmen
 | `api` | `candidate` | http | SSE (text/event-stream) | no | M2 | GET /attempt/submissions/{id}/stream pushes grading progress and the filtered final result; hidden cases carry pass/fail and a label only. |
 | `web` | `collab` | ws | WSS / Yjs sync + awareness | no | M3 | Interviewer joins the room document with a 60-second ticket; cursors and selections travel over awareness. |
 | `candidate` | `collab` | ws | WSS / Yjs sync + awareness | no | M3 | Candidate joins the same room document after POST /join/{room_code} returns a ticket. |
-| `api` | `postgres` | sql | TCP/libpq via Drizzle | yes | M0 | All domain reads and writes, with app.current_org set on the pooled connection for row-level security. |
+| `api` | `postgres` | sql | TCP/libpq via Drizzle | yes | M0 | All domain reads and writes, with app.current_org set on the pooled connection for row-level security. Includes the bank_jobs outbox row written with each import or export request (ADR-021). |
 | `worker` | `postgres` | sql | TCP/libpq via Drizzle | yes | M1 | Loads question versions, test cases and limits; writes submission_results, submission and answer scores, attempt transitions and question_stats. |
 | `collab` | `postgres` | sql | TCP/libpq via Drizzle | no | M3 | Batched appends to session_events and a doc_state snapshot every COLLAB_SNAPSHOT_INTERVAL_MS. No other table is written. |
 | `api` | `valkey` | queue | RESP via BullMQ / ioredis | yes | M0 | BullMQ producer connection; the same instance carries rate-limit counters and the short-lived candidate session cache. |
@@ -893,12 +894,12 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/13-environmen
 | `api` | `q-grading-run` | queue | BullMQ | no | M2 | POST /attempt/questions/{aq_id}/run and POST /sessions/{id}/run enqueue a sample-case-only trial run. |
 | `api` | `q-webhooks` | queue | BullMQ | no | M1 | Domain events are recorded and enqueued in the same transaction boundary as the state change that produced them. |
 | `api` | `q-notifications` | queue | BullMQ | no | M1 | Invitation send and resend, reminder and result notification requests. |
-| `api` | `q-bank-jobs` | queue | BullMQ | no | M0 | Import, export and bulk CSV endpoints return 202 with a job id and hand the work over. |
+| `worker` | `q-bank-jobs` | queue | BullMQ | no | M0 | The outbox relay (ADR-021): claims committed bank_jobs rows through claim_bank_jobs() and enqueues each with the row id as the job id. The API never enqueues; its import and export endpoints write the row and return 202. |
 | `q-grading-submit` | `worker` | queue | BullMQ | no | M2 | Batch grading jobs are dequeued at QUEUE_SUBMIT_CONCURRENCY. |
 | `q-grading-run` | `worker` | queue | BullMQ | no | M2 | Interactive runs are dequeued at QUEUE_RUN_CONCURRENCY ahead of batch work. |
 | `q-webhooks` | `worker` | queue | BullMQ | no | M1 | Delivery jobs with exponential backoff across a 24-hour window. |
 | `q-notifications` | `worker` | queue | BullMQ | no | M1 | E-mail send jobs. |
-| `q-bank-jobs` | `worker` | queue | BullMQ | no | M0 | Import, export and bulk candidate jobs, each streaming progress into the job row. |
+| `q-bank-jobs` | `worker` | queue | BullMQ | no | M0 | Import and export jobs, each recording progress on its bank_jobs row; an import advances its checkpoint in the transaction that writes each item. |
 | `q-maintenance` | `job-deadline-sweep` | queue | BullMQ repeatable | no | M1 | Repeatable tick every 60 seconds. |
 | `q-maintenance` | `job-question-stats` | queue | BullMQ repeatable | no | M1 | Repeatable tick nightly. |
 | `q-maintenance` | `job-retention-erasure` | queue | BullMQ repeatable | no | M1 | Repeatable tick nightly. |

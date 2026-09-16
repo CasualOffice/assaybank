@@ -61,6 +61,7 @@ export {
   scorecardRatings,
 } from './scorecards.js';
 export { proctorEvents, proctorMedia, auditLog } from './proctoring-audit.js';
+export { bankJobs } from './bank-jobs.js';
 
 import {
   organizations,
@@ -101,13 +102,15 @@ import {
 } from './scorecards.js';
 import { proctorEvents, proctorMedia, auditLog } from './proctoring-audit.js';
 import { staffAccounts, staffVerifications } from './staff-identity.js';
+import { bankJobs } from './bank-jobs.js';
 
 /**
  * Every table in the model, keyed by its Drizzle export name.
  *
- * Forty-two tables: the forty of `docs/hiring_platform_schema.sql`, plus the two that
+ * Forty-three tables: the forty of `docs/hiring_platform_schema.sql`, plus the two that
  * staff authentication needs and the schema file never had — see `./staff-identity.ts`
- * for why they are separate and why they are both tenant tables. `src/schema/schema.test.ts`
+ * for why they are separate and why they are both tenant tables — and `bank_jobs`, the
+ * import and export outbox (ADR-021). `src/schema/schema.test.ts`
  * asserts the count, and `infra/postgres/init/03-rls.sql` accounts for the original forty.
  * Enums are deliberately absent: this object is walked to find tables, and a `pgEnum` is
  * not one.
@@ -138,6 +141,8 @@ export const schema = {
   testCases,
   shortAnswerKeys,
   questionStats,
+  // 4a — bank import and export jobs (migration 0010; not in docs/hiring_platform_schema.sql's forty)
+  bankJobs,
   // 5 — assessments
   assessments,
   assessmentSections,

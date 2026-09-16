@@ -236,6 +236,11 @@ async function seed(client: postgres.Sql, label: string): Promise<Seed> {
   `;
 
   await client`
+    INSERT INTO bank_jobs (org_id, kind, format, requested_by, created_at)
+    VALUES (${orgId}, 'export', 'json', ${userId}, now())
+  `;
+
+  await client`
     INSERT INTO audit_log (org_id, actor_user_id, action, entity_type)
     VALUES (${orgId}, ${userId}, 'question.publish', 'question')
   `;

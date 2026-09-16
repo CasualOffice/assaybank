@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (DPO)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`14-threat-model.md`](14-threat-model.md), [`15-accessibility-conformance.md`](15-accessibility-conformance.md), [`16-ai-usage-policy.md`](16-ai-usage-policy.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`03-API-spec.md`](03-API-spec.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`../project/RISKS.md`](../project/RISKS.md), [`../project/OPEN-QUESTIONS.md`](../project/OPEN-QUESTIONS.md)
 
 ---
@@ -269,6 +269,7 @@ Every category of personal data the system holds, where it lives, why it is lawf
 | D-26 | Voluntary demographic data | Not in the schema today; required by `GET /reports/adverse-impact` | Candidate | Art 9(2)(g) substantial public interest — equality monitoring, where the jurisdiction provides it; otherwise Art 9(2)(a) | 24 months, aggregate only | Stored separately (§2.4), never joined to a named candidate in any UI | DPO |
 | D-27 | Subject request register | `data_subject_requests.*` | Candidate | Art 6(1)(c) — demonstrating compliance | 7 years | Retained; subject identified only by `subject_email_hash` after closure | DPO |
 | D-28 | Erasure ledger | `erasure_ledger.*` (§5.7) | Candidate (pseudonymous) | Art 6(1)(c) | 7 years | Retained — contains no PII by construction | Engineering |
+| D-29 | Bank import and export files | `bank_jobs.input`, `bank_jobs.result`, and `requested_by` (ADR-021, migration 0010) | Employee (`requested_by`); the files are question content, not personal data — but an author may have typed a name or an email into a prompt | Art 6(1)(f) | Upload: cleared when its job finishes. Export: unreadable through the API 7 days after it finished; bytes nulled by the retention sweep (planned). Job row: with the audit log | `input` nulled on finish; `result` nulled after `expires_at` — **the sweep that does this is not built, so today an expired file's bytes remain in the row** | Engineering |
 
 ### 2.2 Object store — prefix map
 

@@ -311,13 +311,13 @@ exportable and re-importable without loss* — plus:
 fidelity is the most commonly underestimated task here; start it in week 1 of the phase, not week 4.
 
 **Progress, 2026-09-17** — ahead of the baseline dates above, which are unchanged until OQ-015 is
-signed. Workstreams 1–4 and 7 are built and tested. Workstream 5 has its two file formats and import
-and export through the database, with a lossless round trip over all eight kinds into an empty
-organisation; the `bank.jobs` job, the routes and the dataset importers remain. Workstream 6 has
+signed. Workstreams 1–4 and 7 are built and tested. Workstream 5 has JSON and QTI import and export end to
+end — routes, the `bank.jobs` outbox job (ADR-021) and a lossless round trip over all eight kinds
+into an empty organisation; the dataset importers remain. Workstream 6 has
 not started. Exit-gate rows met: immutability by any path; export → import → export byte-identical
 (`apps/worker/test/integration/bank-transfer.integration.test.ts`, at the job layer); the leak
-suite over all eight kinds; the thin-skill coverage fixture. Not yet met: the 200-question,
-three-role load, and the `source_license` contract test, which needs the import route.
+suite over all eight kinds; the thin-skill coverage fixture. An import without `source_license` is refused
+(`apps/api/test/integration/bank-jobs.test.ts`). Not yet met: the 200-question, three-role load.
 
 ---
 

@@ -119,9 +119,20 @@ The worker composes: `packages/db` moves rows, a pure package computes (`package
 
 ### 3.4b Bank import and export
 
-Long-running bank operations run on the `bank.jobs` queue in the worker, not in the request path: the API accepts a file or an export request, answers `202` with a job id, and the worker does the work (docs/03 §4 "Bulk"). The queue, the job table and the routes are planned.
+Long-running bank operations run on the `bank.jobs` queue in the worker, not in the request path: the API accepts a file or an export request, answers `202` with a job id, and the worker does the work (docs/03 §4 "Bulk"). Built 2026-09-17 for JSON and QTI.
 
-What exists, as of 2026-09-17, is the part that decides whether an import is lossless — the two interchange codecs, as pure functions in `apps/worker/src/interchange/`:
+**Delivery is a transactional outbox (ADR-021).** The request writes a `bank_jobs` row in the same transaction as its audit row, and the API never enqueues. A relay in the worker claims committed rows every two seconds through `claim_bank_jobs()` — a `SECURITY DEFINER` function returning ids and organisation ids only — and enqueues each with the row id as the job id. The job then runs under `withOrg`. An import advances its checkpoint in the transaction that writes each item, so a retried job resumes instead of repeating. Files up to 32 MiB are held in the row until the object store adapter exists.
+
+```
+API request ──(one commit: bank_jobs row + audit row)──► PostgreSQL
+                                                             │  claim_bank_jobs() every 2 s
+worker relay ◄───────────────────────────────────────────────┘
+     │ enqueue, jobId = row id
+     ▼
+bank.jobs ──► worker job ──withOrg──► parse file ─► per item: write + advance checkpoint (one tx)
+```
+
+The part that decides whether an import is lossless is the two interchange codecs, as pure functions in `apps/worker/src/interchange/`:
 
 - a **JSON bank document** carrying each question's full version history, and
 - a **QTI 2.1 content package** carrying each question's served version in standard QTI, with what QTI cannot express in namespaced manifest metadata.

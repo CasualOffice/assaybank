@@ -44,6 +44,7 @@ import {
   exampleJobPayload,
   runExampleJob,
 } from './jobs/example.js';
+import { BANK_JOB_NAME, relayBankJobs, runBankJob } from './jobs/bank-job.js';
 import {
   isScheduledJobName,
   repeatOptionsFor,
@@ -51,7 +52,7 @@ import {
   SCHEDULED_JOBS,
   runScheduledJob,
 } from './jobs/scheduled.js';
-import { createQueue, createWorker, defaultConnection, QUEUES } from './queues.js';
+import { createQueue, createWorker, defaultConnection, QUEUES, resolveAttempts } from './queues.js';
 import type { JobHandler } from './queues.js';
 import { startDepthSampler } from './sampler.js';
 import type { RunningSampler } from './sampler.js';
@@ -73,6 +74,12 @@ export const WORKSPACE_NAME = '@assaybank/worker';
  */
 export const SHUTDOWN_GRACE_MS = 45_000;
 
+/**
+ * How often the relay looks for queued bank jobs. The latency a person waiting on a 202 sees
+ * before work starts, and one cheap indexed query per tick when there is nothing to do.
+ */
+export const BANK_RELAY_INTERVAL_MS = 2_000;
+
 /** Options for {@link start}. Every one has a production-correct default. */
 export interface StartOptions {
   readonly logger?: Logger | undefined;
@@ -83,6 +90,8 @@ export interface StartOptions {
   readonly registerSchedules?: boolean | undefined;
   /** Defaults to true. The no-op example job that proves the lifecycle. */
   readonly enqueueExampleJob?: boolean | undefined;
+  /** Defaults to true. False leaves queued bank jobs unclaimed, which a test may want. */
+  readonly relayBankJobs?: boolean | undefined;
   /** Defaults to true. False skips the OpenTelemetry SDK, which a test does not want. */
   readonly telemetry?: boolean | undefined;
   readonly now?: (() => Date) | undefined;
@@ -95,6 +104,8 @@ export interface WorkerRuntime {
   readonly metricsPort: number;
   readonly maintenanceQueue: Queue<unknown, unknown, string>;
   readonly maintenanceWorker: Worker<unknown, unknown, string>;
+  readonly bankQueue: Queue<unknown, unknown, string>;
+  readonly bankWorker: Worker<unknown, unknown, string>;
   /** Drains in-flight jobs, then releases every handle. Safe to call twice. */
   stop(reason: string): Promise<void>;
 }
@@ -176,6 +187,55 @@ export async function start(options: StartOptions = {}): Promise<WorkerRuntime> 
     now,
   });
 
+  // --- bank.jobs (ADR-021) -------------------------------------------------------
+  const bankQueue = createQueue<unknown, unknown>('bank.jobs', { connection });
+  const bankAttempts = resolveAttempts('bank.jobs', config.queues);
+  const bankWorker = createWorker<unknown, unknown>(
+    'bank.jobs',
+    async (job) => {
+      if (job.name !== BANK_JOB_NAME) {
+        throw new UnrecoverableError(
+          `no handler for job "${job.name}" on bank.jobs; it was dead-lettered unretried`,
+        );
+      }
+      return runBankJob(job.data, { db, now, logger }, job.attemptsMade + 1 >= bankAttempts);
+    },
+    { connection, logger, now },
+  );
+
+  // The outbox relay: claims rows the API committed and puts them on bank.jobs. One pass at a
+  // time — a slow pass is not overlapped by the next tick — and a failed pass is logged and
+  // retried on the next tick, because the rows stay claimable.
+  let relaying = false;
+  const relayTimer =
+    options.relayBankJobs === false
+      ? undefined
+      : setInterval(() => {
+          if (relaying) return;
+          relaying = true;
+          void relayBankJobs({
+            db,
+            now,
+            enqueue: async (payload, key) => {
+              await bankQueue.add(BANK_JOB_NAME, injectTraceContext(payload), {
+                jobId: toJobId(key),
+              });
+            },
+          })
+            .then((relayed) => {
+              if (relayed > 0) {
+                logger.info({ event: 'bank_job.relayed', count: relayed }, 'bank jobs relayed');
+              }
+            })
+            .catch((err: unknown) => {
+              logger.warn({ event: 'bank_job.relay_failed', err }, 'bank job relay pass failed');
+            })
+            .finally(() => {
+              relaying = false;
+            });
+        }, BANK_RELAY_INTERVAL_MS);
+  relayTimer?.unref();
+
   if (options.registerSchedules !== false) {
     await registerSchedules(maintenanceQueue, logger);
   }
@@ -203,11 +263,14 @@ export async function start(options: StartOptions = {}): Promise<WorkerRuntime> 
   let stopping: Promise<void> | undefined;
 
   const stop = (reason: string): Promise<void> => {
+    if (relayTimer !== undefined) clearInterval(relayTimer);
     stopping ??= shutdown({
       reason,
       logger,
       worker: maintenanceWorker,
       queue: maintenanceQueue,
+      bankWorker,
+      bankQueue,
       sampler,
       telemetryServer,
       redis,
@@ -222,6 +285,8 @@ export async function start(options: StartOptions = {}): Promise<WorkerRuntime> 
     metricsPort: telemetryServer.port,
     maintenanceQueue,
     maintenanceWorker,
+    bankQueue,
+    bankWorker,
     stop,
   };
 }
@@ -281,6 +346,8 @@ interface ShutdownInput {
   readonly logger: Logger;
   readonly worker: Worker<unknown, unknown, string>;
   readonly queue: Queue<unknown, unknown, string>;
+  readonly bankWorker: Worker<unknown, unknown, string>;
+  readonly bankQueue: Queue<unknown, unknown, string>;
   readonly sampler: RunningSampler;
   readonly telemetryServer: RunningTelemetryServer;
   readonly redis: Redis;
@@ -305,7 +372,10 @@ async function shutdown(input: ShutdownInput): Promise<void> {
     logger.warn({ event: 'worker.sampler_stop_failed', err }, 'depth sampler did not stop cleanly');
   });
 
-  const drained = await withTimeout(input.worker.close(), SHUTDOWN_GRACE_MS);
+  const drained = await withTimeout(
+    Promise.all([input.worker.close(), input.bankWorker.close()]),
+    SHUTDOWN_GRACE_MS,
+  );
   if (!drained) {
     logger.warn(
       { event: 'worker.drain_timeout', grace_ms: SHUTDOWN_GRACE_MS },
@@ -313,10 +383,12 @@ async function shutdown(input: ShutdownInput): Promise<void> {
         'will be redelivered, which is safe because every job is idempotent (ADR-008)',
     );
     await input.worker.close(true).catch(() => undefined);
+    await input.bankWorker.close(true).catch(() => undefined);
   }
 
   await Promise.allSettled([
     input.queue.close(),
+    input.bankQueue.close(),
     input.telemetryServer.close(),
     input.redis.quit(),
     // After the drain: a sweep still running holds a connection from this pool.

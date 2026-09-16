@@ -198,14 +198,24 @@ Requires `question.write`. Only `coding` and `sql` questions can be previewed; a
 ### Bulk
 
 ```
-POST   /questions/import            multipart: file + {format: qti|json|humaneval|mbpp|lbpp|exercism,
-                                                       default_skills[], source_license}
-                                    → 202 {job_id}
-GET    /import-jobs/{id}            → {status, created, skipped, errors[]}
-GET    /questions/export            ?format=qti|json&skill_id=&status=  → 202 {job_id}
+POST   /questions/import            ?format=json|qti&source_license=&default_skill_id=…&default_difficulty=
+                                    body: the file, Content-Type: application/octet-stream
+                                    → 202 {job_id, status: "queued", job_url}
+GET    /import-jobs/{id}            → job view
+POST   /questions/export            ?format=json|qti&status=&skill_id=   → 202 {job_id, status, job_url}
+GET    /export-jobs/{id}            → job view
+GET    /export-jobs/{id}/file       → the file, until expires_at
 ```
 
 Import is asynchronous and reports per-row errors rather than failing the whole file. `source_license` is mandatory on import — see `05-licensing-and-compliance.md`.
+
+**As built (2026-09-17)**, for `json` and `qti`; the dataset formats (`humaneval`, `mbpp`, `lbpp`, `exercism`) are H-032 and not yet accepted.
+
+- **The upload is the body**, `application/octet-stream`, up to 32 MiB — one file per request, and no multipart parser between the socket and the bytes. Options are query parameters. Any other content type, an empty body, a body over 32 MiB, an unknown format, a missing `source_license`, or a `default_skill_id` the organisation cannot see is `422 validation_failed`, and nothing is stored. (Every refusal Fastify makes before a handler — 413 included — is `validation_failed`; see §2.)
+- **Export is `POST`**, not `GET` as first drafted: it creates a job, and a `GET` that creates something is neither safe nor idempotent.
+- **Permissions.** Import, export and downloading an export's file need `question.write`; reading a job needs `question.read`. An export is the whole bank with reference solutions and hidden test cases, so looking at questions one at a time does not grant it. The import request, the export request and every download are audited: `bank_job.import`, `bank_job.export`, `bank_job.download`.
+- **The job view:** `{id, kind, format, status, created, skipped, problems[], problems_truncated, failure, created_at, started_at, finished_at, expires_at, file_bytes, file_url}`. `status` is `queued → dispatched → running → succeeded | failed`. `problems` are `{index, ref, path, message}` per item, at most 1,000. `failure` is set when the file could not be read at all — not JSON, wrong format or version, no manifest, over the archive limits — with a message a person can act on. `file_url` appears for a succeeded export and stops working at `expires_at`, seven days after it finished. A job of the other kind, another organisation's job, or an expired file is `404`.
+- **Delivery (ADR-021).** The request writes the job row and its audit row in one commit; the worker claims committed rows, so a `202` cannot lose its job. Work starts within about two seconds. An import runs one transaction per item and resumes at its checkpoint if retried.
 
 #### The two file formats
 

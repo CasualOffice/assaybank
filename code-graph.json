@@ -597,7 +597,7 @@
       "name": "bank.jobs",
       "type": "queue",
       "milestone": "M0",
-      "status": "planned",
+      "status": "in-progress",
       "owner": "_unassigned_",
       "owner_role": "backend lead",
       "path": "logical queue on Valkey",
@@ -609,11 +609,13 @@
       ],
       "invariants": [
         "An import is transactional per question; a malformed row is skipped and reported, never partially written.",
-        "Licence provenance from an imported dataset is preserved on the question row."
+        "Licence provenance from an imported dataset is preserved on the question row.",
+        "Fed by an outbox, not by producers: a job exists only as a committed bank_jobs row, and a retried import resumes at its checkpoint (ADR-021)."
       ],
       "docs": [
         "docs/03-API-spec.md",
-        "docs/05-licensing-and-compliance.md"
+        "docs/05-licensing-and-compliance.md",
+        "docs/04-ADRs.md"
       ]
     },
     {
@@ -998,7 +1000,7 @@
       "protocol": "TCP/libpq via Drizzle",
       "sync": true,
       "milestone": "M0",
-      "description": "All domain reads and writes, with app.current_org set on the pooled connection for row-level security."
+      "description": "All domain reads and writes, with app.current_org set on the pooled connection for row-level security. Includes the bank_jobs outbox row written with each import or export request (ADR-021)."
     },
     {
       "id": "worker-postgres",
@@ -1081,14 +1083,14 @@
       "description": "Invitation send and resend, reminder and result notification requests."
     },
     {
-      "id": "api-q-bank",
-      "from": "api",
+      "id": "worker-q-bank-relay",
+      "from": "worker",
       "to": "q-bank-jobs",
       "kind": "queue",
       "protocol": "BullMQ",
       "sync": false,
       "milestone": "M0",
-      "description": "Import, export and bulk CSV endpoints return 202 with a job id and hand the work over."
+      "description": "The outbox relay (ADR-021): claims committed bank_jobs rows through claim_bank_jobs() and enqueues each with the row id as the job id. The API never enqueues; its import and export endpoints write the row and return 202."
     },
     {
       "id": "q-submit-worker",
@@ -1138,7 +1140,7 @@
       "protocol": "BullMQ",
       "sync": false,
       "milestone": "M0",
-      "description": "Import, export and bulk candidate jobs, each streaming progress into the job row."
+      "description": "Import and export jobs, each recording progress on its bank_jobs row; an import advances its checkpoint in the transaction that writes each item."
     },
     {
       "id": "q-maint-deadline",

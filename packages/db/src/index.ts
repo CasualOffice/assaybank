@@ -143,12 +143,30 @@ export {
   SkillNotFoundError,
   TaxonomyDepthError,
 } from './taxonomy.js';
+export type { CoverageRow, ListSkillsFilter, MergeSkillsResult, SkillRow } from './taxonomy.js';
+
+export {
+  advanceImport,
+  claimBankJobs,
+  createBankJob,
+  failBankJob,
+  finishBankJob,
+  getBankJob,
+  MAX_BANK_JOB_BYTES,
+  MAX_STORED_PROBLEMS,
+  readBankJobInput,
+  readBankJobResult,
+  recordParseProblems,
+  startBankJob,
+} from './bank-jobs.js';
 export type {
-  CoverageRow,
-  ListSkillsFilter,
-  MergeSkillsResult,
-  SkillRow,
-} from './taxonomy.js';
+  BankJobFormat,
+  BankJobKind,
+  BankJobRow,
+  BankJobStatus,
+  CreateBankJobInput,
+  StoredProblem,
+} from './bank-jobs.js';
 
 export {
   createJobRole,

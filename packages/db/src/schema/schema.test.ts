@@ -45,7 +45,7 @@ const everyColumn = (): { table: string; column: PgColumn }[] =>
 const SNAKE_CASE = /^[a-z][a-z0-9_]*$/;
 
 describe('the schema object', () => {
-  it('holds the forty tables of docs/hiring_platform_schema.sql plus the two staff identity needs', () => {
+  it('holds the forty tables of docs/hiring_platform_schema.sql, the two staff identity needs, and bank_jobs', () => {
     // 40 is the number infra/postgres/init/03-rls.sql accounts for, and it is still the
     // number of product tables. The two extra are staff_accounts and staff_verifications
     // (P1 step 3): Better Auth's account and verification models, which the schema file
@@ -53,8 +53,12 @@ describe('the schema object', () => {
     // are. Both carry org_id and both are policied in 0006, so the isolation model did not
     // change — it grew by two rows of the same shape. If this count changes again, the
     // isolation model may well have changed too, and both must be revisited together.
-    expect(tables).toHaveLength(42);
-    expect(Object.values(schema)).toHaveLength(42);
+    //
+    // Revisited for 43 (migration 0010): bank_jobs carries org_id NOT NULL and the ordinary
+    // org_isolation policy, so the model is unchanged again. Its one cross-tenant read goes
+    // through claim_bank_jobs(), which returns ids only (ADR-021).
+    expect(tables).toHaveLength(43);
+    expect(Object.values(schema)).toHaveLength(43);
   });
 
   it('names every table and column in snake_case', () => {

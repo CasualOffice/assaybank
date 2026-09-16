@@ -247,6 +247,35 @@ CREATE TABLE short_answer_keys (
     score               numeric(6,2) NOT NULL DEFAULT 1.0
 );
 
+-- ---- Bank import and export jobs (migration 0010, ADR-021) ----
+-- The outbox and the record: a request writes the row; the worker claims it
+-- through claim_bank_jobs(), which returns id and org_id only.
+CREATE TABLE bank_jobs (
+    id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id              uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    kind                text NOT NULL,      -- import | export
+    format              text NOT NULL,      -- json | qti
+    status              text NOT NULL DEFAULT 'queued',  -- queued | dispatched | running | succeeded | failed
+    requested_by        uuid NOT NULL REFERENCES users(id),
+    options             jsonb NOT NULL DEFAULT '{}',
+    input               bytea,              -- the upload; cleared when the job finishes
+    input_bytes         int,                -- at most 32 MiB
+    result              bytea,              -- an export's file, readable until expires_at
+    result_content_type text,
+    result_bytes        int,
+    next_index          int NOT NULL DEFAULT 0,   -- import checkpoint, advanced with each item
+    created_count       int NOT NULL DEFAULT 0,
+    skipped_count       int NOT NULL DEFAULT 0,
+    problems            jsonb NOT NULL DEFAULT '[]',  -- at most 1,000
+    problems_truncated  boolean NOT NULL DEFAULT false,
+    failure             text,
+    created_at          timestamptz NOT NULL,
+    dispatched_at       timestamptz,
+    started_at          timestamptz,
+    finished_at         timestamptz,
+    expires_at          timestamptz
+);
+
 -- ---- Psychometrics ------------------------------------------
 -- Recomputed nightly. Lets you retire bad questions instead of
 -- guessing at difficulty forever.

@@ -15,7 +15,7 @@
 | **Current milestone** | M0 Question bank — P1 complete, P2 three of six tracks complete |
 | **Next milestone** | M1 Async MCQ assessment, phase P3 |
 | **Overall RAG** | amber |
-| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,308 tests**, 0 failing, 0 skipped |
+| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,329 tests**, 0 failing, 0 skipped |
 | **Schedule** | amber — ahead of the re-baselined plan (P0 and P1 are complete before their planned start of 2026-09-21), but the 25-week baseline is still unsigned (OQ-015) and build pace so far says little about the judgement-heavy phases ahead |
 | **Scope** | green — no changes to PRD §6 |
 | **Risk** | amber — eight high risks open, three of them the same question-bank problem (R-03, R-04, R-13) |
@@ -25,7 +25,7 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## Shipped this period (2026-09-15 → 2026-09-17)
 
-**Application code now exists.** 53 of 135 backlog tasks are done, reconciled against the code.
+**Application code now exists.** 55 of 135 backlog tasks are done, reconciled against the code.
 
 - **P0 foundation** — fourteen workspaces, strict TypeScript, lint-enforced layering, CI enforcing, MPL-2.0 with a header gate, the licence gate proven to fail on a planted AGPL dependency
 - **P1 tenancy, identity and audit** — per-checkout org context proven by an interleaved test, RLS proven per table against real Postgres, OIDC and password login, per-action permissions with a route-enumeration test, append-only audit at the database
@@ -37,7 +37,7 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## In progress
 
-P2 question bank: import/export (the M0 exit criterion) and the authoring console. The two file formats are built and round-trip every kind exactly — the JSON bank document with full history and attribution, the QTI 2.1 package for the served version — and a bank now goes out of one organisation and into an empty one through PostgreSQL with nothing lost, export → import → export byte-identical. That meets the M0 round-trip criterion at the job layer; the `bank.jobs` job, its routes and the dataset importers are next.
+P2 question bank: import/export (the M0 exit criterion) and the authoring console. The two file formats are built and round-trip every kind exactly — the JSON bank document with full history and attribution, the QTI 2.1 package for the served version — and a bank now goes out of one organisation and into an empty one through PostgreSQL with nothing lost, export → import → export byte-identical. Import and export are reachable over HTTP as jobs — the request commits a row and its audit record together, a relay in the worker claims committed rows, and an import resumes at a per-item checkpoint if retried (ADR-021). The dataset importers and the 200-question load are next.
 
 ## Next
 

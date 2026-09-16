@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`02-HLD.md`](02-HLD.md), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`../.claude/rules/invariants.md`](../.claude/rules/invariants.md)
 
 ---
@@ -356,3 +356,27 @@ The obligation is real for us too: a fork we ship to a customer carries the same
 This leaves ADR-001 untouched and non-contradictory: we still refuse copyleft *dependencies*, because those constrain what we may do with code we do not own. We accept a weak-copyleft *grant* on code we do own, because we can relicense it at will — the copyright is ours, and MPL binds recipients, not the copyright holder.
 
 **Revisit if** the product is confirmed as a commercial closed offering where any source disclosure is unacceptable (then a proprietary licence with a separate open core), or if adoption evidence shows MPL is deterring contributors who would accept Apache-2.0. Relicensing away from MPL requires the agreement of every copyright holder, so contributor sign-off should be collected from the first external contribution, not retrofitted.
+
+## ADR-021 — Bank import and export jobs use a transactional outbox, with payloads in PostgreSQL for now
+
+**Status:** accepted
+**Depends on:** ADR-008, ADR-010
+
+**Context.** `POST /questions/import` and `POST /questions/export` answer `202` and hand the work to the `bank.jobs` queue (docs/03 §4). The obvious implementation writes a job row and then enqueues to BullMQ from the request. That is a dual write across two systems with no shared transaction: an enqueue that fails after the commit leaves a job queued forever that nobody will run, and an enqueue before the commit can deliver a job whose row a rollback then removes. The retry and dead-letter policy for `bank.jobs` also lives in the worker's queue registry, which the API does not import, so an API producer would have to duplicate it — the exact drift the registry exists to prevent.
+
+Two further facts shape the choice. Finding queued work means reading across every tenant, and no tenant-scoped session can; `withElevated` could, but it writes an audit row per call, and a relay that polls every two seconds would write forty thousand of them a day. And the object store adapter (`S3_*` configuration exists; no client does) is not built, while an import needs its uploaded file to survive until a worker picks it up.
+
+**Decision.** A **transactional outbox**.
+
+1. The API writes one `bank_jobs` row inside the same `request.audited` transaction as the request's audit row. The commit is the hand-off. The API does not talk to Valkey.
+2. A relay in the worker calls `claim_bank_jobs(limit, now, stale_seconds)` every two seconds. It is a `SECURITY DEFINER` function in the manner of `invitation_org_for_token` (0005): it returns `id` and `org_id` and nothing else, its only write is `queued → dispatched`, it uses `FOR UPDATE SKIP LOCKED`, and it re-claims a row left `dispatched` for longer than `stale_seconds` — which recovers a claim whose enqueue was lost.
+3. The relay enqueues each claimed row on `bank.jobs` with the row id as the BullMQ job id, so a second enqueue of the same row is ignored.
+4. The job runs inside `withOrg(org_id)`. An import advances its checkpoint (`next_index`) **inside the transaction that writes each item**, so a retried job resumes at the first unwritten item and never imports one twice.
+5. The uploaded file and an export's file are stored in `bank_jobs` as `bytea`, at most 32 MiB each. The upload is cleared when the job finishes; an export's file is readable for seven days, after which the API answers `404`.
+
+**Consequences.** No request can lose its job, and no job can outlive a rolled-back request. The queue keeps its registry-defined retries and dead-letter queue. A job that is retried is resumable by construction, and that is tested by setting a checkpoint and asserting only the remaining items are written. The cost is latency — up to two seconds before work starts — and one cheap indexed query per tick when idle.
+
+Storing payloads in PostgreSQL bounds the product to 32 MiB per file and puts file bytes in the database's backups and replication stream. At M0 scale — a 200-question bank exports in well under a megabyte — that is acceptable; at a 40,000-item bank it is not. Physical deletion of an expired export's bytes is the retention sweep's job, which is planned: until it runs, an expired file is unreadable through the API but still present in the row (docs/11 D-29).
+
+**Revisit when** the object store adapter lands (move `input` and `result` to `imports/` and `exports/` prefixes, keep the row as the record and the outbox), or when any export exceeds 32 MiB, or when a second kind of long-running job needs an outbox — at which point the claim function generalises to a `jobs` table rather than growing a sibling.
+

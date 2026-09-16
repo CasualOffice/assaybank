@@ -226,6 +226,11 @@ enforce it, and each must have a named test.
 
 ---
 
+- **A request that hands work to a queue writes an outbox row; it does not enqueue.** Writing a row and
+  then calling the queue is two systems with no shared transaction: an enqueue lost after the commit
+  strands the job, one sent before a rollback runs a job with no request behind it. Write the job row
+  in the request's transaction and let a relay claim committed rows (ADR-021). A job that writes
+  many items advances its checkpoint in the transaction that writes each one, so a retry resumes.
 - **A sweep that crosses tenants enumerates them elevated and works under RLS.** List organisations through `withElevated` — audited, and named `job.<verb>` so the null-actor row reads as a machine — then do the work per organisation inside `withOrg`. One elevated transaction over every tenant would let a query bug pool one organisation's candidates into another's results with nothing in the database to refuse it. See [`02-HLD.md`](02-HLD.md) §3.4a.
 
 ## 7. Security

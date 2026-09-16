@@ -175,11 +175,26 @@ async function skillIdsByKey(tx: DbTransaction): Promise<Map<string, SkillId>> {
   return byKey;
 }
 
+/**
+ * Called once per item, inside the transaction that decided it: the one that wrote the item, or —
+ * for a refused item — a transaction of its own. A job uses it to advance its checkpoint in the
+ * same commit as the item, so a retry resumes rather than repeats.
+ */
+export type ItemCheckpoint = (
+  tx: DbTransaction,
+  step: {
+    readonly position: number;
+    readonly created: boolean;
+    readonly problem: ItemProblem | null;
+  },
+) => Promise<void>;
+
 async function importOne(
   db: Database,
   request: ImportRequest,
   entry: { readonly index: number; readonly item: BankItem },
   at: Date,
+  onCommit: (tx: DbTransaction) => Promise<void>,
 ): Promise<QuestionId> {
   const { index, item } = entry;
   return withOrg(db, request.orgId, async (tx) => {
@@ -250,6 +265,7 @@ async function importOne(
       at,
     });
 
+    await onCommit(tx);
     return QuestionIdSchema.parse(question.id);
   });
 }
@@ -263,26 +279,37 @@ export async function importBankItems(
   request: ImportRequest,
   items: readonly { readonly index: number; readonly item: BankItem }[],
   now: () => Date,
+  resume: { readonly from?: number; readonly checkpoint?: ItemCheckpoint } = {},
 ): Promise<ImportOutcome> {
   const created: { index: number; ref: string; questionId: QuestionId }[] = [];
   const problems: ItemProblem[] = [];
+  const checkpoint = resume.checkpoint;
 
-  for (const entry of items) {
+  for (let position = resume.from ?? 0; position < items.length; position += 1) {
+    const entry = items[position];
+    if (entry === undefined) break;
     try {
-      const questionId = await importOne(db, request, entry, now());
+      const questionId = await importOne(db, request, entry, now(), async (tx) => {
+        await checkpoint?.(tx, { position, created: true, problem: null });
+      });
       created.push({ index: entry.index, ref: entry.item.ref, questionId });
     } catch (error) {
-      if (error instanceof ItemRefusal) {
-        problems.push(error.problem);
-      } else {
-        problems.push({
-          index: entry.index,
-          ref: entry.item.ref,
-          path: '',
-          // The message only: a driver error can quote row data, and this lands in a job
-          // record staff read, not in a log.
-          message: 'the item could not be written; nothing from it was saved',
-        });
+      const problem: ItemProblem =
+        error instanceof ItemRefusal
+          ? error.problem
+          : {
+              index: entry.index,
+              ref: entry.item.ref,
+              path: '',
+              // The message only: a driver error can quote row data, and this lands in a job
+              // record staff read, not in a log.
+              message: 'the item could not be written; nothing from it was saved',
+            };
+      problems.push(problem);
+      if (checkpoint !== undefined) {
+        await withOrg(db, request.orgId, (tx) =>
+          checkpoint(tx, { position, created: false, problem }),
+        );
       }
     }
   }

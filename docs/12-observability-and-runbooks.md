@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`14-threat-model.md`](14-threat-model.md), [`../project/RISKS.md`](../project/RISKS.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md)
 
 ---
@@ -1190,7 +1190,9 @@ docker compose logs --since=1h worker | grep -E '"event":"(import|stats|retentio
 
 - **Blocked on a lock →** identify the blocker. If it is a reporting query, cancel it. If it is another import, let it finish; two concurrent imports against the same bank is a defect to file, not a race to resolve.
 - **Genuinely long →** an import is chunked and resumable by design. If it is not, that is the defect. Let it run rather than killing it mid-write.
-- **Worker restarted mid-job →** the job is idempotent on the import id and re-runs cleanly. Re-enqueue.
+- **Worker restarted mid-job →** the job resumes at its checkpoint (`bank_jobs.next_index`, advanced in the transaction that writes each item — ADR-021). Nothing to re-enqueue: a row left `dispatched` for five minutes is claimed again by the relay.
+- **Bank job never started (`bank_jobs.status = 'queued'` for more than a minute) →** the relay is not running or its claim is failing. `docker compose logs worker | grep bank_job.relay_failed`; check the application role can still execute the claim: `SELECT has_function_privilege('hiring_app', 'claim_bank_jobs(int, timestamptz, int)', 'EXECUTE');` must be `true`. Do not call the function by hand to test it — it claims at least one real job. The row is safe where it is — fix the relay and it is picked up.
+- **Bank job `failed` →** read `bank_jobs.failure`. A file-level failure (not JSON, no manifest, over the limits) is the author's to fix and re-upload; `The job stopped unexpectedly` means the last BullMQ attempt threw — the worker log carries `bank_job.error` with the job id, and items already written are kept.
 - **Scheduled sweep never registered →** restart the worker tier and **verify the `*_last_success` gauge moves**. Do not close the alert on "restarted"; close it on the gauge.
 - **Retention sweep stalled →** treat `proctor_media` as the urgent one. Biometric data retained past the `RETENTION_PROCTOR_MEDIA_DAYS=30` ceiling is a compliance breach with its own clock ([`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md)), not merely a stale job.
 - **High rejection rate →** not a system fault. Return the rejection report to the author. `licence_missing` rejections are correct behaviour: imported content without a recorded `source_license` may not enter the bank ([`05-licensing-and-compliance.md`](05-licensing-and-compliance.md)).

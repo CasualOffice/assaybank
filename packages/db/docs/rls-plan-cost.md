@@ -185,6 +185,11 @@ per command, so a tenant can no longer delete or claim a shared global row. Neit
 gated list, and the `SELECT` predicate is character-for-character the one 0002 created, so no plan
 above is affected. Nothing was re-measured.
 
+Migration 0010 (2026-09-17) adds `bank_jobs`, a tenant table with the ordinary `org_id` policy, and
+`claim_bank_jobs()`, a `SECURITY DEFINER` function that reads it across tenants through a partial
+index on `(status, created_at, id)`. Neither touches a gated table, and no captured plan changed.
+The claim's own plan has not been captured.
+
 Migration 0009 (2026-09-17) adds a nullable `ordinal` column to `short_answer_keys` and changes no
 policy. The table is not on the gated list; its read now sorts by `ordinal NULLS LAST, id` over the
 handful of keys one version carries, which is not a plan whose cost scales.
