@@ -46,7 +46,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`docs/02-HLD.md`](02-HLD.md) | Components, flows, technology choices, scaling, security, failure modes, deployment | engineering lead | on-change | 180 | `code-graph.json`, `infra/docker/**` | 2026-09-15 |
 | [`docs/03-API-spec.md`](03-API-spec.md) | Endpoints, auth model, attempt state machine, webhooks, error format | backend lead | on-change | 90 | `apps/api/src/routes/**`, `packages/contracts/**` | 2026-09-16 |
 | [`docs/04-ADRs.md`](04-ADRs.md) | The decisions that are expensive to reverse, each with its reversal conditions | engineering lead | annually | 400 | — | 2026-09-15 |
-| [`docs/05-licensing-and-compliance.md`](05-licensing-and-compliance.md) | Dependency licence policy, question content licensing, employment-assessment regulation | legal counsel | on-change | 180 | `package.json`, `pnpm-lock.yaml`, `.licence-allowlist.json` | 2026-09-15 |
+| [`docs/05-licensing-and-compliance.md`](05-licensing-and-compliance.md) | Dependency licence policy, question content licensing, employment-assessment regulation | legal counsel | on-change | 180 | `pnpm-lock.yaml`, `.licence-allowlist.json` | 2026-09-15 |
 | [`docs/06-testing-strategy.md`](06-testing-strategy.md) | What is tested at which layer, the test data strategy, what a milestone must prove | QA lead | on-change | 180 | `.github/workflows/ci.yml`, `.github/workflows/e2e.yml`, `packages/grading/**` | 2026-09-15 |
 | [`docs/07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md) | k6 scenarios, the deadline stampede, and the thresholds each concurrency claim is measured against | QA lead | quarterly | 120 | `tests/load/**`, `.github/workflows/load.yml` | 2026-09-15 |
 | [`docs/08-i18n-and-localisation.md`](08-i18n-and-localisation.md) | Interface localisation, the English-only content position, and the translation seams | frontend lead | on-change | 180 | `packages/ui/src/locales/**`, `apps/candidate/src/locales/**`, `apps/web/src/locales/**` | 2026-09-15 |
@@ -62,8 +62,8 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`docs/DOC-OWNERSHIP.md`](DOC-OWNERSHIP.md) | This registry: who owns each document, its cadence, and what makes it stale | delivery lead | monthly | 45 | — | 2026-09-16 |
 | [`docs/hiring_platform_schema.sql`](hiring_platform_schema.sql) | The full PostgreSQL schema, runnable, and the canonical statement of the domain model | backend lead | on-change | 180 | `packages/db/schema/**`, `infra/postgres/init/02-schema.sql` | — |
 | [`project/ROADMAP.md`](../project/ROADMAP.md) | Phase-by-phase build order, the current schedule baseline, and each phase's entry and exit gate | engineering lead | monthly | 30 | `project/MILESTONES.md` | 2026-09-15 |
-| [`project/P0-FOUNDATION-PLAN.md`](../project/P0-FOUNDATION-PLAN.md) | The step-by-step build order for the foundation phase, with verification per step | engineering lead | on-change | 60 | `package.json`, `pnpm-workspace.yaml`, `turbo.json` | 2026-09-15 |
-| [`project/P1-TENANCY-PLAN.md`](../project/P1-TENANCY-PLAN.md) | The step-by-step build order for tenancy, identity and audit, with verification per step | engineering lead | on-change | 60 | `packages/db/**`, `packages/auth/**` | 2026-09-15 |
+| [`project/P0-FOUNDATION-PLAN.md`](../project/P0-FOUNDATION-PLAN.md) | The step-by-step build order for the foundation phase, with verification per step | engineering lead | on-change | 60 | `pnpm-workspace.yaml`, `turbo.json` | 2026-09-15 |
+| [`project/P1-TENANCY-PLAN.md`](../project/P1-TENANCY-PLAN.md) | The step-by-step build order for tenancy, identity and audit, with verification per step | engineering lead | on-change | 60 | — | 2026-09-15 |
 | [`packages/db/docs/rls-plan-cost.md`](../packages/db/docs/rls-plan-cost.md) | The measured `EXPLAIN` baseline for the five hottest tenant-scoped queries with row-level security on and off (R-09) | engineering lead | on-change | 180 | `packages/db/migrations/**`, `packages/db/src/schema/**` | 2026-09-16 |
 | [`project/MILESTONES.md`](../project/MILESTONES.md) | M-1–M4 scope, the committed dates from the roadmap baseline, and exit criteria | delivery lead | monthly | 45 | — | 2026-09-15 |
 | [`project/TRACKER.md`](../project/TRACKER.md) | The working backlog: one row per engineering unit, with status and dependencies | delivery lead | monthly | 30 | — | 2026-09-16 |
@@ -72,7 +72,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`project/STATUS.md`](../project/STATUS.md) | Where the project actually is this week, in one page | delivery lead | monthly | 14 | — | 2026-09-15 |
 | [`project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md) | What "done" means for a change, a milestone and a release | engineering lead | quarterly | 120 | `.github/pull_request_template.md` | 2026-09-15 |
 | [`project/GLOSSARY.md`](../project/GLOSSARY.md) | The domain vocabulary, so two people saying "attempt" mean the same thing | product lead | quarterly | 120 | — | 2026-09-15 |
-| [`infra/README.md`](../infra/README.md) | What each container is, how the local stack fits together, and which port is whose | infrastructure lead | on-change | 180 | `infra/docker/**`, `infra/postgres/**`, `infra/caddy/**`, `docker-compose.yml` | 2026-09-15 |
+| [`infra/README.md`](../infra/README.md) | What each container is, how the local stack fits together, and which port is whose | infrastructure lead | on-change | 180 | `infra/docker/**`, `infra/postgres/**`, `infra/caddy/**`, `docker-compose.yml` | 2026-09-17 |
 | [`infra/piston/README.md`](../infra/piston/README.md) | Piston runtime installation, the pinned language versions, and the sandbox limits | infrastructure lead | on-change | 180 | `infra/piston/**` | 2026-09-15 |
 | [`brand/README.md`](../brand/README.md) | The name, the mark, and the rules for using them | design lead | annually | 400 | `brand/*.svg` | 2026-09-16 |
 | [`.claude/rules/doc-maintenance.md`](../.claude/rules/doc-maintenance.md) | The maintenance contract in full, with a compliant and a non-compliant worked example | delivery lead | quarterly | 120 | `scripts/check-doc-freshness.mjs` | 2026-09-17 |
@@ -96,6 +96,21 @@ The roles above are placeholders until people are assigned. Each maps to exactly
 | product lead | `@assaybank/product` | Requirements, scope, vocabulary |
 | delivery lead | `@assaybank/delivery` | Milestones, backlog, risks, status, this registry |
 | design lead | `@assaybank/design` | Brand, visual language |
+
+### Trigger changes, 2026-09-17
+
+Three patterns were narrowed because they fired on changes that could not affect the document,
+and the only way to satisfy them was to bump a date on something nobody had re-read.
+
+- `docs/05-licensing-and-compliance.md` no longer triggers on `package.json`. It exists to catch
+  dependency changes, and every dependency change — root or workspace, direct or transitive —
+  moves `pnpm-lock.yaml`, which it still watches. A script edit moves `package.json` and nothing
+  about licensing.
+- `project/P0-FOUNDATION-PLAN.md` no longer triggers on `package.json`. It still watches the
+  workspace shape (`pnpm-workspace.yaml`, `turbo.json`), which is what the plan describes.
+- `project/P1-TENANCY-PLAN.md` has no triggers. P1 is complete and the plan is now a record of
+  how it was built. Watching `packages/db/**` meant every database change in every later phase
+  demanded an edit to a finished plan.
 
 ## What the gate checks
 

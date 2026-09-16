@@ -40,6 +40,8 @@ make seed
 
 If `make up` fails, the usual causes are a port already bound (5432 and 6379 are the common collisions with a locally installed Postgres or Redis), insufficient memory for Piston, or a `.env` still containing a `CHANGE_ME` placeholder — `packages/config` fails fast at boot rather than starting with a broken secret.
 
+`make migrate` runs from the host against `DATABASE_OWNER_URL`, which defaults to `localhost:5432`. If a locally installed Postgres already owns that port, the migrations are applied to **that** database rather than the stack's, and the command succeeds — nothing warns you. Stop the local Postgres, or set `POSTGRES_PORT` in `.env` and change the port in `DATABASE_OWNER_URL` to match.
+
 ## Branches
 
 Branch from `main`. One branch per backlog item.

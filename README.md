@@ -129,6 +129,8 @@ Approximately 8 GB of RAM free for the full stack; Piston pulls language runtime
 ```sh
 cp .env.example .env          # then fill in the secrets it tells you to generate
 make up                       # start the full local stack
+make migrate                  # required: the container init creates table shapes only —
+                              # the ADR-003 immutability trigger and RLS come from migrations
 make seed                     # load skills, roles and a starter question set (from M0)
 ```
 

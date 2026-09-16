@@ -105,7 +105,8 @@ migrate: ## Apply Drizzle migrations to the local database
 		printf '         Schema and migrations live in packages/db. The runnable reference schema\n'; \
 		printf '         is docs/hiring_platform_schema.sql until then.\n'; \
 	else \
-		$(PKG_MANAGER) --filter @assaybank/db migrate; \
+		set -a; if [ -f "$(abspath $(ENV_FILE))" ]; then . "$(abspath $(ENV_FILE))"; fi; set +a; \
+		$(PKG_MANAGER) run migrate; \
 	fi
 
 migrate-new: ## Generate a new migration (N=add_question_stats)

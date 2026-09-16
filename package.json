@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "migrate": "pnpm --filter @assaybank/db run migrate",
+    "migrate": "turbo run build --filter=@assaybank/db... && pnpm --filter @assaybank/db run migrate",
     "typecheck": "turbo run typecheck && tsc -p tsconfig.json",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

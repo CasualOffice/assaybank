@@ -212,6 +212,7 @@ Derived from [`14-threat-model.md`](14-threat-model.md); that document holds the
 - **Treat every submission as hostile.** Execution nodes hold no secrets, no database credentials
   and no cloud role, have no egress, and are recycled. The posture assumes the sandbox will be
   escaped rather than trusting that it will not.
+- **A process loads only the configuration it uses.** `loadConfig()` validates the whole application environment and is right for the long-running services. A narrower job — the migration runner is the first — gets a narrow loader (`loadMigrationTarget()`) that asks for exactly what it needs. Otherwise every environment that runs the job must hold secrets the job never touches, which is least privilege failing in configuration rather than in a database grant.
 - **Secrets are injected at runtime**, never in the repository, never in an image, never in a log. A password a test needs must look fake on sight — `scripts/check-secrets.mjs` fails the build on one that could pass for real, because a realistic fake is indistinguishable from a leak to both a scanner and a reviewer.
   Rotation cadence per class is in [`13-environments-and-release.md`](13-environments-and-release.md).
 - **Tokens are high-entropy, hashed at rest, single-purpose and expiring.** The plaintext is

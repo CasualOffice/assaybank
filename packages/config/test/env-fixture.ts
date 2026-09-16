@@ -77,7 +77,9 @@ export function productionEnv(
     DATABASE_URL: 'postgres://hiring_app:example-fixture-app@db.internal:5432/hiring',
     DATABASE_JOB_URL: 'postgres://hiring_job:example-fixture-job@db.internal:5432/hiring',
     DATABASE_OWNER_URL: 'postgres://hiring_owner:example-fixture-owner@db.internal:5432/hiring',
-    S3_ACCESS_KEY_ID: 'AKIAIOSFODNN7EXAMPLE',
+    // Not AWS's documented example key: it matches the real AKIA format, and the CI token
+    // scan rightly cannot tell a documented example from a leaked key.
+    S3_ACCESS_KEY_ID: 'example-fixture-access-key-id',
     S3_SECRET_ACCESS_KEY: `s3-${REAL_SECRET}`,
     SESSION_SECRET: REAL_SECRET,
     TOKEN_PEPPER: 'b'.repeat(64),

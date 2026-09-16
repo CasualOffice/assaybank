@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-17
 **Companion docs:** [../docs/02-HLD.md](../docs/02-HLD.md), [../docs/04-ADRs.md](../docs/04-ADRs.md), [../docs/05-licensing-and-compliance.md](../docs/05-licensing-and-compliance.md), [piston/README.md](piston/README.md)
 
 ---
@@ -124,11 +124,12 @@ docker compose up -d
 #    scripts can be said to have succeeded.
 docker compose ps
 
-# 5. Confirm the database initialised correctly. The init chain runs
-#    extensions, roles, the authoritative schema, RLS and partitions — and
-#    03-rls.sql fails the container loudly if any table lacks a policy, so a
-#    healthy postgres means the isolation model is fully applied.
-docker compose logs postgres | grep -E "Row-level security|Event partitions"
+# 5. Apply the migrations. REQUIRED. Since P0 the schema is owned by
+#    packages/db/migrations; the init chain only bootstraps table shapes, and a
+#    database built by it alone is missing the ADR-003 trigger that makes a
+#    published question version immutable. Runs from the host, reading
+#    DATABASE_OWNER_URL from .env (localhost:5432).
+make migrate
 
 # 6. Install the language runtimes. First run takes 10-30 minutes depending on
 #    the connection; the result persists in the piston_runtimes volume.

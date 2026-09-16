@@ -452,6 +452,40 @@ function shape(env: Env): AppConfig {
  * @throws {ConfigError} naming every variable that failed, what was expected and what
  * arrived. Secret values are never included in the message.
  */
+/** What the migration runner needs, and nothing else. */
+export interface MigrationTarget {
+  /** DSN of the role that owns the schema objects. */
+  readonly ownerUrl: string;
+}
+
+/**
+ * The migration runner's configuration: one owner DSN, validated.
+ *
+ * Deliberately not {@link loadConfig}. A migration job applies DDL; it has no use for the
+ * session secret, the token pepper or object-storage keys, and requiring them would put
+ * application secrets into every environment that runs migrations — a CI job, a
+ * one-shot release task — purely to satisfy a validator. Least privilege applies to
+ * configuration as much as to database roles (ADR-010, docs/13 §5).
+ *
+ * `DATABASE_OWNER_URL` is required. There is no fallback to `DATABASE_URL`: that is the
+ * application role, which by design cannot alter the schema, so falling back would turn a
+ * missing variable into a confusing permission error half way through a migration.
+ */
+export function loadMigrationTarget(env: NodeJS.ProcessEnv = process.env): MigrationTarget {
+  const name = 'DATABASE_OWNER_URL';
+  const raw = env[name];
+  const expected = 'a postgres:// or postgresql:// connection string';
+
+  if (raw === undefined || raw.trim() === '') {
+    throw new ConfigError([issue(name, expected, 'nothing (the variable is not set)')]);
+  }
+  if (parseUrl(raw, ['postgres:', 'postgresql:']) === null) {
+    // The value is a credential, so what arrived is never echoed.
+    throw new ConfigError([issue(name, expected, 'a value that is not one ([redacted])')]);
+  }
+  return Object.freeze({ ownerUrl: raw });
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const raw = normalise(env);
   const parsed = envSchema.safeParse(raw);

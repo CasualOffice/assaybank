@@ -53,6 +53,10 @@ x-app-env: &app-env
   CANDIDATE_PUBLIC_URL: ${CANDIDATE_PUBLIC_URL:-http://localhost:5174}
   COLLAB_PUBLIC_URL: ${COLLAB_PUBLIC_URL:-ws://localhost:8081}
   CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174}
+  # DATABASE_OWNER_URL is deliberately NOT in this anchor or on any service. It is the
+  # schema-owner DSN, read only by the migration runner (`pnpm run migrate`, run from the
+  # host against this stack). A long-running service holding it would turn a SQL injection
+  # into a schema rewrite (ADR-010). See docs/13 §4.3.
   DATABASE_URL: ${DATABASE_URL:-postgres://hiring_app:hiring_app@postgres:5432/hiring}
   DATABASE_POOL_MAX: ${DATABASE_POOL_MAX:-10}
   DATABASE_APP_ROLE: ${DATABASE_APP_ROLE:-hiring_app}

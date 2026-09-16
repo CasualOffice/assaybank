@@ -30,7 +30,7 @@ import { attachRedaction, redactConfig } from './redact.js';
 import type { AppConfig } from './types.js';
 
 export { ConfigError, type ConfigIssue } from './errors.js';
-export { loadConfig } from './load.js';
+export { loadConfig, loadMigrationTarget, type MigrationTarget } from './load.js';
 export { REDACTED, redactDsn } from './redact.js';
 export type {
   AppConfig,

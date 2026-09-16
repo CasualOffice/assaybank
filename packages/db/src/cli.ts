@@ -18,13 +18,15 @@
  * Idempotent: a second run applies nothing and says so.
  */
 
-import { loadConfig } from '@assaybank/config';
+import { loadMigrationTarget } from '@assaybank/config';
 
 import { migrate } from './migrate.js';
 
 try {
-  const config = loadConfig();
-  const result = await migrate({ url: config.database.ownerUrl });
+  // The narrow loader, not loadConfig(): a migration needs the owner DSN and must not be
+  // made to carry the application's session secret or storage keys to get it.
+  const { ownerUrl } = loadMigrationTarget();
+  const result = await migrate({ url: ownerUrl });
   process.stdout.write(
     result.applied === 0
       ? `migrate: up to date, ${result.total} migration(s) already applied.\n`
