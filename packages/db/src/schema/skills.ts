@@ -15,7 +15,7 @@
  */
 
 import { sql } from 'drizzle-orm';
-import { pgTable, text, unique, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core';
+import { pgTable, text, unique, uniqueIndex, uuid, type AnyPgColumn } from 'drizzle-orm/pg-core';
 
 import { optionalOrgRef } from './tenancy-rbac.js';
 
@@ -37,5 +37,12 @@ export const skills = pgTable(
     /** `language` | `framework` | `cs-fundamentals` | `cloud`. */
     category: text('category'),
   },
-  (t) => [unique('skills_org_id_key_key').on(t.orgId, t.key)],
+  (t) => [
+    unique('skills_org_id_key_key').on(t.orgId, t.key),
+    // The constraint above does not constrain the global rows: NULLs are distinct for
+    // uniqueness, so (NULL, 'python') could be inserted twice (migration 0011).
+    uniqueIndex('skills_global_key_key')
+      .on(t.key)
+      .where(sql`org_id IS NULL`),
+  ],
 );

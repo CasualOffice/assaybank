@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-18
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`14-threat-model.md`](14-threat-model.md), [`../CLAUDE.md`](../CLAUDE.md), [`../.env.example`](../.env.example), [`../docker-compose.yml`](../docker-compose.yml), [`../docker-compose.prod.yml`](../docker-compose.prod.yml), [`../project/MILESTONES.md`](../project/MILESTONES.md)
 
 ---
@@ -58,11 +58,17 @@ The defects this system produces are almost all volume- and concurrency-dependen
 
 ### 3.2 Synthetic generation
 
-Volume comes from a generator in `packages/db`, run as a seed profile:
+**Not to be confused with `make seed`.** Since 2026-09-18 `make seed` is the *product* seed — the
+permission catalogue, the five system roles and the starter skill taxonomy (H-018). It is the rows
+without which a fresh installation has no working authorisation at all, it is idempotent, and it
+runs on every deploy. It generates no volume and no candidates.
+
+The volume generator below is a separate, unbuilt thing and needs its own command; `make seed-volume`
+is the name reserved for it, so that "seed the database" never means two things in one runbook:
 
 ```bash
-make seed PROFILE=staging     # production-shaped, deterministic
-make seed PROFILE=dev         # small, fast, same shapes
+make seed-volume PROFILE=staging     # production-shaped, deterministic
+make seed-volume PROFILE=dev         # small, fast, same shapes
 ```
 
 Design rules for the generator:

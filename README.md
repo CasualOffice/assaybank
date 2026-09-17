@@ -11,7 +11,7 @@
 
 **Status:** in build — foundation (P0) and tenancy/identity (P1) complete; question bank (P2) in progress. CI green.
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-18
 **Companion docs:** [`docs/README.md`](docs/README.md), [`CLAUDE.md`](CLAUDE.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE-GRAPH.md`](CODE-GRAPH.md), [`project/STATUS.md`](project/STATUS.md)
 
 ---
@@ -43,7 +43,7 @@ All three read from the same `question_versions` table, resolve the same section
 
 ## Status
 
-**Where it stands, 2026-09-17.** The foundation, tenancy and identity phases are built and tested, and the question bank is half built: fourteen workspaces, 2,329 passing tests, and CI green on `main` across build, security, docs and licence gates. 55 of 135 backlog tasks are done — [`project/STATUS.md`](project/STATUS.md) has the one-screen view and [`project/TRACKER.md`](project/TRACKER.md) the task-level one. No assessment can be taken yet: attempts, execution, live interviews and proctoring are phases P3 to P6, and anything in the layout below not yet built lands with the phase named against it.
+**Where it stands, 2026-09-17.** The foundation, tenancy and identity phases are built and tested, and the question bank is half built: fourteen workspaces, 2,349 passing tests, and CI green on `main` across build, security, docs and licence gates. 56 of 175 backlog tasks are done — [`project/STATUS.md`](project/STATUS.md) has the one-screen view and [`project/TRACKER.md`](project/TRACKER.md) the task-level one. No assessment can be taken yet: attempts, execution, live interviews and proctoring are phases P3 to P6, and anything in the layout below not yet built lands with the phase named against it.
 
 Milestones follow [`docs/01-PRD.md`](docs/01-PRD.md) §6. **Dates are deliberately not repeated here** — they live in [`project/ROADMAP.md`](project/ROADMAP.md) (build order and the current baseline) and [`project/MILESTONES.md`](project/MILESTONES.md) (the commitment and its exit criteria). A calendar copied into four documents is a calendar that will disagree with itself.
 
@@ -131,7 +131,7 @@ cp .env.example .env          # then fill in the secrets it tells you to generat
 make up                       # start the full local stack
 make migrate                  # required: the container init creates table shapes only —
                               # the ADR-003 immutability trigger and RLS come from migrations
-make seed                     # load skills, roles and a starter question set (from M0)
+make seed                     # permission catalogue, system roles, starter skill taxonomy
 ```
 
 `make help` lists every target. `make down` stops the stack, `make nuke` removes its volumes as well.

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-18
 **Companion docs:** [`CLAUDE.md`](CLAUDE.md), [`README.md`](README.md), [`project/DEFINITION-OF-DONE.md`](project/DEFINITION-OF-DONE.md), [`docs/04-ADRs.md`](docs/04-ADRs.md), [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md)
 
 ---
@@ -33,7 +33,7 @@ make logs S=piston            # Piston pulls language runtimes on first boot; th
 # 4. From M0 onward
 pnpm install
 make migrate
-make seed
+make seed                     # idempotent: safe to re-run after any deploy
 ```
 
 `make help` lists everything. Ports and local URLs are in [`README.md`](README.md); container-level detail is in [`infra/README.md`](infra/README.md).

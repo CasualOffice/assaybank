@@ -456,6 +456,7 @@ Invariants:
 - Migrations are expand-contract - add nullable, backfill, switch reads, drop later - so a running exam window never breaks.
 - Exposes no raw connection that bypasses the app.current_org setting.
 - The DATABASE_APP_ROLE and DATABASE_JOB_ROLE grants differ; the job role cannot read candidate PII columns it does not need.
+- Global rows — the permission catalogue, the five system roles and the starter skill taxonomy — are written by seed() as the object owner, never by the application role, and a partial unique index over org_id IS NULL makes a second run a no-op (migration 0011).
 
 Specified by: [`docs/hiring_platform_schema.sql`](docs/hiring_platform_schema.sql), [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/04-ADRs.md`](docs/04-ADRs.md)
 

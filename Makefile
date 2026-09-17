@@ -119,14 +119,11 @@ migrate-new: ## Generate a new migration (N=add_question_stats)
 		printf 'across separate deploys. A destructive migration breaks whatever exam window is running.\n'; \
 	fi
 
-seed: ## Load skills, roles and a starter question set
-	@if [ ! -d packages/db ]; then \
-		printf 'seed: not implemented until M0 (question bank, 2026-09-21 to 2026-10-11).\n'; \
-		printf '      Seed data is skills, job roles, role-to-skill weights and an imported\n'; \
-		printf '      starter bank, each row carrying its source_license (docs/05 section 2).\n'; \
-	else \
-		$(PKG_MANAGER) --filter @assaybank/db seed; \
-	fi
+seed: ## Load the permission catalogue, system roles and starter skill taxonomy
+	@printf 'seed: writing global rows as the owner (DATABASE_OWNER_URL). Idempotent.\n'
+	@set -a; if [ -f "$(abspath $(ENV_FILE))" ]; then . "$(abspath $(ENV_FILE))"; fi; set +a; \
+		$(PKG_MANAGER) run build --filter @assaybank/db... >/dev/null && \
+		$(PKG_MANAGER) --filter @assaybank/db run seed
 
 psql: ## Open a psql shell on the local database
 	@$(COMPOSE) -f $(COMPOSE_DEV) --env-file $(ENV_FILE) exec $(PG_SERVICE) psql -U $(PG_USER) -d $(PG_DB)

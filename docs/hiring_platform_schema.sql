@@ -665,3 +665,18 @@ INSERT INTO permissions (key, description) VALUES
     ('report.export',    'Export candidate and aggregate reports'),
     ('org.admin',        'Manage users, roles and settings')
 ON CONFLICT DO NOTHING;
+
+-- System roles are global rows (org_id NULL) written by `make seed`, not by a
+-- migration: see packages/db/src/seed.ts, whose list is the one that runs.
+-- One role per persona in docs/01-PRD.md section 3.
+--   admin            every permission  -- a new org must be able to configure itself
+--   question_author  question.read, question.write, question.publish
+--   recruiter        question.read, assessment.write, invite.send, attempt.read, report.export
+--   interviewer      question.read, interview.host, attempt.read, attempt.grade
+--   hiring_manager   attempt.read, report.export
+--
+-- UNIQUE (org_id, key) does NOT constrain these rows: PostgreSQL treats NULLs as
+-- distinct, so without the partial indexes below a second seed run writes a second
+-- copy of every global row (migration 0011).
+CREATE UNIQUE INDEX skills_global_key_key     ON skills (key)     WHERE org_id IS NULL;
+CREATE UNIQUE INDEX user_roles_global_key_key ON user_roles (key) WHERE org_id IS NULL;

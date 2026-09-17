@@ -122,7 +122,7 @@ and picking it up anyway is how two people end up editing the same file.
 | H-015 | P0 | Drizzle schema for schema section 4: questions, question_versions, mcq_options, coding_specs, test_cases, short_answer_keys, question_stats, plus the two enums | db | M0 | H-014 | FR-1, ADR-003 | M | done | _unassigned_ |
 | H-016 | P0 | RLS policies on every tenant table plus per-checkout `app.current_org`, and a separate elevated job role with its own audit trail | db | M0 | H-015 | FR-26, ADR-010 | M | done | _unassigned_ |
 | H-017 | P0 | RLS negative test per tenant table: a session scoped to org A reads zero org B rows on select, update and delete | db | M0 | H-016 | FR-26, ADR-010 | M | done | _unassigned_ |
-| H-018 | P1 | Seed script: system `user_roles`, `permissions`, `user_role_permissions`, and a two-level starter skill taxonomy | db | M0 | H-014 | ADR-009 | S | todo | _unassigned_ |
+| H-018 | P1 | Seed script: system `user_roles`, `permissions`, `user_role_permissions`, and a two-level starter skill taxonomy | db | M0 | H-014 | ADR-009 | S | done | _unassigned_ |
 | H-019 | P0 | Expand-contract migration harness plus a CI lint rejecting a destructive migration in one step | db | M0 | H-014 | HLD 10 | M | todo | _unassigned_ |
 | H-020 | P0 | Indexes from schema section 11 and an `EXPLAIN` baseline captured with RLS enabled, to detect plan degradation later | db | M0 | H-017 | ADR-010 | M | done | _unassigned_ |
 | H-021 | P1 | `packages/auth`: staff sessions via Better Auth plus OIDC login against `OIDC_ISSUER` | api | M0 | H-014 | FR-27 | L | done | _unassigned_ |

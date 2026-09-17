@@ -26,7 +26,8 @@
     "test:integration": "vitest run --passWithNoTests tests/",
     "db:generate": "drizzle-kit generate",
     "clean": "rm -rf dist coverage .turbo out *.tsbuildinfo",
-    "migrate": "node dist/cli.js"
+    "migrate": "node dist/cli.js",
+    "seed": "node dist/seed-cli.js"
   },
   "dependencies": {
     "@assaybank/config": "workspace:*",

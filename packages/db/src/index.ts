@@ -112,6 +112,9 @@ export type {
   VersionContent,
 } from './version-content.js';
 
+export { SEED_PERMISSIONS, SEED_ROLES, SEED_SKILLS, seed } from './seed.js';
+export type { SeedOptions, SeedPermission, SeedResult, SeedRole, SeedSkill } from './seed.js';
+
 export { MIGRATIONS_DIR, migrate } from './migrate.js';
 export type { MigrateOptions, MigrateResult } from './migrate.js';
 

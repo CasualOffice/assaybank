@@ -24,6 +24,7 @@ import {
   primaryKey,
   text,
   unique,
+  uniqueIndex,
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
@@ -131,7 +132,14 @@ export const userRoles = pgTable(
     name: text('name').notNull(),
     isSystem: boolean('is_system').notNull().default(false),
   },
-  (t) => [unique('user_roles_org_id_key_key').on(t.orgId, t.key)],
+  (t) => [
+    unique('user_roles_org_id_key_key').on(t.orgId, t.key),
+    // Global system roles need their own arbiter: NULLs are distinct for uniqueness, so the
+    // constraint above admits two rows keyed `admin` with org_id NULL (migration 0011).
+    uniqueIndex('user_roles_global_key_key')
+      .on(t.key)
+      .where(sql`org_id IS NULL`),
+  ],
 );
 
 /**

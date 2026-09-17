@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-18
 **Companion docs:** [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE-GRAPH.md`](CODE-GRAPH.md), [`project/DEFINITION-OF-DONE.md`](project/DEFINITION-OF-DONE.md), [`docs/DOC-OWNERSHIP.md`](docs/DOC-OWNERSHIP.md)
 
 ---
@@ -112,7 +112,7 @@ Run `make help` for the generated list. Targets that depend on code which does n
 | `make build` | Build workspace packages and app images | M0 |
 | `make migrate` | Apply Drizzle migrations to the local database | M0 |
 | `make migrate-new` | Generate a new migration (`N=add_question_stats`) | M0 |
-| `make seed` | Load skills, roles and a starter question set | M0 |
+| `make seed` | Load the permission catalogue, the five system roles and the starter skill taxonomy | now |
 | `make psql` | Open `psql` against the local database | now |
 | `make redis-cli` | Open `valkey-cli` against the local queue backend | now |
 | `make test` | Unit, integration and end-to-end suites | M0 |

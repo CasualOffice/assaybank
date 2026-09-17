@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-18
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`14-threat-model.md`](14-threat-model.md), [`../CLAUDE.md`](../CLAUDE.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md)
 
 ---
@@ -154,6 +154,20 @@ own import.
 which is insertion order in a fresh table and in no table after a few updates — so a missing
 `ORDER BY` passes every test on freshly seeded data. `short_answer_keys` had no ordinal until
 migration 0009. A test that proves an order must first move a row in the heap (an `UPDATE` does).
+
+**Data the system cannot run without ships as an idempotent seed, not as a fixture.** The permission
+catalogue is the example: with no rows in `permissions`, every grant is unsatisfiable, `can()` fails
+closed and a fresh installation answers `403` to its own administrator. A seed re-asserts the rows on
+every deploy and writes nothing when they are already there, which is also the only way a permission
+added later reaches an installation that already exists — a migration that has run never runs again.
+A seed never updates a row it finds: an organisation may have edited it, and a deploy that silently
+reverts a customer's configuration is worse than one that does nothing.
+
+**A `UNIQUE` constraint over a nullable column does not constrain the rows where it is NULL.**
+PostgreSQL treats NULLs as distinct, so `UNIQUE (org_id, key)` admits `(NULL, 'python')` any number
+of times — and `org_id IS NULL` is exactly how this schema marks a row shared by every tenant. Where
+NULL carries meaning, add a partial unique index over it (migration 0011). Found by writing a seed
+that was idempotent everywhere except the rows that matter most.
 
 **Migrations are expand-contract, always:**
 

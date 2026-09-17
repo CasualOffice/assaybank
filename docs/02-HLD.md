@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-18
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`../CODE-GRAPH.md`](../CODE-GRAPH.md)
 
 ---
@@ -339,6 +339,18 @@ Environments: dev, staging (with production-shaped data volumes — assessment b
 Blue-green for the API. Execution nodes drain rather than cut over, since a running submission must finish.
 
 Migrations are expand-contract: add nullable, backfill, switch reads, drop old. Never break a running exam window.
+
+**Bringing an installation up is `migrate` then `seed`, in that order, on every deploy.** Migrations
+create the shape; the seed writes the rows the product cannot run without — the permission
+catalogue, the five system roles of `docs/01-PRD.md` §3, and a starter skill taxonomy. Without them
+there is no grant any role can hold, so `can()` fails closed and a fresh installation answers `403`
+to its own administrator.
+
+Both run as the **object owner**, never as the application role: these are global rows
+(`org_id IS NULL`), and an application role able to write a permission would be an application role
+able to grant itself one. Both are idempotent, so a deploy that re-runs them writes nothing — which
+is also the only route by which a permission added later reaches an installation that already
+exists, since a migration that has run never runs again.
 
 ## 11. What we deliberately are not building
 
