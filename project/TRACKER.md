@@ -19,6 +19,8 @@ Read it top to bottom to understand build order; read the **Depends on** column 
 
 Ids are `H-NNN`, allocated strictly in ascending order from the highest id currently in the file, **never reused and never renumbered**. An id is permanent: it appears in branch names (`h-038-question-authoring-ui`), commit messages, PR titles and ADR cross-references, so renumbering silently breaks history. A cancelled task keeps its row with status `done` and the word "cancelled" plus a reason in the task text; deleting the row loses the record that it was considered.
 
+**An id is allocated here and nowhere else.** A document that proposes work cites an id this file already holds, or the work is added here first. `docs/14-threat-model.md` minted forty of its own against a high-water mark of `H-109`, this file grew past it, and twenty-six of those references silently came to name other people's finished tasks — which is the failure this rule exists to prevent, arriving from the one direction the rule did not cover.
+
 Tasks discovered mid-milestone take the next free id regardless of which milestone they belong to. The table is grouped by milestone for reading, not sorted by id.
 
 ### Status definitions
@@ -237,6 +239,65 @@ and picking it up anyway is how two people end up editing the same file.
 
 ---
 
+## Security hardening — the threat model's actions
+
+Forty actions from [`../docs/14-threat-model.md`](../docs/14-threat-model.md) §5, one or two per
+threat, in threat order. They were prose until 2026-09-17: the document allocated its own ids from
+`H-110` when the tracker ended at `H-109`, the tracker then grew to `H-135` on other work, and
+twenty-six of the references came to name unrelated finished tasks. Renumbered here into `H-136`
+onwards, which is the only place an id may be allocated.
+
+**Milestones in this section are provisional.** They follow the milestone of the component each
+threat is against, not a scheduling decision anyone has made; the security owner sets the real ones
+at the next review ([`../docs/14-threat-model.md`](../docs/14-threat-model.md) §13). What is not
+provisional is that each row exists, so an action cannot be closed by a document that says it is
+planned.
+
+| Id | Pri | Task | Area | M | Depends on | Ref | Est | Status | Owner |
+|---|---|---|---|---|---|---|---|---|---|
+| H-136 | P1 | Exec nodes run from an immutable image: read-only root, per-run tmpfs work directory, recycled after a bounded number of runs, with the interval documented | infra | M2 | — | T-001 | M | todo | _unassigned_ |
+| H-137 | P0 | Infrastructure test booting the production-shaped stack and asserting from inside an exec container that no domain env var is present and that DNS/TCP to API, database, Valkey and object store all fail | infra | M2 | — | T-002, T-003 | M | todo | _unassigned_ |
+| H-138 | P0 | Standing egress regression suite: one hostile submission per language attempting DNS, outbound TCP and HTTP, each asserted to fail | worker | M2 | — | T-003 | M | todo | _unassigned_ |
+| H-139 | P0 | Hostile-submission suite for resource exhaustion — fork bomb, allocation bomb, CPU spin, sleep-forever, zip-bomb expansion — each killed inside the wall-time budget with the node returning to service | worker | M2 | — | T-004 | M | todo | _unassigned_ |
+| H-140 | P0 | Enforce `EXEC_MAX_OUTPUT_BYTES` in `packages/exec-adapter` with truncation marked in the result, and a second hard truncation in `packages/grading` before any row is written | exec | M2 | — | T-005 | M | todo | _unassigned_ |
+| H-141 | P1 | Hidden-case results expose pass/fail and label only to a candidate: no `runtime_ms`, no `memory_kb`, no exit code, no ordering beyond the declared ordinal | api | M2 | — | T-006 | S | todo | _unassigned_ |
+| H-142 | P0 | Contract test: a hidden expectation planted as a distinctive UUID never appears in any candidate-visible body, frame or log | api | M2 | — | T-007 | S | todo | _unassigned_ |
+| H-143 | P0 | Adapter-level test asserting the `execute()` payload carries no expected output, no question id and no organisation id | exec | M2 | — | T-008 | S | todo | _unassigned_ |
+| H-144 | P0 | Author-supplied `checker_code` and `fixture_sql` execute inside the candidate sandbox, and an import never sets either from an external file — blocks `custom_checker` shipping | worker | M2 | — | T-009 | L | todo | _unassigned_ |
+| H-145 | P1 | Short-lived attempt tokens with rolling renewal on heartbeat; every redemption and renewal writes a `proctor_events` row carrying IP and user-agent, visible to a reviewer and acted on by nobody | api | M1 | — | T-010 | M | todo | _unassigned_ |
+| H-146 | P0 | Invitation tokens 256-bit from a CSPRNG peppered at rest; `POST /join/{room_code}` rate-limited per IP and per room, joins accepted only in a window around `scheduled_at` | api | M1 | — | T-011 | M | todo | _unassigned_ |
+| H-147 | P1 | Results UI labels every non-proctored attempt with its verification level, and the async-screen-then-live-confirmation flow is stated in recruiter-facing copy | web | M1 | — | T-012 | S | todo | _unassigned_ |
+| H-148 | P1 | WebSocket ticket redemption is one atomic Valkey operation; a second connection for the same participant is rejected and writes a `session_events` row | collab | M3 | — | T-013 | S | todo | _unassigned_ |
+| H-149 | P0 | Staff session cookies `HttpOnly`, `Secure`, `SameSite=Lax`, host-prefixed, identifier regenerated on login, privilege change and logout, with fixation and namespace-disjointness tests | api | M0 | — | T-014 | M | todo | _unassigned_ |
+| H-150 | P0 | OIDC callback validates issuer, audience, `nonce`, `exp`, `iat` skew and the PKCE verifier with `state` bound to the originating session; email claims map to an existing user, never auto-provision | auth | M0 | — | T-015 | M | todo | _unassigned_ |
+| H-151 | P1 | Bulk export is asynchronous, audited, notifies org admins on completion and is rate-limited separately from the general staff budget | api | M0 | — | T-016 | M | todo | _unassigned_ |
+| H-152 | P1 | Enforced MFA or IdP-only login per organisation, configurable in `/org/settings` | auth | M0 | — | T-016 | M | todo | _unassigned_ |
+| H-153 | P0 | Double-submit CSRF tokens on every state-changing staff route, an `Origin`/`Sec-Fetch-Site` check, and CORS from `CORS_ALLOWED_ORIGINS` with credentials never for `*` | api | M0 | — | T-017 | M | todo | _unassigned_ |
+| H-154 | P0 | Every candidate-facing route resolves its target row through the token’s attempt id in the same query, with an authorisation matrix test asserting `not_found` and never `forbidden` | api | M1 | — | T-018 | M | todo | _unassigned_ |
+| H-155 | P0 | The job role is granted per-table and write-only where possible; every job touching tenant data sets `app.current_org` or is on a documented cross-tenant allow list, with a lint rule on raw job-role connections | db | M1 | — | T-019 | M | todo | _unassigned_ |
+| H-156 | P0 | Extend the RLS negative-test suite to the job role: a job processing org A must read and write no org B row, asserted per job type | db | M1 | — | T-019 | M | todo | _unassigned_ |
+| H-157 | P0 | Filter and sort parameters are zod enums resolving to a fixed column allow list; raw SQL only through bound `sql` templates, enforced by lint; cursors opaque and validated before decoding | contracts | M0 | — | T-020 | M | todo | _unassigned_ |
+| H-158 | P1 | A user cannot grant themselves a permission they do not hold or self-assign a role they just modified; role and permission changes notify org admins. System roles immutable | api | M0 | — | T-021 | M | todo | _unassigned_ |
+| H-159 | P0 | Every request schema is strict, `.passthrough()` banned by lint, and database updates built from an explicit field list rather than a parsed-body spread — _partial 2026-09-17: the question, taxonomy and bank-job schemas are `strictObject` and updates are field lists; the lint rule and a full sweep remain_ | contracts | M0 | — | T-022 | M | todo | _unassigned_ |
+| H-160 | P0 | Candidate-facing responses built by explicit allow-list serialisers, with a property test walking every body and SSE frame for `is_correct`, `solution_code`, `expected_stdout`, `pattern`, `checker_code` and `fixture_sql` | contracts | M1 | — | T-023, T-024 | M | todo | _unassigned_ |
+| H-161 | P1 | Hidden cases labelled generically to a candidate (`Hidden case 3`); progress frames carry `{ordinal, passed}` and nothing else | api | M2 | — | T-024 | S | todo | _unassigned_ |
+| H-162 | P0 | Integration test submitting with a client clock skewed by ±6 hours asserting identical server behaviour; the candidate countdown re-syncs from `server_time` and shows reconnecting rather than freezing | candidate | M1 | — | T-025 | M | todo | _unassigned_ |
+| H-163 | P0 | Autosave carries a monotonic per-answer sequence number; the server applies a write only if it exceeds the stored one and returns the applied sequence | api | M1 | — | T-026 | M | todo | _unassigned_ |
+| H-164 | P0 | A transactional deadline guard on every candidate write, independent of the sweep, including accommodation extra time | api | M1 | — | T-027 | M | todo | _unassigned_ |
+| H-165 | P0 | `POST /attempt/start` idempotent per attempt; redeeming an invitation whose attempt is in progress resumes it, with the redeem count checked against `max_attempts` in the same transaction | api | M1 | — | T-028 | M | todo | _unassigned_ |
+| H-166 | P1 | Exposure dashboard with a per-version threshold alert, a retirement workflow requiring a replacement, and a report flagging versions whose `p_value` rises abruptly | web | M0 | — | T-029 | L | todo | _unassigned_ |
+| H-167 | P1 | Candidate-facing copy stating that question content is confidential and that exposure is tracked, with exposure-driven retirement resourced as the primary control | candidate | M4 | — | T-030 | S | todo | _unassigned_ |
+| H-168 | P1 | Export jobs notify org admins on completion, are rate-limited per organisation per day, and embed a per-export identifier so a leaked file traces to its job — _partial 2026-09-17: the job row, the audit rows and the seven-day expiry exist (ADR-021); notification, rate limit and watermark remain_ | worker | M0 | — | T-031 | M | todo | _unassigned_ |
+| H-169 | P1 | Webhook signatures carry a signed timestamp with a documented tolerance window, and the consumer obligations are stated with a verification snippet | api | M3 | — | T-034 | S | todo | _unassigned_ |
+| H-170 | P0 | Pre-signed URL TTLs of at most 300 s for media and 900 s for export artifacts, issued only against an audited authorised request, with signatures never logged | api | M4 | — | T-035 | M | todo | _unassigned_ |
+| H-171 | P0 | A distinct `proctor.review` permission gating media access, an `audit_log` row per media view, and a monitored retention sweep hard-deleting object and row at `delete_after` | api | M4 | — | T-036 | M | todo | _unassigned_ |
+| H-172 | P0 | CI vulnerability audit failing on high severity with a documented exception path; `--frozen-lockfile`, post-install scripts disabled except an allow list, and reviewed dependency bumps | infra | M0 | — | T-037 | M | todo | _unassigned_ |
+| H-173 | P0 | Sanitising markdown pipeline with an element and attribute allow list, raw HTML disabled, `javascript:`/`data:` URLs rejected, plus a strict CSP on both apps | ui | M0 | — | T-038 | M | todo | _unassigned_ |
+| H-174 | P1 | One CSV writer used by every export path, prefixing fields beginning `=`, `+`, `-`, `@`, tab or carriage return, quoting all fields and writing UTF-8 with a BOM | core-domain | M2 | — | T-039 | S | todo | _unassigned_ |
+| H-175 | P0 | `audit_log` append-only at the database level, asserted by a test attempting `UPDATE` and `DELETE` as both application roles — _built 2026-09-17: migration 0002 revokes both and `packages/db/tests/rls.test.ts` asserts it; the seven-year retention half remains_ | db | M0 | — | T-040 | S | todo | _unassigned_ |
+
+---
+
 ## Start here — what is actually startable
 
 Priority says what may be cut. This says what to pick up **next**, in order, and it is the only
@@ -293,14 +354,14 @@ works on the machine that built it; that is not what P0 promises.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 27 | 12 | 12 | 15 |
-| M1 | P3 | 22 | 9 | 0 | 22 |
-| M2 | P4 | 18 | 8 | 0 | 18 |
-| M3 | P5 | 14 | 4 | 0 | 14 |
-| M4 | P6 | 15 | 3 | 0 | 15 |
-| **Total** | | **135** | **72** | **50** | **85** |
+| M0 | P1–P2 | 40 | 20 | 17 | 23 |
+| M1 | P3 | 33 | 18 | 0 | 33 |
+| M2 | P4 | 29 | 15 | 0 | 29 |
+| M3 | P5 | 16 | 4 | 0 | 16 |
+| M4 | P6 | 18 | 5 | 0 | 18 |
+| **Total** | | **175** | **98** | **55** | **120** |
 
-Reconciled against the code on 2026-09-17, not carried forward. A row is `done` only where the behaviour
+Reconciled against the code on 2026-09-17, not carried forward. The jump from 135 rows to 175 is the forty security actions above, which existed only as prose in the threat model until the same day. A row is `done` only where the behaviour
 exists and is tested; partial work stays `todo` with an annotation saying what is done and what
 remains, because `in-progress` means an owner with an open branch and every owner is unassigned.
 The reconciliation was needed because P1 and the first P2 tracks were built without flipping their

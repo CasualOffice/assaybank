@@ -11,7 +11,7 @@ The contract in [`CLAUDE.md`](../../CLAUDE.md) "Keeping the docs true", expanded
 
 Every rule below applies **in the same change** that causes it. Not in a follow-up commit, not in a tidy-up pull request, not in a ticket. A follow-up is a promise, and the failure mode this whole mechanism exists to prevent is a promise that was made honestly and then overtaken by the next piece of work.
 
-## The seven rules, and what each one costs to skip
+## The eight rules, and what each one costs to skip
 
 | # | Rule | Skipping it costs |
 |---|---|---|
@@ -22,6 +22,7 @@ Every rule below applies **in the same change** that causes it. Not in a follow-
 | 5 | An answered question is deleted from `project/OPEN-QUESTIONS.md` and written into the document that owns the subject. | An open-questions file that only grows is a file nobody reads, which means genuinely open questions hide in it. |
 | 6 | Every document you touch gets its `**Last updated:**` bumped to the date of the change. | The freshness gate cannot tell a reviewed document from an abandoned one, so the cadence mechanism stops working. |
 | 7 | A new environment variable lands in `.env.example`, `docker-compose.yml`, `packages/config` and `docs/13-environments-and-release.md` together. | It fails at 03:00 in an exam window instead of at boot, which is the entire reason `packages/config` validates at startup. |
+| 8 | A task id is allocated in `project/TRACKER.md` and nowhere else; a document cites, never mints. | The reference silently comes to name a different task once the backlog grows past it, and reads correctly the whole time. `docs/14-threat-model.md` lost twenty-six of its mitigations this way. `scripts/check-task-ids.mjs` is the gate. |
 
 Two mechanical consequences follow from rule 6. The registry column in [`docs/DOC-OWNERSHIP.md`](../../docs/DOC-OWNERSHIP.md) mirrors each document's header date, so run `node scripts/check-doc-freshness.mjs --sync` after bumping. And bumping a date without re-reading the document is a review failure, not a shortcut — the date asserts that someone looked.
 

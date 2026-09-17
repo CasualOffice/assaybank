@@ -224,12 +224,14 @@ secrets: ## Fail if a committed password could be mistaken for a real one
 licence-headers: ## Check every source file carries the MPL-2.0 notice (ADR-020)
 	@node scripts/check-licence-headers.mjs
 
-docs-check: ## Check doc freshness and relative links
+docs-check: ## Check doc freshness, relative links and task ids
 	@ok=1; \
 	if [ -f scripts/check-doc-freshness.mjs ]; then node scripts/check-doc-freshness.mjs || ok=0; \
 	else printf 'docs-check: scripts/check-doc-freshness.mjs is missing.\n'; ok=0; fi; \
 	if [ -f scripts/check-links.mjs ]; then node scripts/check-links.mjs || ok=0; \
 	else printf 'docs-check: scripts/check-links.mjs is missing.\n'; ok=0; fi; \
+	if [ -f scripts/check-task-ids.mjs ]; then node scripts/check-task-ids.mjs || ok=0; \
+	else printf 'docs-check: scripts/check-task-ids.mjs is missing.\n'; ok=0; fi; \
 	[ $$ok -eq 1 ]
 
 graph: ## Regenerate CODE-GRAPH.md from code-graph.json

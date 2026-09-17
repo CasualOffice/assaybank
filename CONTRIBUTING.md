@@ -113,6 +113,7 @@ The template in [`.github/pull_request_template.md`](.github/pull_request_templa
 - [ ] New ADR added for any decision expensive to reverse; no accepted ADR edited in place
 - [ ] Any answered open question moved out of [`project/OPEN-QUESTIONS.md`](project/OPEN-QUESTIONS.md) into its owning doc
 - [ ] `**Last updated:**` bumped on every document touched (`make docs-check` passes)
+- [ ] Every `H-NNN` mentioned is a real tracker row, and any new task was added there first
 - [ ] New env var present in `.env.example`, `docker-compose.yml`, `packages/config` and [`docs/13-environments-and-release.md`](docs/13-environments-and-release.md)
 
 The full version is [`project/DEFINITION-OF-DONE.md`](project/DEFINITION-OF-DONE.md).
@@ -163,6 +164,7 @@ The maintenance contract is the numbered list in [`CLAUDE.md`](CLAUDE.md) under 
 - Every document opens with an H1, then `**Status:**`, `**Owner:**`, `**Last updated:**`, `**Companion docs:**`, then a `---` rule.
 - Bump `**Last updated:**` to the date of your change on every document you touch. `make docs-check` and CI both enforce it, and a local `PostToolUse` hook warns you first.
 - Relative links only. `scripts/check-links.mjs` fails on a broken one.
+- Cite a task id, never invent one. Ids live in [`project/TRACKER.md`](project/TRACKER.md); if the work is not a row there, add the row in the same change. `scripts/check-task-ids.mjs` fails on a reference to an id the tracker does not hold.
 - British spelling, plain declarative prose, absolute ISO dates, no bare "TBD" — write "TBD — owner: `<role>`, decide by `<absolute date>`".
 - `CODE-GRAPH.md` is generated. Edit `code-graph.json` and run `make graph`.
 

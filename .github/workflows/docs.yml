@@ -2,11 +2,12 @@
 # today, against documentation-only content, and it is the one workflow that is
 # expected to fail a pull request in the current state of the repository.
 #
-# Three checks:
+# Four checks:
 #   scripts/check-doc-freshness.mjs   registration both ways, metadata, age, index
 #                                     coverage, and — on a pull request — the trigger
 #                                     rules from docs/DOC-OWNERSHIP.md against the diff
 #   scripts/check-links.mjs           every relative link and heading anchor resolves
+#   scripts/check-task-ids.mjs        every H-NNN names one real tracker row
 #   scripts/gen-code-graph.mjs --check CODE-GRAPH.md is in sync with code-graph.json
 #
 # The doctrine behind the freshness gate, and the escalation path for a document
@@ -86,6 +87,10 @@ jobs:
       - name: Relative links and anchors
         if: always()
         run: node scripts/check-links.mjs
+
+      - name: Task ids resolve
+        if: always()
+        run: node scripts/check-task-ids.mjs
 
       - name: Code graph in sync
         if: always()

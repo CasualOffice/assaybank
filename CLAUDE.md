@@ -67,15 +67,16 @@ Each is an imperative with its reason attached. None of them is a preference.
 
 ## Keeping the docs true
 
-This repository's documentation is load-bearing — it is the specification the code is being written against. The following seven rules are a contract, not a suggestion. Each applies **in the same change** that causes it, never as a follow-up.
+This repository's documentation is load-bearing — it is the specification the code is being written against. The following eight rules are a contract, not a suggestion. Each applies **in the same change** that causes it, never as a follow-up.
 
 1. **Structure changes update the graph.** Any change to a service boundary, a package, a queue, or an external dependency updates `code-graph.json` in the same change, and `CODE-GRAPH.md` is regenerated with `node scripts/gen-code-graph.mjs` (`make graph`). `CODE-GRAPH.md` is generated output — never hand-edit it.
 2. **Completed work updates the tracker.** Any backlog item that reaches done updates its status in [`project/TRACKER.md`](project/TRACKER.md) and the summary in [`project/STATUS.md`](project/STATUS.md).
 3. **Met exit criteria update the milestones.** Any milestone exit-criterion that is satisfied is marked in [`project/MILESTONES.md`](project/MILESTONES.md) with the date and the evidence that satisfied it.
 4. **Expensive decisions become ADRs.** Any decision that is expensive to reverse becomes a **new** ADR appended to [`docs/04-ADRs.md`](docs/04-ADRs.md). An accepted ADR is never edited to say something different — write a new one that supersedes it and mark the old one superseded, with a link in both directions. The record of what we used to believe is the useful part.
 5. **Answered questions move out of the open list.** Any question answered in [`project/OPEN-QUESTIONS.md`](project/OPEN-QUESTIONS.md) is deleted from that file and written into the document that owns the subject, and — if the answer is load-bearing — into a new ADR as well. An open-questions file that only grows is a file nobody reads.
-6. **Every doc you touch gets its `**Last updated:**` bumped** to the date of the change. `scripts/check-doc-freshness.mjs` enforces this in CI, and a Claude Code `PostToolUse` hook warns locally as soon as you save.
-7. **A new env var lands in three places at once**: [`.env.example`](.env.example), `docker-compose.yml`, and the environment table in [`docs/13-environments-and-release.md`](docs/13-environments-and-release.md). It is also parsed and validated in `packages/config`, so a missing value fails at boot rather than at 03:00 during an exam window.
+6. **A task id is allocated in [`project/TRACKER.md`](project/TRACKER.md) and nowhere else.** Cite an id the tracker already holds, or add the row first. A document that mints its own ids collides with the backlog the moment it grows that far, and the reference then names someone else's finished task while reading exactly as it did before — which is what `docs/14-threat-model.md` did to twenty-six of its own mitigations. `scripts/check-task-ids.mjs` enforces it.
+7. **Every doc you touch gets its `**Last updated:**` bumped** to the date of the change. `scripts/check-doc-freshness.mjs` enforces this in CI, and a Claude Code `PostToolUse` hook warns locally as soon as you save.
+8. **A new env var lands in three places at once**: [`.env.example`](.env.example), `docker-compose.yml`, and the environment table in [`docs/13-environments-and-release.md`](docs/13-environments-and-release.md). It is also parsed and validated in `packages/config`, so a missing value fails at boot rather than at 03:00 during an exam window.
 
 ### Definition of done — copy this into your PR
 
@@ -119,7 +120,7 @@ Run `make help` for the generated list. Targets that depend on code which does n
 | `make lint` / `make typecheck` / `make fmt` | ESLint / `tsc --noEmit` / Prettier write | M0 |
 | `make licences` | Fail on any prohibited dependency licence | now |
 | `make sbom` | Produce a CycloneDX SBOM | M0 |
-| `make docs-check` | Doc freshness and relative-link checks | now |
+| `make docs-check` | Doc freshness, relative-link and task-id checks | now |
 | `make graph` | Regenerate `CODE-GRAPH.md` from `code-graph.json` | now |
 | `make clean` | Remove build output, caches and coverage | now |
 | `make nuke` | `clean` plus remove containers, volumes and images | now |
