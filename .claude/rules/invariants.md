@@ -22,6 +22,14 @@ Most are not built yet — the guarding tests are specified in [`docs/06-testing
 | 5 | The attempt state machine advances only along its declared edges. There is no path that sets a terminal status from outside the machine. | API spec §6 | Table-driven state-machine tests §4.2 covering every legal edge and rejecting every illegal one | M1 |
 | 18 | Author-supplied markdown becomes React elements through `packages/markdown` and `packages/ui`'s `Markdown`, and never a string of HTML. No source in `packages/ui`, `apps/web` or `apps/candidate` assigns HTML from a string, no workspace depends on a markdown or HTML-sanitising library, and a link or image destination is kept only when `safeUrl` accepts its scheme. | ADR-022, docs/14 T-038 | `packages/markdown/src/xss-corpus.test.ts` — the payload corpus, checked against the browser's own URL parser rather than a regex of ours — and `tests/fixtures/no-inner-html.test.ts`, which asserts the two structural facts the argument rests on | M0 — built 2026-09-20 |
 
+**ADR-023 adds a data class to invariant 4's scope, 2026-09-20.** Pulling candidate records from an
+applicant tracking system brings resumes into this system for the first time. A resume is evidence a
+human reads in the review flow; it is not an input to a score, and no code in the scoring path may
+read one. The invariant already says no *inference* may influence a score — this names the input
+most likely to be reached for, because "the model only saw the resume" is how employment
+discrimination claims begin. [`docs/18-hiring-workflows.md`](../../docs/18-hiring-workflows.md) §5
+is the full table of what automation may and may not touch.
+
 ## Integrity and isolation
 
 | # | Invariant | From | Guarded by | Lands |

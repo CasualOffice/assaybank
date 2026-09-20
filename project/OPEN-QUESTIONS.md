@@ -26,7 +26,7 @@ The five questions in [`../docs/01-PRD.md`](../docs/01-PRD.md) §11 and the five
 | PRD §11.3 | i18n at launch | OQ-003 |
 | PRD §11.4 | Certification credentials — Open Badges or PDF | OQ-004 |
 | PRD §11.5 | Retention default for session recordings | OQ-005 |
-| README gap 1 | ATS integration is webhooks only; no direct connector specified | OQ-002, with the concrete target system as OQ-013 |
+| README gap 1 | ATS integration is webhooks only; no direct connector specified | OQ-002; target system settled by OQ-013 on 2026-09-20 (ADR-023) |
 | README gap 2 | No i18n design for question content | OQ-003 |
 | README gap 3 | Certificate issuance format undecided | OQ-004 |
 | README gap 4 | Retention defaults are working assumptions pending legal sign-off | OQ-005 |
@@ -39,7 +39,7 @@ OQ-007 through OQ-014 were raised by the documentation work itself — mostly de
 | Status | Count | Ids |
 |---|---|---|
 | resolved | 7 | OQ-001, OQ-002, OQ-003, OQ-004, OQ-005, OQ-006, OQ-007 |
-| open | 7 | OQ-008, OQ-009, OQ-010, OQ-011, OQ-012, OQ-013, OQ-014 |
+| open | 6 | OQ-008, OQ-009, OQ-010, OQ-011, OQ-012, OQ-014 |
 | deferred | 0 | — |
 
 ---
@@ -286,18 +286,19 @@ This must be decided before task H-018 seeds the starter taxonomy, because the s
 
 ---
 
-## OQ-013 — Which ATS is the first direct connector built against?
+## OQ-013 — Which ATS is the first direct connector built against? — **answered 2026-09-20**
 
-**Status:** **open**
-**Source:** PRD §11.2 — *"a direct connector to whatever we currently use"*, which no document names
-**Decider:** _unassigned_ — recruiting, with engineering lead
-**Decide by:** 2026-11-06
+**Answer.** Ceipal and Bullhorn, in that order. Recorded in [ADR-023](../docs/04-ADRs.md), which also
+decides the direction ADR-019 did not cover — pulling requisitions and candidates **in**, as a
+scheduled job above the same event contract. The pair satisfies ADR-019's reversal condition of two
+customers asking for the same system, and it is informative beyond the API: both are staffing-agency
+systems, so the first market runs many requisitions across many clients.
 
-**Why it matters.** OQ-002 settled the architecture — webhooks as the substrate, connectors as thin adapters above them — but not the target. The first connector sets the shape of the adapter interface, and an interface designed against a guess fits no real system. The stage vocabulary in particular (`applications.stage` is `applied|screening|interview|offer|rejected`) has to map onto something concrete, and every ATS uses different words for the same five states.
+Bullhorn is built second deliberately. An interface proven by two implementations is an interface;
+one shaped by a single installation is that installation's configuration with a type on it.
 
-**Options.** Cannot be enumerated until recruiting names the system in use. The decision needed is the name plus confirmation of API access and rate limits, not a build commitment.
-
-**Recommendation.** Name the system before M2 closes so the connector can be scoped as M4-or-later work against a real API rather than a hypothetical one. Until then the webhook layer stands alone, which is a working integration, not a placeholder.
+The work is `H-186` (the ingestion), `H-187` (Ceipal) and `H-188` (Bullhorn), and the flow it serves
+is [`../docs/18-hiring-workflows.md`](../docs/18-hiring-workflows.md) §4.2.
 
 ---
 

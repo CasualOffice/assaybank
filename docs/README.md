@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`../README.md`](../README.md), [`../CLAUDE.md`](../CLAUDE.md), [`../CODE-GRAPH.md`](../CODE-GRAPH.md), [`../project/STATUS.md`](../project/STATUS.md)
 
 ---
@@ -18,7 +18,7 @@ This directory is the design record. It is the reason the system is shaped the w
 | [`01-PRD.md`](01-PRD.md) | What we're building and why, users, scope by milestone, requirements, success metrics |
 | [`02-HLD.md`](02-HLD.md) | Components, flows, technology choices, scaling, security, failure modes, deployment |
 | [`03-API-spec.md`](03-API-spec.md) | Endpoints, auth model, attempt state machine, webhooks, error format |
-| [`04-ADRs.md`](04-ADRs.md) | The nineteen decisions that are expensive to reverse, and why they went the way they did |
+| [`04-ADRs.md`](04-ADRs.md) | The twenty-three decisions that are expensive to reverse, and why they went the way they did |
 | [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md) | Dependency licence policy, question content licensing, employment-assessment regulation |
 | [`06-testing-strategy.md`](06-testing-strategy.md) | What we test at which layer, the test data strategy, and what a milestone must prove before it closes |
 | [`07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md) | The k6 scenarios, the deadline-stampede case, and the pass thresholds each milestone's concurrency claim is measured against |
@@ -32,10 +32,11 @@ This directory is the design record. It is the reason the system is shaped the w
 | [`15-accessibility-conformance.md`](15-accessibility-conformance.md) | The WCAG 2.1 AA commitment made concrete: what is tested, how, and the accommodation model the timer and proctoring must respect |
 | [`16-ai-usage-policy.md`](16-ai-usage-policy.md) | The per-round AI assistance policy, the candidate-facing declaration, what is captured, and why those signals stay advisory (ADR-017) |
 | [`17-engineering-standards.md`](17-engineering-standards.md) | The code-quality and system-design bar: type discipline, layering, API and database rules, the invariants that are code rather than documentation, and what a reviewer checks first |
+| [`18-hiring-workflows.md`](18-hiring-workflows.md) | The journeys a hiring team runs end to end — role, coverage, assessment, invitation, pipeline, result, decision — what each stage owes, and the table of where automation is allowed and where ADR-011 forbids it |
 | [`DOC-OWNERSHIP.md`](DOC-OWNERSHIP.md) | Who owns each document, its review cadence, and what makes it stale |
 | [`hiring_platform_schema.sql`](hiring_platform_schema.sql) | Full PostgreSQL schema, runnable |
 
-Documents 06 through 17 and `DOC-OWNERSHIP.md` were written in the same documentation run as this index. Read each for its own detail rather than relying on the one-line summary above.
+Documents 06 through 18 and `DOC-OWNERSHIP.md` were written in the same documentation run as this index. Read each for its own detail rather than relying on the one-line summary above.
 
 ## Reading order
 

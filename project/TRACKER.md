@@ -298,6 +298,30 @@ planned.
 | H-176 | P0 | A failed staff login is byte-identical whether or not the address exists — one envelope, one message, and a dummy verify so the timing does not answer either; the same for password reset — _built 2026-09-20: `packages/auth/src/password.ts` and `apps/api/src/auth/routes.ts`, asserted in `staff-identity.test.ts`; the reset path arrives with it_ | auth | M0 | — | T-042 | S | todo | _unassigned_ |
 | H-177 | P0 | Staff console auth guard: an unresolved principal never reaches a screen — the console redirects to login rather than rendering a shell around an empty session, and a 401 from any query returns it there | web | M0 | H-037 | docs/03 §1 | S | todo | _unassigned_ |
 
+### The guided flow — raised 2026-09-20
+
+These came from reading the console back as a product rather than as a set of screens, and the
+reading is in [`../docs/18-hiring-workflows.md`](../docs/18-hiring-workflows.md). The bank, the
+skill taxonomy, the role definitions and the coverage report are all built and none of them is
+reachable from a screen, so the console asks a recruiter to hunt questions by hand — which is both
+tedious and the mechanism by which a bank fills with near-duplicates.
+
+| Id | Pri | Task | Area | M | Depends on | Ref | Est | Status | Owner |
+|---|---|---|---|---|---|---|---|---|---|
+| H-178 | P1 | Roles screen: the roles being hired for, their required skills, and `GET /job-roles/{id}/coverage` rendered as what the bank can and cannot measure — a required skill with no published question in band named as a gap with the action that closes it | web | M0 | H-037 | docs/18 §2.1 | M | todo | _unassigned_ |
+| H-179 | P1 | Compose an assessment from a role rather than from the bank: the draw rules are derived from the role's required skills, weights and difficulty bands, and the feasibility check runs before the user names it | web | M1 | H-178 | docs/18 §2.2, FR-6 | L | todo | _unassigned_ |
+| H-180 | P0 | Per-candidate draw with difficulty parity: two candidates for one role sit different questions of comparable difficulty, balanced on declared difficulty until `question_stats` has n ≥ 30 and on observed p-value after — and the parity is asserted by a test over a simulated cohort | core-domain | M1 | H-179 | docs/18 §3.2, FR-5, FR-6 | L | todo | _unassigned_ |
+| H-181 | P1 | Candidate pipeline screen: one row per candidate per role, sortable and filterable by stage, score, per-skill score, date and source, with the filter state in the URL | web | M2 | H-179 | docs/18 §2.5 | L | todo | _unassigned_ |
+| H-182 | P1 | Invitations sent from the console: bulk from a pasted list, a CSV or an ATS pull, with a per-invitation delivery state a recruiter can see and a resend that does not mint a second attempt | web | M1 | H-179 | docs/18 §2.4, FR-27 | M | todo | _unassigned_ |
+| H-183 | P1 | Result screen: overall percentage, per-skill breakdown against the role's requirement, the evidence behind each number, and a side-by-side comparison of candidates for one role that ranks nothing (ADR-011) | web | M2 | H-181 | docs/18 §2.6, FR-20 | L | todo | _unassigned_ |
+| H-184 | P1 | Near-duplicate detection on import and on author save: a normalised prompt fingerprint plus a shingled similarity check, surfaced as "this looks like question X" with the author deciding — never an automatic merge | worker | M0 | — | docs/18 §3.3 | M | todo | _unassigned_ |
+| H-185 | P2 | Job descriptions in, as a first-class input: paste or pull a JD, extract the skills it implies as a **suggestion a human approves**, and create the role from the approved set (ADR-011 and docs/16 — a suggestion is not a decision) | api | M2 | H-178 | docs/18 §4.1 | L | todo | _unassigned_ |
+| H-186 | P2 | Inbound ATS ingestion above the webhook layer: pull job requisitions and candidate records on a schedule, map the vendor's stage vocabulary to `applications.stage`, and hold the resume as an attachment under the retention clock | worker | M4 | H-061 | ADR-023, docs/09 | L | todo | _unassigned_ |
+| H-187 | P2 | Ceipal adapter over the ingestion interface, with its own rate-limit budget and a per-tenant credential | worker | M4 | H-186 | ADR-023 | M | todo | _unassigned_ |
+| H-188 | P2 | Bullhorn adapter over the same interface, built second so the interface is proven by two rather than shaped by one | worker | M4 | H-186 | ADR-023 | M | todo | _unassigned_ |
+| H-189 | P1 | Assessment invitation email: the template, the link, the expiry, and a preview a recruiter can read before sending — the first candidate-facing words the product writes on a customer's behalf | api | M1 | H-182 | docs/18 §2.4 | M | todo | _unassigned_ |
+
+
 ---
 
 ## Start here — what is actually startable
@@ -320,6 +344,20 @@ formats, and import and export as queued jobs. What remains is the dataset work 
 
 `H-032` is the long pole. The formats are done and tested; what it adds is one adapter per dataset,
 each rejecting a row with no `source_license` (docs/05 §2) and preserving `external_ref`.
+
+### The flow, which is the thing that is actually missing
+
+The bank is built and almost none of it is reachable. `GET /job-roles/{id}/coverage` will say
+exactly which required skill of a role the bank cannot measure, and no screen asks it — so the
+console offers a recruiter a list of questions and a **New question** button, which is both the most
+tedious path through the product and the mechanism by which a bank fills with near-duplicates.
+
+[`../docs/18-hiring-workflows.md`](../docs/18-hiring-workflows.md) is the journey end to end.
+`H-178` is the first step and needs no server work at all: the endpoint exists.
+
+`H-178` roles and coverage → `H-184` near-duplicate detection. Both are startable today against
+endpoints that are already built and tested. Everything from `H-179` onwards waits on the assessment
+engine in P3.
 
 ### The console, which can now read and write the bank
 
@@ -367,14 +405,16 @@ weeks is how three of the four end up half-done.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 42 | 22 | 21 | 21 |
-| M1 | P3 | 33 | 18 | 0 | 33 |
-| M2 | P4 | 29 | 15 | 0 | 29 |
+| M0 | P1–P2 | 44 | 22 | 21 | 23 |
+| M1 | P3 | 37 | 19 | 0 | 37 |
+| M2 | P4 | 32 | 15 | 0 | 32 |
 | M3 | P5 | 16 | 4 | 0 | 16 |
-| M4 | P6 | 18 | 5 | 0 | 18 |
-| **Total** | | **177** | **100** | **59** | **118** |
+| M4 | P6 | 21 | 5 | 0 | 21 |
+| **Total** | | **189** | **101** | **59** | **130** |
 
-Counted from the rows above on 2026-09-20, not carried forward. The previous table said 175 rows
+Counted from the rows above on 2026-09-20, not carried forward. The twelve rows added that
+afternoon are the guided flow: `H-178` to `H-189`, from reading the console back as a product
+instead of as a set of screens. The previous table said 175 rows
 and 55 done, having been written by hand and then not updated when `H-176` and `H-177` were
 allocated — which is the same failure the "Start here" section had, in a smaller way. A count that
 is maintained separately from the thing it counts is a count that will be wrong; if this drifts

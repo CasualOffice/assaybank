@@ -426,3 +426,33 @@ all and export and import stay symmetric. That is a larger change than this one 
 here.
 
 **Revisit when** an upload path for question media exists — tighten `img-src` to `'self'` and reject absolute image destinations at import; or when a prompt genuinely needs a construct the subset cannot express, in which case the node type is added to the union and the renderer stops compiling until somebody decides how it looks; or if a mathematical notation requirement arrives, which is a rendering pipeline of its own and not an extension of this one.
+
+---
+
+## ADR-023 — Inbound ATS ingestion is a scheduled pull above the same event contract
+
+**Status:** accepted
+**Depends on:** ADR-019, ADR-010
+**Answers:** OQ-013
+
+**Context.** [ADR-019](#adr-019--a-generic-webhook-layer-before-any-direct-ats-connector) settled how domain events leave this system — a signed outbound webhook layer, with vendor connectors as thin adapters above it — and deliberately left the first target system open as OQ-013, on the grounds that an adapter interface designed against a guess fits no real system.
+
+OQ-013 is now answered: **Ceipal and Bullhorn**. Two names rather than one is what ADR-019's reversal condition asked for, and the pair is informative beyond the API surface — both are staffing-agency systems rather than in-house tools, which says the first market runs many requisitions across many clients and cares more about throughput than about a bespoke process.
+
+ADR-019 does not cover the direction now being asked for. It decided how events go **out**. Pulling job requisitions and candidate records **in** — so that a recruiter starts from a role that already exists in their ATS and invites candidates already in their pipeline, rather than retyping both — is a separate decision, and an inbound path has failure modes an outbound one does not: a vendor's rate limit is ours to respect rather than theirs, a pull that is behind is silently wrong rather than loudly failed, and the vendor's object graph arrives whether or not it fits ours.
+
+**Decision.** A **scheduled pull**, above the same contract, with the vendor's vocabulary kept in the adapter.
+
+1. **One ingestion interface, two adapters.** `pullRequisitions(since)` and `pullCandidates(since, requisitionRef)` returning our shapes, never the vendor's. Ceipal first, Bullhorn second — and second on purpose: an interface proven by two implementations is an interface; one shaped by a single installation is that installation's configuration with a type on it.
+2. **Polling, not vendor webhooks, for the first release.** Both vendors' push mechanisms differ in reliability and in what they say changed. A pull with a cursor is resumable, is idempotent by `external_ref`, and has one failure mode that is visible in a job row. When a vendor's push is demonstrably reliable it becomes an optimisation that advances the cursor early, not a second path into the domain.
+3. **The stage vocabulary is mapped in the adapter.** `applications.stage` stays `applied | screening | interview | offer | rejected`. Every ATS words these differently and several add their own; the translation is the adapter's whole job, and a vendor concept reaching a domain table is the defect this clause exists to prevent.
+4. **Ingestion runs as a `bank_jobs`-style outbox job per tenant** (ADR-021's machinery), under `withOrg`, with a per-tenant credential and a per-tenant rate-limit budget. One customer's pull cannot exhaust another's.
+5. **A resume is an attachment with a retention clock from the moment it lands** ([`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md)), readable by a human in the review flow. **Nothing in the scoring path may read it** — ADR-011 and the discrimination exposure in [`18-hiring-workflows.md`](18-hiring-workflows.md) §5 both land here.
+
+**Consequences.** A recruiter's first action becomes "pick the requisition" rather than "retype the requisition", which is the single biggest reduction in setup work the product can make, and it is what makes the guided flow in docs/18 start from something real.
+
+The costs are real and worth stating. Polling has latency — a candidate added in the ATS appears here on the next tick, and "why is it not there yet" becomes a support question with a correct answer nobody enjoys. Two adapters is two rate-limit budgets, two credential shapes and two breaking-change cadences to track, and a vendor's sandbox availability is now on our critical path. Holding resumes makes this system a processor of a category of personal data it does not currently touch, which pulls [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md) forward and makes the DPIA a gate rather than a document.
+
+The outbound layer is unaffected. Events still leave through the webhook contract, and an adapter that both pulls and pushes is still a client of that contract rather than a parallel path — which is the clause in ADR-019 that this decision is careful not to weaken.
+
+**Revisit when** a third vendor is asked for, at which point the interface has had two implementations and its shape is evidence rather than a bet; or when a vendor's push mechanism proves reliable enough to make polling the fallback rather than the mechanism; or if a customer requires that resumes never leave their ATS, which is a legitimate position and makes the attachment a reference rather than a copy.
