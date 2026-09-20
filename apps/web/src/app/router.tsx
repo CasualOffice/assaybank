@@ -35,6 +35,7 @@ import { SessionGate } from './SessionGate.js';
 import { AttributionsScreen } from '../routes/AttributionsScreen.js';
 import { AssessmentsScreen } from '../routes/AssessmentsScreen.js';
 import { ComposeScreen } from '../routes/ComposeScreen.js';
+import { InviteScreen } from '../routes/InviteScreen.js';
 import { RolesScreen } from '../routes/RolesScreen.js';
 import { ErrorEnvelopeView, toDisplayEnvelope } from './ErrorBoundary.js';
 import {
@@ -339,6 +340,23 @@ const assessmentsRoute = createRoute({
 });
 
 /**
+ * Inviting candidates to one assessment.
+ *
+ * A child of `/assessments`, so the sidebar keeps saying Assessments while you are here and
+ * Back returns to the list.
+ */
+function InviteRouteScreen(): ReactNode {
+  const { assessmentId } = inviteRoute.useParams();
+  return <InviteScreen assessmentId={assessmentId} />;
+}
+
+const inviteRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/assessments/$assessmentId/invite',
+  component: InviteRouteScreen,
+});
+
+/**
  * Composing an assessment for one role.
  *
  * A child of `/roles` rather than of `/assessments`, because that is where the flow is: you
@@ -399,6 +417,7 @@ export const routeTree = rootRoute.addChildren([
   attributionsRoute,
   rolesRoute,
   composeRoute,
+  inviteRoute,
   questionDetailRoute,
   assessmentsRoute,
   candidatesRoute,

@@ -556,6 +556,33 @@ each looked like it had failed. The error text that finally named the problem �
 to a package appears to have no effect, check that the thing under test is the thing you
 edited.
 
+## 7c. A credential served once is held nowhere that can serve it twice
+
+An invitation link is a bearer credential: whoever has it can sit somebody else's assessment.
+The server stores only a peppered hash, so it *cannot* serve one twice — and that guarantee is
+only worth what the rest of the system does with the one copy that exists.
+
+So the plaintext is written to exactly one place, the HTTP response, and everything downstream
+is checked against that:
+
+- **Not in the query cache.** The console holds the issued links in component state rather
+  than handing the response to React Query, where it would outlive the screen, survive a
+  navigation, and sit in memory as live credentials for a value the server refuses to reissue.
+- **Not in the audit row.** The audit entry records counts — issued, skipped — and no address
+  and no token. An audit trail is read by people who do not need the candidate list, and a
+  credential at rest in it is a credential.
+- **Not in a log line.** The route logs nothing carrying the token, and the list endpoint has
+  no field that could.
+- **Asserted, not assumed.** The integration test takes the issued token, reads the stored
+  row, and asserts the hash does not contain it; another asserts the list response does not
+  either. Both would pass silently if somebody later added the token to a response "for
+  convenience", which is exactly why they are written as `not.toContain` against the real
+  value rather than as a shape check.
+
+The cost is real and is the right cost: a lost link cannot be recovered, only reissued. An
+endpoint that could re-show one would hand credentials to anybody who can read the invitation
+list, which is a much larger group than the one that should have them.
+
 ## 8a. A suite of negative tests proves nothing until one positive test passes
 
 The OIDC callback had six controls — issuer, audience, `nonce`, `exp`, PKCE, `state` — and a

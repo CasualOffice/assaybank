@@ -216,6 +216,9 @@ async function main(): Promise<void> {
     config: cfg,
     logger,
     credentials: candidateCredentials,
+    // Issuing invitations needs the pepper their tokens are hashed under — the same one
+    // redemption verifies with, which is what makes a link work at all.
+    invitations: { tokenPepper: cfg.secrets.tokenPepper },
     staffIdentity: {
       auth: staffAuth,
       db,

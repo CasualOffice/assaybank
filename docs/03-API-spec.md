@@ -418,6 +418,47 @@ remains the check that runs against the bank as it is.
 
 Always a draft; a human reviews before publish.
 
+### Publishing and inviting
+
+**Built 2026-09-21** (`H-182`).
+
+```
+POST   /assessments/{id}/publish     → 200 {id, status}
+POST   /assessments/{id}/invitations {emails[], expires_in_days?, max_attempts?}
+                                     → 201 {issued[{id, candidate_id, email, url, expires_at}],
+                                            skipped[]}
+GET    /assessments/{id}/invitations → {assessment_id, data[]} — never the token
+```
+
+**Publish re-checks the bank.** Composition's feasibility check was a snapshot, and a question
+retired since then makes a paper that was feasible on Tuesday infeasible today. Publishing is
+the act that lets somebody try to sit it, so the check runs again with the same
+`validation_failed` and the same `details.shortfalls`. An assessment with no rules is refused
+too — redemption calls that `invitation_incomplete` and refuses the candidate, which is the
+worst possible moment to find out. A second publish answers `conflict`.
+
+**The link is served once.** `invitations.token_hash` stores a peppered hash and nothing else,
+so the plaintext exists only in the response that created it. It is not in the list response,
+not in the audit row, and not in any log line. A lost link is reissued, not recovered — an
+endpoint that could re-show one would hand credentials to anybody who can read the invitation
+list.
+
+**Re-inviting somebody who holds a live link does nothing.** Pasting the same forty addresses
+twice must not give twenty people a second sitting, so an address with a *live* invitation
+comes back in `skipped`. Live means not expired and not fully used: somebody whose link lapsed,
+or who already sat it, can be invited again, and that is a deliberate act rather than an
+accident.
+
+**`state` is derived, never stored.** `used` once the sittings are spent, then `expired`, then
+`started`, then `sent` or `issued`. Each is a function of `sent_at`, `expires_at` and how many
+attempts reference the invitation, and a stored status would be a second copy that drifts the
+first time an attempt is voided. `used` is reported ahead of `expired` on purpose: somebody who
+sat the assessment and then let the link lapse turned up, and calling that "expired" reads as
+though they never did.
+
+Inviting requires `invite.send`. Sending the email is `H-189` and is not built; the console
+shows the links to be sent by whatever the recruiter already uses.
+
 ---
 
 ## 6. Candidates and invitations

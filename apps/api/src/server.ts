@@ -52,6 +52,7 @@ import { registerHttpMetrics } from './http-metrics.js';
 import { registerOrgRoutes } from './org/routes.js';
 import { registerQuestionRoutes } from './questions/routes.js';
 import { registerAssessmentRoutes } from './assessments/routes.js';
+import { registerInvitationRoutes } from './assessments/invitations.js';
 import { registerTaxonomyRoutes } from './taxonomy/routes.js';
 import { registerBankJobRoutes } from './bank-jobs/routes.js';
 import { registerRateLimit } from './rate-limit.js';
@@ -72,7 +73,7 @@ export { WORKSPACE_NAME, DEFAULT_SERVICE_NAME } from './service.js';
  */
 export interface ApiServerConfig {
   readonly core: Pick<CoreConfig, 'appEnv' | 'isDeployedTier'>;
-  readonly http: Pick<HttpConfig, 'corsAllowedOrigins'>;
+  readonly http: Pick<HttpConfig, 'corsAllowedOrigins' | 'candidatePublicUrl'>;
   readonly telemetry: Pick<TelemetryConfig, 'serviceName'>;
 }
 
@@ -111,6 +112,17 @@ export interface BuildServerOptions {
    * could work out.
    */
   readonly credentials?: CandidateCredentialServices | undefined;
+  /**
+   * What issuing an invitation needs: the pepper its token is hashed under.
+   *
+   * Separate from `credentials`, whose `keys` are deliberately narrowed to `attemptToken` —
+   * the hook that authenticates a candidate has no business reaching the pepper, and
+   * widening that narrowing to save one option would hand it to the one place that must not
+   * have it. Absent means this instance issues no invitations and the routes are not
+   * registered, which is honest: a link minted without the pepper would not verify at
+   * redemption, so it would be a working-looking URL that every candidate finds broken.
+   */
+  readonly invitations?: { readonly tokenPepper: string } | undefined;
   /**
    * The database handle, which is what makes `request.audited(...)` available.
    *
@@ -372,6 +384,23 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       // Composition reads roles and the bank and writes assessments, so it lands with the
       // taxonomy routes rather than with the bank ones: a role is what it composes from.
       registerAssessmentRoutes(app, { db: options.db });
+
+      // Publishing and inviting, when this instance holds the token pepper.
+      //
+      // Without it an invitation could be issued and never redeemed — `redemption` hashes
+      // the presented token with the same pepper, and a link minted without one would not
+      // verify. Registering the routes anyway would produce working-looking links that
+      // every candidate finds broken, so the honest shape is no route at all. The
+      // credential services carry the pepper because they are what redeems with it.
+      const invitations = options.invitations;
+      if (invitations !== undefined) {
+        registerInvitationRoutes(app, {
+          db: options.db,
+          tokenPepper: invitations.tokenPepper,
+          candidateUrl: config.http.candidatePublicUrl,
+          now,
+        });
+      }
       registerBankJobRoutes(app, { db: options.db, now });
     }
   });

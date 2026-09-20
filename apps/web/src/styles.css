@@ -1458,3 +1458,85 @@
   font-size: var(--ab-text-xs);
   font-weight: 400;
 }
+
+/* ------------------------------------------------------------- invite */
+
+/* The paste box and its action. One textarea rather than a row per candidate: a recruiter
+   arrives holding a list, and the job is to accept it in the shape it came. */
+.ab-invite__compose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-3);
+  max-width: 44rem;
+}
+
+.ab-invite__paste {
+  inline-size: 100%;
+  padding: var(--ab-space-2) var(--ab-space-3);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface-raised);
+  color: var(--ab-text);
+  font-family: var(--ab-font-sans);
+  font-size: var(--ab-text-sm);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.ab-invite__paste:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 1px;
+}
+
+.ab-invite__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ab-space-3);
+}
+
+/* The count of what was parsed, shown before the button is pressed: "12 addresses" against a
+   list somebody believes has 14 is the moment to notice. */
+.ab-invite__count {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The links, shown once. Monospace and selectable, because the thing somebody needs is the
+   text — a copy button that fails silently on an insecure origin leaves them with nothing. */
+.ab-invite__links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+  margin: 0;
+  padding: var(--ab-space-3);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface-sunken);
+  list-style: none;
+}
+
+.ab-invite__link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ab-invite__link-email {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+.ab-invite__link-url {
+  overflow-wrap: anywhere;
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+  user-select: all;
+}
+
+.ab-invite__name {
+  color: var(--ab-text-muted);
+  font-weight: 400;
+}

@@ -28,7 +28,10 @@ import { buildServer, type ApiServerConfig } from './server.js';
 export function testConfig(overrides: Partial<ApiServerConfig> = {}): ApiServerConfig {
   return {
     core: { appEnv: 'ci', isDeployedTier: false },
-    http: { corsAllowedOrigins: ['https://console.example.test'] },
+    http: {
+      corsAllowedOrigins: ['https://console.example.test'],
+      candidatePublicUrl: 'https://sit.example.test',
+    },
     telemetry: { serviceName: 'hiring-api-test' },
     ...overrides,
   };

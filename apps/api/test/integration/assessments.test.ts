@@ -30,6 +30,9 @@ import { startTestPostgres, type TestPostgres } from './postgres-fixture.js';
 const ACME = '11111111-0000-4000-8000-0000000000a1';
 const RIVAL = '11111111-0000-4000-8000-0000000000a2';
 const USER = '11111111-0000-4000-8000-0000000000b1';
+const PEPPER = 'an-example-token-pepper-for-tests';
+/** Fixed, so an expiry assertion is arithmetic rather than a race with the wall clock. */
+const NOW = new Date('2026-10-13T09:00:00.000Z');
 
 let pg: TestPostgres | undefined;
 let app: FastifyInstance | undefined;
@@ -47,7 +50,7 @@ function staff(orgId: string): StaffPrincipal {
     kind: 'staff',
     userId: UserIdSchema.parse(USER),
     orgId: OrgIdSchema.parse(orgId),
-    permissions: new Set(['question.read', 'question.write', 'assessment.write']),
+    permissions: new Set(['question.read', 'question.write', 'assessment.write', 'invite.send']),
   };
 }
 
@@ -138,7 +141,15 @@ afterAll(async () => {
 
 beforeEach(async () => {
   acting = staff(ACME);
-  const instance = buildServer({ config: testConfig(), logger: false, db: fixture().db });
+  const instance = buildServer({
+    config: testConfig(),
+    logger: false,
+    db: fixture().db,
+    // The pepper the invitation tokens are hashed under. Without it the publish and invite
+    // routes are not registered at all — see `server.ts`.
+    invitations: { tokenPepper: PEPPER },
+    now: () => NOW,
+  });
   instance.addHook('onRequest', (request, _reply, done) => {
     setPrincipal(request, acting);
     done();
@@ -361,5 +372,225 @@ describe('GET /assessments', () => {
     acting = staff(RIVAL);
     const theirs = await server().inject({ method: 'GET', url: `${API_BASE_PATH}/assessments` });
     expect(theirs.json<{ data: unknown[] }>().data).toEqual([]);
+  });
+});
+
+// --- publishing and inviting -------------------------------------------------
+
+async function publish(assessmentId: string) {
+  const response = await server().inject({
+    method: 'POST',
+    url: `${API_BASE_PATH}/assessments/${assessmentId}/publish`,
+    headers: { origin: 'https://console.example.test', 'sec-fetch-site': 'same-origin' },
+  });
+  return { status: response.statusCode, body: response.json<Record<string, never>>() };
+}
+
+async function invite(assessmentId: string, body: unknown) {
+  const response = await server().inject({
+    method: 'POST',
+    url: `${API_BASE_PATH}/assessments/${assessmentId}/invitations`,
+    headers: { origin: 'https://console.example.test', 'sec-fetch-site': 'same-origin' },
+    payload: body as Record<string, unknown>,
+  });
+  return { status: response.statusCode, body: response.json<Record<string, never>>() };
+}
+
+async function invitations(assessmentId: string) {
+  const response = await server().inject({
+    method: 'GET',
+    url: `${API_BASE_PATH}/assessments/${assessmentId}/invitations`,
+  });
+  return {
+    status: response.statusCode,
+    body: response.json<{ data: { email: string; state: string; expires_at: string }[] }>(),
+  };
+}
+
+/** Composes a feasible assessment and returns its id. */
+async function composed(): Promise<string> {
+  const { body } = await create(feasibleFor('plentiful'));
+  return (body as unknown as { id: string }).id;
+}
+
+const feasibleFor = (code: string) => ({ job_role_id: roleId(code), question_count: 3 });
+
+describe('POST /assessments/:id/publish', () => {
+  it('makes a draft sittable', async () => {
+    const id = await composed();
+    const { status, body } = await publish(id);
+
+    expect(status).toBe(200);
+    expect(body).toMatchObject({ status: 'published' });
+  });
+
+  it('refuses a second publish as a conflict rather than pretending', async () => {
+    const id = await composed();
+    await publish(id);
+
+    const { status, body } = await publish(id);
+    expect(status).toBe(409);
+    expect(body).toMatchObject({ error: { code: 'conflict' } });
+  });
+
+  it('re-checks the bank, because a question can be retired after composition', async () => {
+    // The case the snapshot at composition cannot cover. The paper was feasible when it was
+    // composed; publishing is the act that lets somebody try to sit it, so the check runs
+    // again against the bank as it is.
+    const id = await composed();
+    const { owner } = fixture();
+
+    await owner`UPDATE questions SET status = 'retired'
+                 WHERE id IN (
+                   SELECT q.id FROM questions q
+                     JOIN question_skills qs ON qs.question_id = q.id
+                     JOIN skills s ON s.id = qs.skill_id
+                    WHERE s.key = 'deep'
+                 )`;
+    try {
+      const { status, body } = await publish(id);
+      expect(status).toBe(422);
+      expect(body).toMatchObject({ error: { code: 'validation_failed' } });
+    } finally {
+      await owner`UPDATE questions SET status = 'published'
+                   WHERE id IN (
+                     SELECT q.id FROM questions q
+                       JOIN question_skills qs ON qs.question_id = q.id
+                       JOIN skills s ON s.id = qs.skill_id
+                      WHERE s.key = 'deep'
+                   )`;
+    }
+  });
+
+  it('is a 404 for an assessment that does not exist', async () => {
+    const response = await server().inject({
+      method: 'POST',
+      url: `${API_BASE_PATH}/assessments/11111111-0000-4000-8000-0000000000ff/publish`,
+      headers: { origin: 'https://console.example.test', 'sec-fetch-site': 'same-origin' },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+});
+
+describe('POST /assessments/:id/invitations', () => {
+  it('refuses to invite anybody to a draft', async () => {
+    // An invitation to an unpublished assessment is refused at redemption, so issuing one
+    // produces a link the recipient finds broken and the recruiter hears about later.
+    const id = await composed();
+
+    const { status, body } = await invite(id, { emails: ['ada@example.test'] });
+    expect(status).toBe(422);
+    expect(body).toMatchObject({ error: { code: 'validation_failed' } });
+  });
+
+  it('issues a link per address, exactly once', async () => {
+    const id = await composed();
+    await publish(id);
+
+    const { status, body } = await invite(id, {
+      emails: ['ada@example.test', 'grace@example.test'],
+    });
+    const issued = (body as unknown as { issued: { email: string; url: string }[] }).issued;
+
+    expect(status).toBe(201);
+    expect(issued.map((i) => i.email).sort()).toEqual(['ada@example.test', 'grace@example.test']);
+    // The link points at the candidate app's redemption route, built from configuration and
+    // never from a Host header.
+    expect(issued[0]?.url).toMatch(/^https:\/\/sit\.example\.test\/t\/[A-Za-z0-9_-]{20,}$/u);
+    // Two candidates, two different tokens.
+    expect(issued[0]?.url).not.toBe(issued[1]?.url);
+  });
+
+  it('stores a hash and never the token', async () => {
+    const id = await composed();
+    await publish(id);
+    const { body } = await invite(id, { emails: ['ada@example.test'] });
+    const url = (body as unknown as { issued: { url: string }[] }).issued[0]?.url ?? '';
+    const token = url.slice(url.lastIndexOf('/') + 1);
+
+    const { owner } = fixture();
+    const rows = await owner<{ token_hash: string }[]>`
+      SELECT token_hash FROM invitations WHERE assessment_id = ${id}
+    `;
+
+    expect(token.length).toBeGreaterThan(20);
+    // A dump of this table is not a set of live credentials.
+    expect(rows[0]?.token_hash).not.toContain(token);
+    expect(rows[0]?.token_hash).toMatch(/^v1\$[0-9a-f]{64}$/u);
+  });
+
+  it('does not hand a second live link to somebody who already has one', async () => {
+    // Pasting the same list twice is a thing that happens; two live links is two sittings
+    // nobody decided to allow.
+    const id = await composed();
+    await publish(id);
+    await invite(id, { emails: ['ada@example.test'] });
+
+    const { body } = await invite(id, { emails: ['ada@example.test', 'new@example.test'] });
+    const result = body as unknown as { issued: { email: string }[]; skipped: string[] };
+
+    expect(result.skipped).toEqual(['ada@example.test']);
+    expect(result.issued.map((i) => i.email)).toEqual(['new@example.test']);
+  });
+
+  it('treats one address twice in one request as one invitation', async () => {
+    const id = await composed();
+    await publish(id);
+
+    const { body } = await invite(id, {
+      emails: ['ada@example.test', 'ADA@example.test'],
+    });
+    expect((body as unknown as { issued: unknown[] }).issued).toHaveLength(1);
+  });
+
+  it('creates one candidate row per person, however many assessments they are invited to', async () => {
+    const first = await composed();
+    const second = await composed();
+    await publish(first);
+    await publish(second);
+    await invite(first, { emails: ['repeat@example.test'] });
+    await invite(second, { emails: ['repeat@example.test'] });
+
+    const { owner } = fixture();
+    const rows = await owner<{ n: string }[]>`
+      SELECT count(*)::text AS n FROM candidates WHERE email = 'repeat@example.test'
+    `;
+    expect(rows[0]?.n).toBe('1');
+  });
+
+  it('expires the link on the server’s clock, not the caller’s', async () => {
+    const id = await composed();
+    await publish(id);
+
+    const { body } = await invite(id, { emails: ['ada@example.test'], expires_in_days: 7 });
+    const expires = (body as unknown as { issued: { expires_at: string }[] }).issued[0]?.expires_at;
+
+    expect(new Date(expires ?? '').toISOString()).toBe('2026-10-20T09:00:00.000Z');
+  });
+});
+
+describe('GET /assessments/:id/invitations', () => {
+  it('reports who was invited and where they got to, and never the token', async () => {
+    const id = await composed();
+    await publish(id);
+    const created = await invite(id, { emails: ['ada@example.test'] });
+    const url = (created.body as unknown as { issued: { url: string }[] }).issued[0]?.url ?? '';
+    const token = url.slice(url.lastIndexOf('/') + 1);
+
+    const { status, body } = await invitations(id);
+
+    expect(status).toBe(200);
+    expect(body.data).toHaveLength(1);
+    expect(body.data[0]).toMatchObject({ email: 'ada@example.test', state: 'issued' });
+    expect(JSON.stringify(body)).not.toContain(token);
+  });
+
+  it('cannot see another organisation’s invitations', async () => {
+    const id = await composed();
+    await publish(id);
+    await invite(id, { emails: ['ada@example.test'] });
+
+    acting = staff(RIVAL);
+    expect((await invitations(id)).status).toBe(404);
   });
 });

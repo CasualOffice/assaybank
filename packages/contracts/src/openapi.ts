@@ -28,6 +28,14 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 import { ERROR_CODE_MESSAGES, ErrorCodeSchema, ErrorEnvelopeSchema } from './errors.js';
 import { ID_SCHEMAS } from './ids.js';
 import {
+  ASSESSMENT_INVITATIONS_PATH,
+  ASSESSMENT_PUBLISH_PATH,
+  CreateInvitationsResponseSchema,
+  CreateInvitationsSchema,
+  InvitationListResponseSchema,
+  PublishedAssessmentSchema,
+} from './invitations.js';
+import {
   ASSESSMENTS_PATH,
   ASSESSMENT_AUTO_PATH,
   AssessmentListResponseSchema,
@@ -145,6 +153,7 @@ export function buildOpenApiDocument(): OpenApiDocument {
 
   registerOrgSettings(registry);
   registerAssessments(registry);
+  registerInvitations(registry);
   registerQuestionBank(registry);
 
   return new OpenApiGeneratorV31(registry.definitions).generateDocument({
@@ -194,6 +203,76 @@ const STAFF_ROUTE_ERRORS = {
  * other tenant holds the row — a cross-tenant disclosure made of nothing but a status
  * code (ADR-010).
  */
+/**
+ * Publishing and inviting (`H-182`, docs/18 §2.4).
+ *
+ * Publish is separate from create because it is the irreversible half: a published assessment
+ * can be sat, and an invitation to an unpublished one is refused at redemption.
+ */
+function registerInvitations(registry: OpenAPIRegistry): void {
+  registry.registerPath({
+    method: 'post',
+    path: ASSESSMENT_PUBLISH_PATH,
+    tags: ['Assessments'],
+    summary: 'Make an assessment sittable',
+    description:
+      'Moves a draft to `published`. Re-checks that the bank can still supply every rule — ' +
+      'a question retired since composition makes a paper that was feasible then infeasible ' +
+      'now, and publishing is the act that lets somebody try to sit it. Refuses an ' +
+      'assessment with no rules, and answers `conflict` if it is already published.',
+    security: [{ staffSession: [] }],
+    responses: {
+      200: {
+        description: 'The assessment, now sittable.',
+        content: { 'application/json': { schema: PublishedAssessmentSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: ASSESSMENT_INVITATIONS_PATH,
+    tags: ['Assessments'],
+    summary: 'Invite candidates, and receive their links once',
+    description:
+      'Creates a candidate per address if one does not exist, and a single-use invitation ' +
+      'per candidate. **The link is served in this response and never again** — only a ' +
+      'peppered hash is stored, so a lost link is reissued rather than recovered. An address ' +
+      'that already holds a live invitation to this assessment is reported in `skipped` ' +
+      'rather than issued a second one. Requires `invite.send`.',
+    request: {
+      body: { content: { 'application/json': { schema: CreateInvitationsSchema } } },
+    },
+    security: [{ staffSession: [] }],
+    responses: {
+      201: {
+        description: 'The links, and the addresses that already had one.',
+        content: { 'application/json': { schema: CreateInvitationsResponseSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: ASSESSMENT_INVITATIONS_PATH,
+    tags: ['Assessments'],
+    summary: 'Who was invited, and where they got to',
+    description:
+      'Never the token. `state` is derived from the columns rather than stored: `used` once ' +
+      'the sittings are spent, then `expired`, then `started`, then `sent` or `issued`.',
+    security: [{ staffSession: [] }],
+    responses: {
+      200: {
+        description: 'Every invitation to this assessment.',
+        content: { 'application/json': { schema: InvitationListResponseSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+}
+
 /**
  * Composing an assessment from a role (`H-179`, docs/18 §2.2).
  *

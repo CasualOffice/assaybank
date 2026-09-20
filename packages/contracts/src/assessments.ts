@@ -129,6 +129,12 @@ export const AssessmentPlanSchema = z
 
 export type AssessmentPlan = z.infer<typeof AssessmentPlanSchema>;
 
+/** The path parameters of every endpoint under one assessment. */
+export const AssessmentParamsSchema = z
+  .object({ id: AssessmentIdSchema })
+  .describe('Which assessment.')
+  .openapi('AssessmentParams');
+
 /** The body of `POST /assessments/auto`. */
 export const CreateAssessmentSchema = z
   .strictObject({

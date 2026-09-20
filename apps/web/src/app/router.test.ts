@@ -32,6 +32,8 @@ const DETAIL_ROUTES: readonly string[] = [
   // Reached from a role's "Compose an assessment", never from the sidebar. A manifest entry
   // would put a link to one particular role in the navigation.
   '/roles/$roleId/compose',
+  // Reached from an assessment row, never from the sidebar.
+  '/assessments/$assessmentId/invite',
 ];
 
 /** A router positioned at `initialPath`, isolated from any real history. */

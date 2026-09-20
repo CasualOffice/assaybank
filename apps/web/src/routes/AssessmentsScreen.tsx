@@ -59,7 +59,16 @@ function AssessmentRow({
   return (
     <tr className={isNew ? 'ab-assessments__new' : undefined}>
       <th scope="row">
-        {assessment.name}
+        {/* The row is the way into the assessment, which is the only thing there is to do
+            with one: invite somebody. A separate "Invite" column would be a button repeated
+            down every row for the one action the row already means. */}
+        <Link
+          className="ab-assessments__link"
+          to="/assessments/$assessmentId/invite"
+          params={{ assessmentId: assessment.id }}
+        >
+          {assessment.name}
+        </Link>
         {isNew ? <span className="ab-assessments__just-saved"> · just saved</span> : null}
       </th>
       <td className="ab-table__numeric">{assessment.question_count}</td>

@@ -184,6 +184,17 @@ export {
 } from './job-roles.js';
 
 export { countAvailable, createAssessment, listAssessments } from './assessments.js';
+export {
+  applicationFor,
+  assessmentPublishState,
+  assessmentRules,
+  createInvitation,
+  listInvitations,
+  liveInvitedEmails,
+  publishAssessment,
+  upsertCandidate,
+} from './invitations.js';
+export type { CreateInvitationRecord, InvitationRow } from './invitations.js';
 export type {
   AssessmentRow,
   AvailabilityFilter,
