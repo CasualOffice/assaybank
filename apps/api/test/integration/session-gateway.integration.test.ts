@@ -9,7 +9,7 @@
  * another organisation — but it does so against a fake gateway whose whole body is
  * `if (orgId !== ORG) return undefined`. That fake *is* the property it is being used to
  * prove, so the route test establishes only that the route reports what the gateway said.
- * The claim that actually matters — docs/14 `H-128` and ADR-010: *"a session id belonging
+ * The claim that actually matters — docs/14 `H-154` and ADR-010: *"a session id belonging
  * to another tenant returns no row even though the query names it"* — is a claim about
  * PostgreSQL, because `sessions.ts` deliberately has no `WHERE org_id = …` clause. It
  * names the id and nothing else and lets the policy do the scoping.

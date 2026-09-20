@@ -15,7 +15,7 @@
  *    and no unit test can tell.
  * 2. **Single use survives concurrency.** Two redemptions of one invitation, issued at
  *    once against two pooled connections, produce one attempt and one refusal, because
- *    the invitation row is locked (docs/14 `H-139`).
+ *    the invitation row is locked (docs/14 `H-165`).
  * 3. **The audit row shares the transaction.** A redemption that fails after the insert
  *    leaves neither the attempt nor its audit row behind.
  * 4. **Isolation holds around all of it.** The attempt lands in the invitation's own
@@ -236,7 +236,7 @@ describe('a redemption', () => {
 
 describe('two redemptions at once', () => {
   it('produce one attempt and one refusal, because the invitation row is locked', async () => {
-    // docs/14 H-139 and docs/06 §11.1's concurrency invariant, under real contention:
+    // docs/14 H-165 and docs/06 §11.1's concurrency invariant, under real contention:
     // two connections, one row, one winner. A check-then-insert without the lock passes
     // this test sequentially and fails it here.
     const org = await seedOrg(pg.owner, nextLabel('race'), KEYS.pepper);

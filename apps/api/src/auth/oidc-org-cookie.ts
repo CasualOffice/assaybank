@@ -33,7 +33,7 @@
  * It is trusted for exactly one thing: naming which organisation's context to open. It
  * authorises nothing. If it named the wrong organisation, the `state` lookup would find
  * no row there and the callback would fail as a state mismatch — which is the same answer
- * a forged callback gets, and is the outcome docs/14 `H-124` asks for.
+ * a forged callback gets, and is the outcome docs/14 `H-150` asks for.
  *
  * `SameSite=Lax` is required rather than incidental: the callback is a top-level `GET`
  * navigation from the identity provider's origin, which is precisely the case `Lax`

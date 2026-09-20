@@ -133,7 +133,7 @@ export async function hashPassword(password: string): Promise<string> {
  * That second call receives an unauthenticated caller's raw input. Handing it to
  * {@link hashPassword} makes a four-character password throw, the throw becomes a `500`,
  * and the `500` distinguishes "no such account" from "wrong password" — reconstructing,
- * out of an exception, exactly the oracle docs/14 `H-118` and
+ * out of an exception, exactly the oracle docs/14 `H-176` and
  * {@link verifyPasswordAgainstNothing} exist to close. So the decoy path does not enforce
  * the policy; it only burns the work.
  *
@@ -177,7 +177,7 @@ let decoyHash: Promise<string> | undefined;
 /**
  * Burns the same work a real verification would, and returns `false`.
  *
- * docs/14 `H-118` requires that a failed login not reveal whether the email exists. The
+ * docs/14 `H-176` requires that a failed login not reveal whether the email exists. The
  * response body and status handle the obvious half of that; this handles the half a
  * stopwatch can see. Without it the two paths are trivially distinguishable — "no such
  * user" returns in a millisecond and "wrong password" returns in fifty — and an attacker

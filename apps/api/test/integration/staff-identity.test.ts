@@ -18,12 +18,12 @@
  *
  * | Block | The claim |
  * |---|---|
- * | login | A correct password issues a session cookie with the attributes `H-123` requires |
- * | enumeration | A failed login is byte-identical whether or not the address exists (`H-118`) |
+ * | login | A correct password issues a session cookie with the attributes `H-149` requires |
+ * | enumeration | A failed login is byte-identical whether or not the address exists (`H-176`) |
  * | fixation | An attacker-planted session identifier is not the one that comes back authenticated (T-014) |
  * | CSRF | A cookie-bearing mutation from a hostile origin is refused (T-017) |
  * | /auth/me | The documented `{user, org, permissions[]}` shape, from the database |
- * | rotation | A privilege change ends every session that predates it (`H-123`) |
+ * | rotation | A privilege change ends every session that predates it (`H-149`) |
  * | tenancy | One address in two organisations resolves to neither without a slug |
  * | rate limit | The login window of `src/rate-limit.ts` actually fires |
  *
@@ -282,7 +282,7 @@ const login = async (
   });
 
 describe('POST /auth/login', () => {
-  it('issues a session cookie with the attributes docs/14 H-123 requires', async () => {
+  it('issues a session cookie with the attributes docs/14 H-149 requires', async () => {
     const response = await login(build(), { email: ADA, password: PASSWORD });
 
     expect(response.statusCode).toBe(200);
@@ -333,7 +333,7 @@ describe('POST /auth/login', () => {
   });
 });
 
-describe('a failed login discloses nothing about whether the address exists (docs/14 H-118)', () => {
+describe('a failed login discloses nothing about whether the address exists (docs/14 H-176)', () => {
   it('answers identically for a wrong password and for no such account', async () => {
     const instance = build();
 
@@ -619,7 +619,7 @@ describe('POST /auth/logout', () => {
     expect(setCookies(response).some((c) => c.includes('session_token=;'))).toBe(true);
 
     // Server-side, not only in the browser: a copy of the cookie taken before the logout
-    // is dead too (docs/14 H-123).
+    // is dead too (docs/14 H-149).
     const after = await instance.inject({
       method: 'GET',
       url: `${API_BASE_PATH}/auth/me`,
@@ -639,7 +639,7 @@ describe('POST /auth/logout', () => {
   });
 });
 
-describe('session rotation on privilege change (docs/14 H-123)', () => {
+describe('session rotation on privilege change (docs/14 H-149)', () => {
   it('ends every session that predates the change, and the next one is a different identifier', async () => {
     const instance = build();
     const owner = required(pg, 'postgres').owner;
@@ -895,7 +895,7 @@ function fakeIdentityProvider(): Promise<{ issuer: string; close: () => Promise<
   });
 }
 
-describe('OIDC (docs/03 §1, docs/14 T-015 and H-124)', () => {
+describe('OIDC (docs/03 §1, docs/14 T-015 and H-150)', () => {
   let idp: { issuer: string; close: () => Promise<void> } | undefined;
 
   beforeAll(async () => {

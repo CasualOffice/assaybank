@@ -15,7 +15,7 @@
  * The sitting allowance lives in `invitations.max_attempts`, and the sittings taken are
  * `attempts` rows pointing back at the invitation. The gateway locks the invitation row
  * (`SELECT … FOR UPDATE`) and counts inside that lock, so the check and the insert are
- * one transaction: docs/14 `H-139` — *"the redeem count is checked against `max_attempts`
+ * one transaction: docs/14 `H-165` — *"the redeem count is checked against `max_attempts`
  * in the same transaction that creates the attempt, so concurrent redemptions cannot both
  * succeed."* Two browser tabs racing produce one attempt and one refusal, not two
  * attempts, and no amount of application-level counting achieves that.
@@ -45,7 +45,7 @@
  * ## 3. Every refusal is the same refusal
  *
  * Expired, not yet open, already redeemed, never existed, wrong assessment state: all of
- * them are `404 not_found` with the same message and no details (docs/14 `H-120`). The
+ * them are `404 not_found` with the same message and no details (docs/14 `H-146`). The
  * reason goes to the log and to a metric label. See `refusal.ts`.
  *
  * ## Why the database work is behind a port

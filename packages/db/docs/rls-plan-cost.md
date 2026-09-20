@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-20
 **Companion docs:** [`../../../docs/04-ADRs.md`](../../../docs/04-ADRs.md) (ADR-010), [`../../../project/RISKS.md`](../../../project/RISKS.md) (R-09), [`../../../project/P1-TENANCY-PLAN.md`](../../../project/P1-TENANCY-PLAN.md) (step 2), [`../../../docs/07-load-and-capacity-testing.md`](../../../docs/07-load-and-capacity-testing.md)
 
 ---
@@ -184,6 +184,9 @@ Migration 0008 (2026-09-17) replaced the single policy on `skills` and `user_rol
 per command, so a tenant can no longer delete or claim a shared global row. Neither table is on the
 gated list, and the `SELECT` predicate is character-for-character the one 0002 created, so no plan
 above is affected. Nothing was re-measured.
+
+Migrations 0005 and 0006 were edited on 2026-09-20 to correct threat-model task ids in their
+comments. No statement, index or policy changed, and nothing was re-measured.
 
 Migration 0011 (2026-09-18) adds two partial unique indexes over the global rows of `skills` and
 `user_roles` (`WHERE org_id IS NULL`). Neither table is on the gated list, both are small, and the

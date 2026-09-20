@@ -5,7 +5,7 @@
 /**
  * Opaque bearer secrets: invitation tokens today, anything else handed to a human later.
  *
- * The rules are docs/17 §7 and docs/14-threat-model.md `H-120`, and they are all
+ * The rules are docs/17 §7 and docs/14-threat-model.md `H-146`, and they are all
  * expressed in this file rather than at the call sites:
  *
  * - **High entropy.** 256 bits from the CSPRNG, because the only defence against

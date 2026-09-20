@@ -25,7 +25,7 @@
  *
  * **The stored key is a peppered hash, not the ticket**, so the replay store holds no
  * usable credential; and it is the *same* derivation `apps/collab/src/ticket-store.ts`
- * uses, so when P5 moves that store onto Valkey (docs/14 `H-122`) the two sides are
+ * uses, so when P5 moves that store onto Valkey (docs/14 `H-148`) the two sides are
  * already claiming the same key rather than two spellings of it.
  *
  * **Sixty seconds is the product's number, not a constant invented here** — it comes

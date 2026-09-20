@@ -295,6 +295,7 @@ planned.
 | H-173 | P0 | Sanitising markdown pipeline with an element and attribute allow list, raw HTML disabled, `javascript:`/`data:` URLs rejected, plus a strict CSP on both apps | ui | M0 | — | T-038 | M | todo | _unassigned_ |
 | H-174 | P1 | One CSV writer used by every export path, prefixing fields beginning `=`, `+`, `-`, `@`, tab or carriage return, quoting all fields and writing UTF-8 with a BOM | core-domain | M2 | — | T-039 | S | todo | _unassigned_ |
 | H-175 | P0 | `audit_log` append-only at the database level, asserted by a test attempting `UPDATE` and `DELETE` as both application roles — _built 2026-09-17: migration 0002 revokes both and `packages/db/tests/rls.test.ts` asserts it; the seven-year retention half remains_ | db | M0 | — | T-040 | S | todo | _unassigned_ |
+| H-176 | P0 | A failed staff login is byte-identical whether or not the address exists — one envelope, one message, and a dummy verify so the timing does not answer either; the same for password reset — _built 2026-09-20: `packages/auth/src/password.ts` and `apps/api/src/auth/routes.ts`, asserted in `staff-identity.test.ts`; the reset path arrives with it_ | auth | M0 | — | T-042 | S | todo | _unassigned_ |
 
 ---
 

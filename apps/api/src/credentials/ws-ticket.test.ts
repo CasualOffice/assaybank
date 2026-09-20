@@ -8,7 +8,7 @@
  * The third is the one that needs state and is therefore the one that can regress
  * silently, so it is asserted from four directions: a straight replay, a race, a replay
  * after the store has been told a different key, and the shape of what the store actually
- * holds — a peppered hash rather than the credential (docs/14 `T-013`, `H-122`).
+ * holds — a peppered hash rather than the credential (docs/14 `T-013`, `H-148`).
  */
 
 import { hashToken, issueAttemptToken, WS_TICKET_TTL_SECONDS } from '@assaybank/auth';

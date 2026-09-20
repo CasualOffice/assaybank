@@ -147,7 +147,7 @@ export function registerOrgRoutes(app: FastifyInstance, options: OrgRouteOptions
       // `not_found`, never `forbidden`, and never a 500. The session named an
       // organisation this transaction could not see — erased, or never there. A 403 would
       // confirm that somebody holds the row, which is a cross-tenant disclosure made of
-      // nothing but a status code (ADR-010, docs/14 `H-128`).
+      // nothing but a status code (ADR-010, docs/14 `H-154`).
       if (org === undefined) throw ApiError.notFound();
 
       return toResponse(org, org.settings, now());

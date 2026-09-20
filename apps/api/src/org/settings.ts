@@ -88,7 +88,7 @@ export interface ReadOrgOptions {
  * The organisation this transaction is scoped to, or `undefined`.
  *
  * `undefined` rather than a thrown error, because the caller decides what absence means —
- * and on this endpoint it means `not_found`, never `forbidden` (ADR-010, docs/14 `H-128`).
+ * and on this endpoint it means `not_found`, never `forbidden` (ADR-010, docs/14 `H-154`).
  * Absence is genuinely reachable rather than theoretical: a staff session lives in Valkey
  * for eight hours, and an organisation erased under docs/11 §6 takes its rows with it, so
  * a cookie can outlive the tenant it names.

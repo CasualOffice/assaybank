@@ -18,6 +18,12 @@
  * 2. **No dangling reference.** An `H-NNN` in any tracked file must exist in the tracker. A
  *    document may cite an id; it may never mint one, because minting is how you collide with a
  *    backlog that has not grown into that number yet.
+ * 3. **No mis-attributed reference.** A line that cites `docs/14` and an `H-NNN` must name a task
+ *    whose tracker row references a `T-` threat. Renumbering the threat model's forty proposals
+ *    fixed the document and left forty-nine citations in code pointing at unrelated tasks — every
+ *    one of which still existed, so check 2 passed on all of them. This is the check that would
+ *    have caught it: a login test citing the checker-sandbox task is wrong in a way an id
+ *    existence check cannot see.
  *
  * Run: `node scripts/check-task-ids.mjs`
  */
@@ -91,6 +97,42 @@ function main() {
         `.\n    Add the row first: ids are allocated in the tracker and nowhere else. A document that ` +
         `mints one collides with the backlog as soon as it grows that far.`,
     );
+  }
+
+  // --- 3. Ids cited against docs/14 must name threat-model tasks ---------------------
+  //
+  // The tracker's Ref column is the link back to what a task came from. A threat-model task
+  // cites its threat there, so an id cited beside `docs/14` and referencing anything else is
+  // pointing at the wrong row.
+  const refOf = new Map();
+  for (const m of tracker.matchAll(/^\|\s*(H-\d{3})\s*\|.*?\|\s*([^|]*?)\s*\|\s*[SML]\s*\|/gm)) {
+    refOf.set(m[1], m[2]);
+  }
+
+  for (const file of trackedFiles()) {
+    if (file === TRACKER || file === 'docs/14-threat-model.md' || file === 'scripts/check-task-ids.mjs') {
+      continue;
+    }
+    let text;
+    try {
+      text = readFileSync(resolve(ROOT, file), 'utf8');
+    } catch {
+      continue;
+    }
+    if (!text.includes('docs/14')) continue;
+
+    text.split('\n').forEach((line, i) => {
+      if (!line.includes('docs/14')) return;
+      for (const m of line.matchAll(ID)) {
+        const ref = refOf.get(m[0]);
+        if (ref === undefined || ref.includes('T-')) continue;
+        problems.push(
+          `${relative('.', file)}:${i + 1}: ${m[0]} is cited beside docs/14, but ${TRACKER} says it is ` +
+            `"${ref}" — not a threat-model task.\n    Either the citation is stale (the threat model's ` +
+            `ids were renumbered on 2026-09-17) or it belongs to a different document.`,
+        );
+      }
+    });
   }
 
   const highest = declared.reduce((max, id) => Math.max(max, Number(id.slice(2))), 0);

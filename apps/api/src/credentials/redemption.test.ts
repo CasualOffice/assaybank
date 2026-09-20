@@ -464,7 +464,7 @@ describe('the refusals a candidate can see', () => {
     const reasons = outcomes.map(reasonOf);
     expect(new Set(reasons).size).toBe(6);
 
-    // …and one client-visible response. docs/14 H-120: the endpoint is not an oracle.
+    // …and one client-visible response. docs/14 H-146: the endpoint is not an oracle.
     for (const outcome of outcomes) {
       if (outcome.ok) throw new Error('expected a refusal');
       const error: ApiError = toApiError(outcome.refusal);

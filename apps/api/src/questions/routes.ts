@@ -184,7 +184,7 @@ export interface QuestionRouteOptions {
  *
  * `not_found`, never `forbidden`, for a question another organisation holds: a `403` would
  * confirm that somebody owns the id, which is a cross-tenant disclosure made of nothing
- * but a status code (ADR-010, docs/14 `H-128`). Row-level security has already made the
+ * but a status code (ADR-010, docs/14 `H-154`). Row-level security has already made the
  * two indistinguishable from in here — the policy admits no row either way — and this
  * function is what keeps them indistinguishable from outside.
  */

@@ -31,7 +31,7 @@
  *
  * Every way a login can fail — no such address, an address in two organisations, no
  * password set, the wrong password, an archived account — produces the same 401
- * `unauthenticated` envelope with the same message. docs/14 `H-118`: a candidate-facing
+ * `unauthenticated` envelope with the same message. docs/14 `H-176`: a candidate-facing
  * refusal must not be an oracle, and the same reasoning applies with more force to staff,
  * where knowing an address has an account is the first step of a targeted phish.
  *
@@ -233,7 +233,7 @@ export function registerStaffAuthRoutes(
         // No organisation: the address is unknown, or it is held in two. Burn the same
         // Argon2 work a real verification would, then refuse identically. Without this the
         // two paths are a millisecond apart and a stopwatch enumerates the staff list
-        // (docs/14 `H-118`).
+        // (docs/14 `H-176`).
         await verifyPasswordAgainstNothing(body.password);
         request.log.warn(
           { event: 'auth.login_failed', reason: 'no_organisation' },

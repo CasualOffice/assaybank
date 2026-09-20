@@ -15,7 +15,7 @@
  * that sets `app.current_org` from the staff principal's organisation, so a session id
  * belonging to another tenant returns no row even though the query names it (ADR-010).
  * The route then answers `not_found` rather than `forbidden`, because a 403 would confirm
- * that somebody else holds that id (docs/14 `H-128`).
+ * that somebody else holds that id (docs/14 `H-154`).
  */
 
 import { type OrgId, type SessionId } from '@assaybank/contracts';

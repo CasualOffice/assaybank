@@ -255,7 +255,7 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
 
   registerRateLimit(app);
 
-  // docs/14 T-017 / `H-127`. Before the routes and before body parsing: a forged
+  // docs/14 T-017 / `H-153`. Before the routes and before body parsing: a forged
   // state-changing request should not reach a handler, a rate-limit bucket or an
   // allocator. It covers every route on the instance, not only the authentication ones —
   // `POST /user-roles` and `PATCH /attempts/{id}` are the examples the threat model gives.

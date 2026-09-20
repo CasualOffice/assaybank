@@ -763,7 +763,7 @@ describe('tenancy (ADR-010)', () => {
     acting = outsider();
 
     // A 403 would confirm that somebody holds the id, which is a cross-tenant disclosure
-    // made of nothing but a status code (docs/14 H-128).
+    // made of nothing but a status code (docs/14 H-154).
     for (const url of [
       `${QUESTIONS_ROUTE}/${id}`,
       `${QUESTIONS_ROUTE}/${id}/versions`,

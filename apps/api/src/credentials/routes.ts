@@ -204,7 +204,7 @@ export function registerCredentialRoutes(
       const outcome = await redemption.redeem({ token: request.body.token, ip: request.ip });
 
       if (!outcome.ok) {
-        // Every refusal is the same 404 (docs/14 H-120). The reason is in the log line
+        // Every refusal is the same 404 (docs/14 H-146). The reason is in the log line
         // this call writes, under the request id the candidate can quote to support.
         deny(request, outcome.refusal);
       }
@@ -248,7 +248,7 @@ export function registerCredentialRoutes(
       const session = await sessions.findSession(staff.orgId, sessionId);
 
       if (session === undefined) {
-        // Absent, or another tenant's. One answer for both (docs/14 H-128, ADR-010).
+        // Absent, or another tenant's. One answer for both (docs/14 H-154, ADR-010).
         deny(request, refuse('ws_ticket', 'no_such_session', { session_id: sessionId }));
       }
 

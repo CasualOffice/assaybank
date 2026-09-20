@@ -385,7 +385,7 @@ describe('POST /sessions/{id}/ticket', () => {
 
     const response = await app.inject({ method: 'POST', url: TICKET_PATH });
 
-    // Never 403: a 403 would confirm that somebody else holds this id (docs/14 H-128).
+    // Never 403: a 403 would confirm that somebody else holds this id (docs/14 H-154).
     expect(response.statusCode).toBe(404);
     expect(response.json<{ error: { code: string } }>().error.code).toBe('not_found');
   });

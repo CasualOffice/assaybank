@@ -187,7 +187,7 @@ async function main(): Promise<void> {
       clock: systemClock,
       // Valkey rather than this process's memory: single use has to hold across every
       // replica, and a check-and-set only one instance can see stops being single use
-      // the moment there are two (docs/14 T-013, H-122).
+      // the moment there are two (docs/14 T-013, H-148).
       store: credentialFlow.valkeySingleUseStore(valkey),
     }),
     sessions: credentialFlow.createPostgresSessionGateway(db),

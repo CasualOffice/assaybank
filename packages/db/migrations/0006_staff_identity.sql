@@ -107,7 +107,7 @@ COMMENT ON TABLE staff_accounts IS
 -- Rows live for minutes and are consumed exactly once: Better Auth deletes the
 -- row while validating the callback, which is what makes a replayed `code`
 -- fail with a state mismatch rather than logging somebody in twice
--- (docs/14 H-124).
+-- (docs/14 H-150).
 --
 -- It carries a tenant key even though it is written before anyone has
 -- authenticated, because POST /auth/oidc/start has already resolved which
@@ -211,7 +211,7 @@ $grants$;
 -- work burned either way (packages/auth verifyPasswordAgainstNothing, and
 -- hashForBetterAuth in apps/api/src/auth/better-auth.ts for the branch where
 -- the address resolves and the credential does not). Real at the SQL level and
--- unobservable at the HTTP level, which is the trade docs/14 H-118 asks for.
+-- unobservable at the HTTP level, which is the trade docs/14 H-144 asks for.
 --
 -- AMBIGUITY IS NOT AN ERROR, IT IS NULL. `users` is unique on (org_id, email),
 -- so the same address may legitimately exist in two organisations. Picking one

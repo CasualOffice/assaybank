@@ -28,7 +28,7 @@
  * `SELECT … FOR UPDATE OF i` on the invitation serialises every redemption of that one
  * invitation. The sittings are counted *after* the lock is held and the attempt is
  * inserted *before* it is released, so two concurrent redemptions cannot both see
- * `sittings_taken = 0` (docs/14 `H-139`). The alternative — a unique constraint on
+ * `sittings_taken = 0` (docs/14 `H-165`). The alternative — a unique constraint on
  * `(invitation_id)` in `attempts` — would forbid the multi-sitting invitations
  * `max_attempts` exists to express.
  *

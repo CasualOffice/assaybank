@@ -50,7 +50,7 @@
  * *before* anyone has authenticated. It is written by `POST /auth/oidc/start`, which has
  * already resolved which organisation the sign-in is for, so the organisation is known
  * even though the person is not. Scoping it means one tenant's OIDC flow cannot consume
- * another's state, which is the cross-tenant half of docs/14 `H-124`.
+ * another's state, which is the cross-tenant half of docs/14 `H-150`.
  */
 
 import { sql } from 'drizzle-orm';
@@ -136,7 +136,7 @@ export const staffAccounts = pgTable(
  *
  * Rows live for minutes and are consumed exactly once — Better Auth deletes the row as
  * part of validating the callback, which is what makes a replayed `code` fail with a
- * state mismatch rather than logging somebody in twice (docs/14 `H-124`).
+ * state mismatch rather than logging somebody in twice (docs/14 `H-150`).
  *
  * `value` holds provider material and is therefore a short-lived secret. It is not
  * hashed, because unlike an invitation token it is never presented by the holder as a

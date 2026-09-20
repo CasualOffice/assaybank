@@ -10,5 +10,11 @@ export default defineConfig({
     root: import.meta.dirname,
     environment: 'node',
     include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+    // The same reasoning as `apps/api` and `packages/db`: `test/integration/` drives a real
+    // PostgreSQL in a container, and the bank-import suites write a question at a time in
+    // their own transactions. Vitest's 5s default is a flake waiting for a loaded CI runner,
+    // and the failure it produces blames the suite rather than the machine.
+    testTimeout: 30_000,
+    hookTimeout: 300_000,
   },
 });

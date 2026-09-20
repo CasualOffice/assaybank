@@ -24,7 +24,7 @@
  *
  * ## Rotation on privilege change
  *
- * docs/14 `H-123` requires the session identifier to be regenerated "on login, on
+ * docs/14 `H-149` requires the session identifier to be regenerated "on login, on
  * privilege change and on logout". Login and logout are Better Auth's own doing — it
  * mints a fresh token on every sign-in (which is what defeats fixation, T-014) and
  * deletes it on sign-out. Privilege change is ours, and it is implemented as

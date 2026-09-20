@@ -85,7 +85,7 @@ describe('verifyOidcOrgCookie', () => {
     expect(roundTrip({ secure: false })).toBe(ORG);
   });
 
-  it('refuses a cookie minted for a different flow (docs/14 H-124)', () => {
+  it('refuses a cookie minted for a different flow (docs/14 H-150)', () => {
     // The binding to `state` is what stops a cookie captured from one sign-in being
     // replayed against another.
     expect(roundTrip({ verifyState: 'a-different-state' })).toBeUndefined();

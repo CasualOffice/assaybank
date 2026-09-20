@@ -934,7 +934,7 @@ describe('the not-found failure', () => {
     );
 
     // A 403 here would confirm that somebody holds the row, which is a cross-tenant
-    // disclosure made of nothing but a status code (ADR-010, docs/14 `H-128`).
+    // disclosure made of nothing but a status code (ADR-010, docs/14 `H-154`).
     expect(body.error.details).toBeUndefined();
     expect(body.error.message).toBe('The requested resource does not exist.');
   });
@@ -970,7 +970,7 @@ describe('the forged-origin failure', () => {
       403,
     );
 
-    // docs/14 T-017 / `H-127`. `forbidden` rather than `unauthenticated`: the credential
+    // docs/14 T-017 / `H-153`. `forbidden` rather than `unauthenticated`: the credential
     // was fine, the context was not, and signing in again would not help.
     expect(body.error.details).toBeUndefined();
     expect(await storedSettings(ACME)).toEqual(ACME_INITIAL);

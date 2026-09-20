@@ -99,7 +99,7 @@ export function issueAttemptToken(claims: AttemptTokenClaims, secret: string): s
  * valid *for the attempt in this URL*" — T-014's candidate presenting a genuine token of
  * their own against another attempt's `aq_id`. Callers that omit it must compare
  * `claims.attemptId` themselves before touching a row; see
- * docs/14-threat-model.md `H-128`, which requires the comparison to happen inside the
+ * docs/14-threat-model.md `H-154`, which requires the comparison to happen inside the
  * query rather than after a fetch.
  */
 export function verifyAttemptToken(

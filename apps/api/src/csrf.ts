@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /**
- * Cross-site request forgery: docs/14 T-017, and the control `H-127` asks for.
+ * Cross-site request forgery: docs/14 T-017, and the control `H-153` asks for.
  *
  * *"A staff user visits a hostile page which submits a cross-origin `POST /user-roles` or
  * `PATCH /attempts/{id}` using their ambient session cookie."* The session cookie is

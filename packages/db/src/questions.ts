@@ -475,7 +475,7 @@ export interface ReadQuestionOptions {
  * `undefined` rather than a thrown error, because the caller decides what absence means —
  * and on every endpoint here it means `not_found`, never `forbidden`. A `403` would
  * confirm that some other organisation holds the id, which is a cross-tenant disclosure
- * made of nothing but a status code (ADR-010, docs/14 `H-128`).
+ * made of nothing but a status code (ADR-010, docs/14 `H-154`).
  *
  * "Current version" is the most recently *published* one, and it is null until a question
  * has one. `publishVersion` is the only thing that moves the pointer, which is what stops

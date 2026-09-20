@@ -6,7 +6,7 @@
  * Why a candidate credential was refused — recorded on the server, never told to the
  * holder.
  *
- * docs/14-threat-model.md `T-011` is the requirement, and `H-120` states it as a
+ * docs/14-threat-model.md `T-011` is the requirement, and `H-146` states it as a
  * sentence: *"candidate-facing error responses for redeem and join are uniform —
  * `not_found` for expired, revoked, consumed and non-existent alike — so the endpoint is
  * not an oracle."* An attacker scripting `POST /candidate/redeem` against generated

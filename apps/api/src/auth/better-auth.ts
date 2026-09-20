@@ -40,7 +40,7 @@
  *
  * `disableSignUp` on the credential provider and on the OIDC provider. Staff accounts are
  * created by an administrator inside an organisation, because `users.org_id` is `NOT
- * NULL` and nothing in a sign-up form knows which tenant to write. docs/14 `H-124` puts
+ * NULL` and nothing in a sign-up form knows which tenant to write. docs/14 `H-150` puts
  * it as a security property rather than a modelling one: *"email claims map to an
  * existing `users` row rather than auto-provisioning, so an IdP that lets anyone sign up
  * cannot mint staff accounts."*
@@ -51,7 +51,7 @@
  * middleware, which is where its own Origin and Fetch Metadata checks live — so relying
  * on them would be relying on a control that is not running. The check is ours, in
  * `../csrf.ts`, applied to *every* state-changing staff route rather than only to the
- * authentication ones, which is what docs/14 `H-127` actually asks for.
+ * authentication ones, which is what docs/14 `H-153` actually asks for.
  *
  * It does not rate limit. Better Auth has its own limiter; the API already has one keyed
  * and labelled per docs/03 §2, and two limiters on one route means two ceilings, two
@@ -186,7 +186,7 @@ export function createStaffAuth(options: StaffAuthOptions) {
     secondaryStorage: store,
 
     advanced: {
-      // docs/14 `H-123`: HttpOnly, Secure, SameSite=Lax, host-prefixed. `useSecureCookies`
+      // docs/14 `H-149`: HttpOnly, Secure, SameSite=Lax, host-prefixed. `useSecureCookies`
       // is what produces the `__Secure-` prefix as well as the attribute.
       useSecureCookies: secureCookies,
       cookiePrefix: 'assaybank',
@@ -288,7 +288,7 @@ export function createStaffAuth(options: StaffAuthOptions) {
  * address: `500` for an address with no credential account, `401` for one with. An
  * attacker with a list of addresses and a deliberately short password could read the
  * staff directory off the status code — defeating `verifyPasswordAgainstNothing`,
- * defeating the uniform envelope in `routes.ts`, and defeating docs/14 `H-118`, all
+ * defeating the uniform envelope in `routes.ts`, and defeating docs/14 `H-176`, all
  * without ever guessing a password.
  *
  * So out-of-policy input is hashed rather than refused. The policy still exists and is
@@ -334,14 +334,14 @@ function oidcPlugins(config: StaffAuthConfig) {
           scopes: ['openid', 'email', 'profile'],
           // PKCE on a confidential client is belt and braces, and it is the mechanism that
           // makes an intercepted `code` useless without the verifier this server holds
-          // (docs/14 `H-124`).
+          // (docs/14 `H-150`).
           pkce: true,
           // Fixed rather than derived from the request, so a Host header cannot redirect
           // the flow somewhere else. It matches the route in `routes.ts` and is the value
           // registered with the IdP.
           redirectURI: `${config.http.publicUrl}${OIDC_CALLBACK_PATH}`,
           // No auto-provisioning: an assertion for an address with no `users` row is
-          // refused rather than turned into a staff account (docs/14 `H-124`).
+          // refused rather than turned into a staff account (docs/14 `H-150`).
           disableSignUp: true,
           disableImplicitSignUp: true,
         },

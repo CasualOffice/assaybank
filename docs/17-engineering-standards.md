@@ -305,6 +305,13 @@ Full strategy in [`06-testing-strategy.md`](06-testing-strategy.md). The standar
   text, whitespace at both ends); and break the codec on purpose once to watch the round trip
   fail. The bank interchange tests in `apps/worker/src/interchange/` were checked that way:
   disabling the text encoding and over-mapping answer keys each fail them.
+- **A test that drives a container gets an explicit timeout.** Vitest's 5-second default is
+  generous for a unit test and marginal for one that starts a transaction against a real
+  PostgreSQL, and actively wrong for anything verifying Argon2id, which is slow on purpose. The
+  failure it produces blames the suite rather than the loaded CI runner that caused it, which is
+  how a green suite acquires a reputation for being flaky. `packages/db` had set 180 s from the
+  start; `apps/api` and `apps/worker` had not, and `apps/api` failed on a cold Argon2 verify on
+  2026-09-20. Raising the ceiling hides nothing — a test that genuinely hangs still fails, later.
 - **No flaky test is tolerated.** Quarantine within a day, fix or delete within a week. A suite
   people have learned to re-run is a suite that no longer gates anything.
 

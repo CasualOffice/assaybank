@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`../project/TRACKER.md`](../project/TRACKER.md), [`../project/RISKS.md`](../project/RISKS.md)
 
 ---
@@ -234,6 +234,7 @@ They were renumbered on 2026-09-17. This document was written when the tracker e
 | T-039 | Reporting | T | CSV injection in exports | Med | Med | Low |
 | T-040 | API / grading | R | Score tampering by staff, and dispute repudiation | Low | High | Low |
 | T-041 | API → DB | T/I | Cross-tenant references that RLS does not check: foreign keys, and writable global rows | Med | High | Low |
+| T-042 | API / staff auth | S | Staff account enumeration through login and password reset | Med | Med | Low |
 
 Category key: **S** spoofing · **T** tampering · **R** repudiation · **I** information disclosure · **D** denial of service · **E** elevation of privilege · **AI** assessment integrity (§1.2).
 
@@ -417,6 +418,15 @@ Category key: **S** spoofing · **T** tampering · **R** repudiation · **I** in
 *Existing control.* (1) Every skill id in a request body is resolved under RLS before it is written (`invisibleSkillIds`), and one the tenant cannot read is refused as `422 not_found` — never `forbidden`, which would confirm it exists. (2) Migration `0008_global_rows_read_only` splits each policy per command: `SELECT` admits global rows, `INSERT`, `UPDATE` and `DELETE` do not. Both are proven by tests that failed before the fix: `apps/api/test/integration/taxonomy.test.ts` (and a mutation run with the check removed), and generated global-row cases in `packages/db/tests/rls.test.ts`.
 *Residual reasoning.* Low for the tables that exist. The general shape is the risk: any future table policed through a parent, with a foreign key to a *different* tenant-owned table, reopens (1). The generated RLS suite compares tenant against tenant and does not see it.
 *Action.* Every route writing a reference to a tenant-owned row resolves that reference under RLS first; the rule is in [`17-engineering-standards.md`](17-engineering-standards.md) §4. Any new nullable-`org_id` table must add a global seed to the RLS suite, which fails until it does.
+
+**T-042 · API / staff auth · S · Staff account enumeration through login and password reset**
+*Scenario.* An attacker posts login attempts for a list of addresses at a customer's tenant. A distinguishable response — a different error code, a different message, or simply a faster rejection because no password hash was verified — tells them which addresses are real staff accounts, which is the reconnaissance step for T-016 and for a phishing campaign against named employees. Password reset is the same oracle with a friendlier message.
+*Likelihood* medium · *Impact* medium · *Residual* low.
+*Existing control.* Built before this entry existed, which is how the entry came to be written: `packages/auth/src/password.ts` verifies against a dummy hash when no account matches, so the work done is the same either way, and `apps/api/src/auth/routes.ts` answers one `unauthenticated` envelope with one message for every failure. `staff-identity.test.ts` asserts the two responses are byte-identical. The login rate limiter of `src/rate-limit.ts` bounds the attempt rate.
+*Residual reasoning.* Low for login. The reset path is not built, and it is the easier oracle of the two to get wrong, because the helpful version of that screen tells the user whether to check their inbox.
+*Action.* `H-176` — keep login uniform and extend the same rule to password reset when it ships, with the byte-identical assertion applied to both.
+
+*Recorded 2026-09-20.* The code carried a defence with no threat behind it, found by following a task reference that pointed at an unrelated task. The register had enumeration only for candidates (T-011).
 
 ### 5.6 Assessment integrity — TB-1
 

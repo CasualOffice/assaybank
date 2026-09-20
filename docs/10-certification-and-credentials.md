@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-20
 **Companion docs:** [`01-PRD.md`](01-PRD.md) · [`02-HLD.md`](02-HLD.md) · [`03-API-spec.md`](03-API-spec.md) · [`04-ADRs.md`](04-ADRs.md) · [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md) · [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md) · [`14-threat-model.md`](14-threat-model.md) · [`16-ai-usage-policy.md`](16-ai-usage-policy.md) · [`hiring_platform_schema.sql`](hiring_platform_schema.sql)
 
 ---
@@ -28,6 +28,13 @@ PRD §11 open question 4 asks whether certification mode issues verifiable crede
 Credentials are a **certification mode** feature. They are issued from proctored certification exams (M4) and, by explicit configuration, from other assessments an organisation chooses to certify. They are never issued from a screening round by default: a screening result is an internal hiring signal, not a public claim about a person, and turning every failed screen into a dangling credential record is both useless and a retention liability.
 
 ---
+
+**A note on the task ids in `apps/api/src/credentials/**`.** Those files cite `docs/14` threat-model
+tasks in their comments. The threat model's task ids were renumbered on 2026-09-17 — it had
+allocated its own from `H-110` before the backlog grew past that — and the code's citations were
+corrected on 2026-09-20 to match. Redemption now cites `H-165` (T-028, one attempt per invitation),
+the WebSocket ticket `H-148` (T-013), and the invitation token itself `H-146` (T-011). A reference
+here that does not resolve to a `T-` task is stale; `scripts/check-task-ids.mjs` now fails on one.
 
 ## 2. What a hiring credential may assert, and what it may not
 

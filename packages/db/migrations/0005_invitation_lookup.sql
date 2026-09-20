@@ -90,7 +90,7 @@ $grants$;
 --> statement-breakpoint
 
 -- Redemption counts the sittings already taken against invitations.max_attempts, in
--- the transaction that creates the attempt (docs/14 H-139). Without this index that
+-- the transaction that creates the attempt (docs/14 H-165). Without this index that
 -- count is a scan of the tenant's attempts on every redemption; with it, it is an
 -- index lookup on a handful of rows. attempts.invitation_id is nullable — an attempt
 -- created by staff has none — so the index is partial and stays small.
