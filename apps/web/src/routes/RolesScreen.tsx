@@ -198,14 +198,20 @@ function RoleCoverage({ role }: { role: JobRoleView }): ReactNode {
             The one that works is a link, and the one that does not says why rather than
             being a greyed rectangle. A disabled control with no explanation is a dead end
             somebody clicks twice and then stops trusting. */}
+        {/* The action the verdict implies, and only that one.
+         *
+         * "Compose an assessment" was a disabled button and a promise for two days. It is a
+         * link now, and it stays absent rather than disabled for a role the bank cannot fill:
+         * offering it there would be offering a screen whose only outcome is a refusal. */}
         <div className="ab-roles__role-actions">
           {verdict.ready ? (
-            <>
-              <Button tone="primary" disabled>
-                Compose an assessment
-              </Button>
-              <p className="ab-roles__pending">Arrives with the assessment engine (P3).</p>
-            </>
+            <Link
+              className="ab-button ab-button--primary"
+              to="/roles/$roleId/compose"
+              params={{ roleId: role.id }}
+            >
+              Compose an assessment
+            </Link>
           ) : (
             <Link className="ab-button ab-button--secondary" to="/questions">
               Add questions

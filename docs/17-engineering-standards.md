@@ -612,6 +612,28 @@ turns "absent" back into "resolving" for a moment. The session query sets `retry
 because a 401 will not answer differently a moment later and the flash is exactly what the
 three-state split exists to prevent.
 
+## 11c. A screen that has the answer opens with it
+
+The compose screen could have been a form: pick the skills, set the counts, choose the
+difficulty, name it, save. That is what most tools of this kind do, and it is wrong here for a
+specific reason — a role already carries all four decisions, so a form would be asking the
+recruiter to re-enter what the system knows and to make judgements they are not placed to
+make. The screen therefore opens on the composed paper, and its two inputs adjust an answer
+rather than produce one.
+
+The general rule: **where the system can compute the thing, render it and let the controls
+edit it.** A blank form is the right shape only when the system genuinely has nothing to say.
+
+Two consequences worth stating, because both were tempting to skip:
+
+- **A disabled control needs its reason beside it.** Save is disabled while the bank cannot
+  fill the paper, and a greyed rectangle with no explanation is a dead end somebody clicks
+  twice and then distrusts. The band above it names the skills, the table does the subtraction
+  — "3 short", not two numbers to compare — and the way out is a link.
+- **Offer the action the state implies, and only that one.** A role the bank cannot cover gets
+  *Add questions*, not a disabled *Compose*; a list with nothing in it gets a link to the screen
+  where the flow starts, not a *New* button that cannot work from there.
+
 ## 11b. Emphasis is a budget, and figures beat adjectives
 
 Two habits made the console read as a prototype while every screen was technically correct.

@@ -1399,3 +1399,62 @@
   color: var(--ab-text-muted);
   font-size: var(--ab-text-xs);
 }
+
+/* ------------------------------------------------------------ compose */
+
+/* The two dials, side by side and narrow. They adjust an answer the role already gave, so
+   they sit under the verdict rather than above it — a form at the top would read as
+   "fill this in", which is the wizard this screen exists not to be. */
+.ab-compose__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-space-4);
+}
+
+.ab-compose__controls > * {
+  flex: 0 1 16rem;
+}
+
+.ab-compose__skill {
+  display: block;
+  font-weight: 600;
+}
+
+.ab-compose__band {
+  display: block;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+/* The shortfall row. A tint plus the words "N short" in the last cell: the tint alone would
+   be colour carrying meaning (SC 1.4.1), and the words alone would not draw the eye down a
+   table of twelve skills to the two that matter. */
+.ab-compose__short {
+  background: color-mix(in oklab, var(--ab-danger-surface) 45%, transparent);
+}
+
+.ab-compose__missing {
+  color: var(--ab-danger);
+  font-size: var(--ab-text-xs);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.ab-compose__ok {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+/* ------------------------------------------------------- assessments */
+
+/* The row just saved, marked for one page load so somebody arriving from compose can see
+   where their thing went. It is a tint and a word, never a tint alone. */
+.ab-assessments__new {
+  background: color-mix(in oklab, var(--ab-success-surface) 40%, transparent);
+}
+
+.ab-assessments__just-saved {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  font-weight: 400;
+}

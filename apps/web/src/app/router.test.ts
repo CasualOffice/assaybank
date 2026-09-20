@@ -27,7 +27,12 @@ import { routeTree } from './router.js';
  * Written out rather than derived, so adding one is a deliberate edit here: the point of the
  * assertion below is that a route cannot appear without somebody deciding it should.
  */
-const DETAIL_ROUTES: readonly string[] = ['/questions/$questionId'];
+const DETAIL_ROUTES: readonly string[] = [
+  '/questions/$questionId',
+  // Reached from a role's "Compose an assessment", never from the sidebar. A manifest entry
+  // would put a link to one particular role in the navigation.
+  '/roles/$roleId/compose',
+];
 
 /** A router positioned at `initialPath`, isolated from any real history. */
 function routerAt(initialPath: string) {

@@ -117,11 +117,14 @@ export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
     path: '/assessments',
     section: 'Hiring',
     title: 'Assessments',
-    summary: 'Assessment definitions, sections, draw rules and invitations.',
+    summary: 'Papers composed from a role, and what each one asks about.',
+    // Built 2026-09-21 as the list of what has been composed (`H-179`). The note now
+    // describes what is still to come here rather than what is missing — it is only
+    // rendered by the placeholder, and this route no longer has one.
     phase: 'P3',
     phaseNote:
-      'P3 builds the assessment engine — the builder, the section rules, and the ' +
-      'server-computed deadline the runner enforces (ADR-006).',
+      'P2 built composing one from a role and the list of them. P3 adds the editor, the ' +
+      'publish step, and the server-computed deadline the runner enforces (ADR-006).',
   },
   {
     path: '/candidates',

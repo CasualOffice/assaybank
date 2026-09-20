@@ -33,6 +33,8 @@ import { AccountMenu } from './AccountMenu.js';
 import { NavIcon } from './NavIcon.js';
 import { SessionGate } from './SessionGate.js';
 import { AttributionsScreen } from '../routes/AttributionsScreen.js';
+import { AssessmentsScreen } from '../routes/AssessmentsScreen.js';
+import { ComposeScreen } from '../routes/ComposeScreen.js';
 import { RolesScreen } from '../routes/RolesScreen.js';
 import { ErrorEnvelopeView, toDisplayEnvelope } from './ErrorBoundary.js';
 import {
@@ -313,10 +315,46 @@ const rolesRoute = createRoute({
   component: RolesScreen,
 });
 
+/**
+ * Which assessment was just saved, so the list can say so.
+ *
+ * Parsed like every other search value (docs/17 §1): a `?created=` somebody typed is not an
+ * id, and the worst it may do here is match nothing.
+ */
+function parseAssessmentsSearch(search: Record<string, unknown>): { created?: string } {
+  const created = search['created'];
+  return typeof created === 'string' && created !== '' ? { created } : {};
+}
+
+function AssessmentsRouteScreen(): ReactNode {
+  const { created } = assessmentsRoute.useSearch();
+  return <AssessmentsScreen created={created} />;
+}
+
 const assessmentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/assessments',
-  component: screenFor('/assessments'),
+  validateSearch: parseAssessmentsSearch,
+  component: AssessmentsRouteScreen,
+});
+
+/**
+ * Composing an assessment for one role.
+ *
+ * A child of `/roles` rather than of `/assessments`, because that is where the flow is: you
+ * arrive from a role, and the sidebar should keep saying Roles while you are here. The role
+ * is a path parameter rather than a query, because a compose screen without one is not a
+ * screen in a degraded state — it is a URL with no meaning.
+ */
+function ComposeRouteScreen(): ReactNode {
+  const { roleId } = composeRoute.useParams();
+  return <ComposeScreen roleId={roleId} />;
+}
+
+const composeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/roles/$roleId/compose',
+  component: ComposeRouteScreen,
 });
 
 const candidatesRoute = createRoute({
@@ -360,6 +398,7 @@ export const routeTree = rootRoute.addChildren([
   questionsRoute,
   attributionsRoute,
   rolesRoute,
+  composeRoute,
   questionDetailRoute,
   assessmentsRoute,
   candidatesRoute,
