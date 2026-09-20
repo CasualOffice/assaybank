@@ -28,6 +28,7 @@ import { type QuestionFilters } from '../api/questions.js';
 import { QuestionEditor } from '../routes/QuestionEditor.js';
 import { QuestionsScreen } from '../routes/QuestionsScreen.js';
 import { AppShellLayout } from './AppShell.js';
+import { NavIcon } from './NavIcon.js';
 import { ErrorEnvelopeView, toDisplayEnvelope } from './ErrorBoundary.js';
 import {
   documentTitleFor,
@@ -128,7 +129,8 @@ function ConsoleNav(): ReactNode {
                       className: 'ab-console__nav-link ab-console__nav-link--current',
                     }}
                   >
-                    {route.title}
+                    <NavIcon path={route.path} />
+                    <span className="ab-console__nav-label">{route.title}</span>
                   </Link>
                 </li>
               ))}

@@ -84,6 +84,16 @@ than mistakes:
   choose. The guard is the *previous pathname*, not a "have we started" flag — a flag is defeated
   by React StrictMode's deliberate double-mount, which is how the bug survived its first fix.
 
+**Console density, set 2026-09-20.** The console's controls are 32px and its table rows
+36px, against the candidate runner's 40px and its roomier spacing. The two surfaces are read
+differently: a candidate meets one question at a time under a timer on an unfamiliar device, and a
+recruiter works a dense table on a desktop for an hour, where every 8px of control height is a row
+of data pushed off the screen. SC 2.5.8's 24px minimum is the floor that binds and 32px clears it
+with room for the focus ring; the candidate app's 44px commitment above is untouched. The page bar
+is sticky and sets `--ab-sticky-top` to its own height, which `base.css` feeds to
+`scroll-padding-top` — SC 2.4.11, and the reason a keyboard user tabbing down a long table never
+lands on a row hidden under the chrome.
+
 **Rendered question content, added 2026-09-20.** A prompt is author-written markdown displayed to
 someone under a timer, so the markup it becomes is a conformance surface of its own rather than a
 detail of a component. `packages/ui`'s `Markdown` (ADR-022) decides it once for both apps:

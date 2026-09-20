@@ -30,6 +30,16 @@
 .ab-console {
   --ab-sidebar-width: 15.25rem;
 
+  /* 32px, not the 40px the token layer gives the candidate runner.
+   *
+   * The two surfaces are read differently and sized differently on purpose. A candidate
+   * meets one question at a time under a timer on whatever device they own, so 40px is a
+   * target they cannot miss. A recruiter works a dense table on a desktop for an hour, and
+   * every 8px of control height is a row of data pushed off the screen. 32px still clears
+   * SC 2.5.8's 24px minimum with room for the focus ring, which is the floor that actually
+   * binds (docs/15 §2.3). */
+  --ab-control-height: 2rem;
+
   display: grid;
   grid-template-columns: var(--ab-sidebar-width) minmax(0, 1fr);
   min-height: 100dvh;
@@ -106,12 +116,30 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-height: 2rem;
+  gap: var(--ab-space-2);
+  min-height: 1.875rem;
   padding: 0 var(--ab-space-2);
   border-radius: var(--ab-radius-sm);
-  color: var(--ab-text-muted);
+  /* Full-strength ink, not muted. Muting every item to make the current one stand out
+     dims the whole navigation to win a contrast the bar and the weight already win. */
+  color: var(--ab-text);
   font-weight: 500;
   text-decoration: none;
+}
+
+/* The icon is the quiet half of the pair: it is a landmark for the eye, and at full ink it
+   would compete with the word it sits beside. It comes up to full strength on the current
+   item, which is one more signal that is not a colour. */
+.ab-console__nav-icon {
+  flex: 0 0 auto;
+  color: var(--ab-text-muted);
+}
+
+.ab-console__nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ab-console__nav-link:hover {
@@ -132,6 +160,11 @@
   background: var(--ab-surface-raised);
   color: var(--ab-text);
   font-weight: 650;
+}
+
+.ab-console__nav-link--current .ab-console__nav-icon,
+.ab-console__nav-link[aria-current='page'] .ab-console__nav-icon {
+  color: var(--ab-accent-text);
 }
 
 .ab-console__nav-link--current::before,
@@ -171,7 +204,10 @@
    and last columns a head-turn apart, and the eye loses the row between them. */
 .ab-console__work {
   max-width: 82rem;
-  padding: var(--ab-space-8) var(--ab-space-8) var(--ab-space-12);
+  /* No top padding: the page bar is flush with the top of the work area and supplies its
+     own. Padding here would put a strip of background above a sticky element, which reads
+     as the bar having come unstuck. */
+  padding: 0 var(--ab-space-6) var(--ab-space-12);
 }
 
 /* One column below the point at which the sidebar stops paying for itself. The nav becomes
@@ -221,7 +257,7 @@
   }
 
   .ab-console__work {
-    padding: var(--ab-space-6) var(--ab-space-4) var(--ab-space-12);
+    padding: 0 var(--ab-space-4) var(--ab-space-12);
   }
 }
 
@@ -294,6 +330,118 @@
   user-select: all;
 }
 
+/* The token layer sizes a control by its padding and line height, and `min-height` only
+   sets a floor. Dropping the block padding to 4px is what actually makes a 32px control;
+   scoped to the console so the candidate runner keeps its roomier 40px. A textarea is
+   exempt — it sets its own height from `rows`. */
+.ab-console .ab-input:not(.ab-textarea),
+.ab-console .ab-select {
+  padding-block: var(--ab-space-1);
+}
+
+/* --------------------------------------------------------------------- page bar */
+
+/* Where you are, and what you can do here — and both survive the scroll.
+ *
+ * `--ab-sticky-top` is set to the bar's own height. base.css feeds that into
+ * `scroll-padding-top`, so a keyboard user tabbing down a long table never lands on a row
+ * sitting underneath this (SC 2.4.11 Focus Not Obscured). It is set on `.ab-console__main`
+ * rather than on the bar, because the value has to be readable by everything that scrolls
+ * beneath it, not only by the element that causes the problem. */
+.ab-console__main {
+  --ab-pagebar-height: 3rem;
+  --ab-sticky-top: 3rem;
+}
+
+.ab-pagebar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ab-space-4);
+  min-height: var(--ab-pagebar-height);
+  /* Bleeds to the edges of the work area so the rule under it reads as the boundary of
+     the chrome rather than as a line drawn inside the page. */
+  margin-inline: calc(var(--ab-space-6) * -1);
+  padding-inline: var(--ab-space-6);
+  background: var(--ab-surface);
+  border-bottom: 1px solid var(--ab-border);
+}
+
+@media (max-width: 60rem) {
+  .ab-pagebar {
+    margin-inline: calc(var(--ab-space-4) * -1);
+    padding-inline: var(--ab-space-4);
+  }
+}
+
+.ab-pagebar__trail {
+  min-width: 0;
+}
+
+.ab-pagebar__crumbs {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--ab-text-sm);
+}
+
+.ab-pagebar__crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-space-2);
+  min-width: 0;
+}
+
+/* Only the last crumb gives. The two above it are one or two words and truncating them
+   would remove the context the bar exists to keep. */
+.ab-pagebar__crumb:last-child {
+  overflow: hidden;
+}
+
+.ab-pagebar__step,
+.ab-pagebar__link {
+  color: var(--ab-text-muted);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.ab-pagebar__link:hover {
+  color: var(--ab-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ab-pagebar__link:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 2px;
+  border-radius: var(--ab-radius-sm);
+}
+
+.ab-pagebar__here {
+  overflow: hidden;
+  color: var(--ab-text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ab-pagebar__sep {
+  color: var(--ab-border-strong);
+}
+
+.ab-pagebar__actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--ab-space-2);
+}
+
 /* ---------------------------------------------------------------------- screen */
 
 /* The standard index-screen stack: header, filters, count, table, pager. Every list screen
@@ -304,33 +452,19 @@
   gap: var(--ab-space-4);
 }
 
+/* Title and lede only: the actions moved into the page bar, where they stay reachable
+   from row 200 of a long table. */
 .ab-screen__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ab-space-4);
-}
-
-/* The title block yields before the action does. Without this the lede's measure keeps the
-   row wide enough to wrap, and the primary action lands under the paragraph — which reads
-   as a button belonging to the sentence above it. */
-.ab-screen__heading-block {
-  flex: 1 1 22rem;
-  min-width: 0;
-}
-
-.ab-screen__actions {
-  flex: 0 0 auto;
+  padding-top: var(--ab-space-5);
 }
 
 /* 22px, not the 28px a marketing page would use. A page title in a console is a label for
    where you are, and it is read once; the table under it is read for minutes. */
 .ab-screen__title {
   margin: 0 0 var(--ab-space-1);
-  font-size: var(--ab-text-xl);
+  font-size: var(--ab-text-lg);
   font-weight: 650;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.012em;
   line-height: var(--ab-leading-tight);
 }
 
@@ -347,15 +481,12 @@
 /* Bounded, because a line of prose that runs the width of a 1,600px console is a line
    nobody reads to the end of. */
 .ab-screen__lede {
-  max-width: 72ch;
+  max-width: 78ch;
   margin: 0;
   color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  line-height: 1.5;
   text-wrap: pretty;
-}
-
-.ab-screen__actions {
-  display: flex;
-  gap: var(--ab-space-2);
 }
 
 /* Columns that are a word or a date stay on one line; the prompt is the only one that

@@ -398,6 +398,25 @@ Explicitly not allowed, each because it has a specific failure mode here:
 
 ---
 
+## 11a. Console layout
+
+Two rules, because both were learned by looking at a screenshot rather than at markup.
+
+**A screen's chrome and its content have different jobs.** What must survive a scroll goes in the
+sticky page bar — where you are, and the primary action. What is read once on arrival — the title,
+the sentence explaining the screen — scrolls away. A recruiter who decides to add a question on row
+200 of a table should not have to travel to the top to do it, and a table of rows with no header
+above it is a table you scroll back up to identify.
+
+**The console is denser than the candidate runner, deliberately and by a stated amount.** 32px
+controls and 36px rows against 40px and roomier. The surfaces are read differently — one question
+under a timer on an unfamiliar device, against a dense table on a desktop for an hour — and every
+8px of control height is a row of data pushed off the screen. SC 2.5.8's 24px is the floor that
+binds; docs/15 §2.2 records both numbers and why they differ. Density is a decision with a reason,
+not a default and not a taste.
+
+---
+
 ## 12a. Author-supplied markdown
 
 Question prompts, explanations and scorecard notes are markdown written by one person and rendered

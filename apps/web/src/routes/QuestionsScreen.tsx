@@ -51,6 +51,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
+import { PageBar } from '../app/PageBar.js';
 import { useApi } from '../api/api.js';
 import { DIFFICULTY_LABELS, KIND_LABELS, STATUS_LABELS, STATUS_TONES } from './question-labels.js';
 import { hasActiveFilters, questionsQuery, type QuestionFilters } from '../api/questions.js';
@@ -166,7 +167,7 @@ function QuestionRow({ question }: { question: AuthorQuestionSummaryView }): Rea
         )}
       </td>
       <td className="ab-table__numeric">{question.latest_version_no ?? '—'}</td>
-      <td className="ab-questions__nowrap">
+      <td className="ab-table__date">
         {question.current_published_at === null ? (
           <span className="ab-questions__none">Not published</span>
         ) : (
@@ -242,19 +243,18 @@ export function QuestionsScreen({ filters, onFiltersChange }: QuestionsScreenPro
 
   return (
     <div className="ab-screen">
+      <PageBar crumbs={[{ label: 'Question bank' }, { label: 'Questions' }]}>
+        <Button tone="primary">New question</Button>
+      </PageBar>
+
       <header className="ab-screen__header">
-        <div className="ab-screen__heading-block">
-          <h1 className="ab-screen__title" id="page-heading" tabIndex={-1}>
-            Questions
-          </h1>
-          <p className="ab-screen__lede">
-            Every question in your bank. A published version is frozen — editing one creates a new
-            version, and the old one stays exactly as it was served.
-          </p>
-        </div>
-        <div className="ab-screen__actions">
-          <Button tone="primary">New question</Button>
-        </div>
+        <h1 className="ab-screen__title" id="page-heading" tabIndex={-1}>
+          Questions
+        </h1>
+        <p className="ab-screen__lede">
+          Every question in your bank. A published version is frozen — editing one creates a new
+          version, and the old one stays exactly as it was served.
+        </p>
       </header>
 
       {bankIsEmpty ? null : (
@@ -335,11 +335,21 @@ export function QuestionsScreen({ filters, onFiltersChange }: QuestionsScreenPro
             )}
           </Field>
 
-          {filtered ? (
-            <div className="ab-toolbar__end">
-              <Button onClick={clearFilters}>Clear filters</Button>
-            </div>
-          ) : null}
+          <div className="ab-toolbar__end">
+            {/* The count sits in the filter row rather than on a line of its own, because
+                it is the answer to the filters beside it — and because a line of its own
+                costs a row of the table it is counting. */}
+            <p className="ab-screen__count" role="status">
+              {query.isError
+                ? ''
+                : query.isPending
+                  ? 'Loading questions…'
+                  : `${String(rows.length)} question${rows.length === 1 ? '' : 's'}${
+                      (query.data?.next_cursor ?? null) === null ? '' : ', more on the next page'
+                    }`}
+            </p>
+            {filtered ? <Button onClick={clearFilters}>Clear filters</Button> : null}
+          </div>
         </Toolbar>
       )}
 
@@ -356,18 +366,6 @@ export function QuestionsScreen({ filters, onFiltersChange }: QuestionsScreenPro
             </Button>
           </p>
         </Alert>
-      ) : null}
-
-      {/* The result count, where a person looks for it: under the filters that produced it,
-          not inside the table. The table keeps the same sentence as its accessible name. */}
-      {!query.isError && !bankIsEmpty ? (
-        <p className="ab-screen__count" role="status">
-          {query.isPending
-            ? 'Loading questions…'
-            : `${String(rows.length)} question${rows.length === 1 ? '' : 's'}${
-                (query.data?.next_cursor ?? null) === null ? '' : ', more on the next page'
-              }`}
-        </p>
       ) : null}
 
       {!query.isError && (query.isPending || rows.length > 0) ? (

@@ -341,11 +341,19 @@
 }
 
 .ab-table thead th {
-  /* Sticky against the page scroll, so the column names survive a long page. */
+  /* Sticky within the scroll container, which is what `top: 0` means here and is not what
+     it looks like it means.
+     *
+     * `.ab-table__scroll` sets `overflow-x: auto`, and any overflow other than `visible`
+     * makes an element a scroll container in *both* axes — so this sticks relative to that
+     * box, not to the viewport, and offsetting it by the page bar's height pushes it down
+     * inside the table and draws it over the first row. The horizontal scroll container is
+     * an SC 2.1.1 requirement and not negotiable, so the column headers scroll away with
+     * the page and the page bar is what stays. */
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: var(--ab-space-2) var(--ab-space-4);
+  padding: var(--ab-space-2) var(--ab-space-3);
   background: var(--ab-surface-sunken);
   border-bottom: 1px solid var(--ab-border);
   color: var(--ab-text-muted);
@@ -359,10 +367,12 @@
 
 .ab-table tbody td,
 .ab-table tbody th {
-  /* 8px block padding on a 1.55 line height gives a ~40px row: dense enough to scan a
-     page of them, tall enough to clear SC 2.5.8's 24px target for the link inside. */
-  padding: var(--ab-space-2) var(--ab-space-4);
+  /* 7px block padding on a 1.45 line height gives a ~36px row: dense enough to put
+     twenty on a laptop screen, tall enough to clear SC 2.5.8's 24px target for the link
+     inside with room for its focus ring. */
+  padding: 0.4375rem var(--ab-space-3);
   border-bottom: 1px solid var(--ab-border);
+  line-height: 1.45;
   text-align: left;
   vertical-align: top;
 }
@@ -381,9 +391,17 @@
   background: var(--ab-surface-sunken);
 }
 
+/* Proportional digits make a column of figures ragged, and a ragged column is one the eye
+   cannot compare down. Right-aligned, because a number is compared from its units digit. */
 .ab-table__numeric {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* A date is a number that reads left to right: same digits, no realignment. */
+.ab-table__date {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .ab-table__mono {
@@ -486,7 +504,19 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--ab-space-3);
-  padding: var(--ab-space-3) 0;
+}
+
+/* Inside a toolbar the label is a caption for its control, not a heading over a form
+   field: 11px, muted, close. It stays a real `<label>` — a placeholder standing in for one
+   disappears the moment somebody types, and then the control has no name (SC 3.3.2). */
+.ab-toolbar .ab-field {
+  gap: var(--ab-space-1);
+}
+
+.ab-toolbar .ab-field__label {
+  font-size: var(--ab-text-xs);
+  font-weight: 600;
+  color: var(--ab-text-muted);
 }
 
 .ab-toolbar > * {
@@ -504,7 +534,10 @@
   margin-inline-start: auto;
   display: flex;
   align-items: center;
-  gap: var(--ab-space-2);
+  gap: var(--ab-space-3);
+  /* The controls above it sit on a label, so the end slot has to drop by the label's
+     height to line up with them rather than with the labels. */
+  padding-block-end: var(--ab-space-1);
 }
 
 /* ------------------------------------------------------------------ markdown

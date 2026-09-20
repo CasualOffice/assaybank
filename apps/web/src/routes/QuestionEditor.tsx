@@ -56,6 +56,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 
+import { PageBar } from '../app/PageBar.js';
 import { useApi } from '../api/api.js';
 import {
   createVersionRequest,
@@ -335,67 +336,67 @@ export function QuestionEditor({ questionId, onBack }: QuestionEditorProps): Rea
 
   return (
     <div className="ab-screen">
-      <header className="ab-screen__header">
-        <div className="ab-screen__heading-block">
-          {onBack === undefined ? null : (
-            <button type="button" className="ab-back" onClick={onBack}>
-              ← Questions
-            </button>
-          )}
-          <h1 className="ab-screen__title" id="page-heading" tabIndex={-1}>
-            {excerpt(draft.prompt_md, 80)}
-          </h1>
-          <p className="ab-editor__facts">
-            <Badge tone={STATUS_TONES[question.status]} label="Status">
-              {STATUS_LABELS[question.status]}
-            </Badge>
-            <span>{KIND_LABELS[question.kind]}</span>
-            {version === null ? (
-              <span>No version yet</span>
-            ) : (
-              <span>
-                Version {version.version_no}
-                {isPublished ? ' · published' : ' · draft'}
-              </span>
-            )}
-          </p>
-        </div>
-
-        <div className="ab-screen__actions">
-          <Button
-            onClick={() => {
-              save.mutate();
-            }}
-            busy={save.isPending}
-            disabled={!dirty || busy}
-          >
-            {isPublished ? 'Save as new version' : 'Save'}
-          </Button>
-          {/* The lifecycle, as the state machine actually allows it: a draft is sent for
+      <PageBar
+        crumbs={[
+          { label: 'Question bank' },
+          { label: 'Questions', to: '/questions' },
+          // Truncated hard: a breadcrumb that wraps to two lines stops being a bar.
+          { label: excerpt(draft.prompt_md, 46) },
+        ]}
+      >
+        <Button
+          onClick={() => {
+            save.mutate();
+          }}
+          busy={save.isPending}
+          disabled={!dirty || busy}
+        >
+          {isPublished ? 'Save as new version' : 'Save'}
+        </Button>
+        {/* The lifecycle, as the state machine actually allows it: a draft is sent for
               review, and only a question in review may be published (docs/03 §4). Offering
               "Publish" on a draft would be offering an action the API refuses. */}
-          {version === null || isPublished ? null : question.status === 'draft' ? (
-            <Button
-              onClick={() => {
-                sendForReview.mutate();
-              }}
-              busy={sendForReview.isPending}
-              disabled={busy || dirty}
-            >
-              Send for review
-            </Button>
-          ) : question.status === 'review' ? (
-            <Button
-              tone="primary"
-              onClick={() => {
-                setConfirmingPublish(true);
-              }}
-              disabled={busy || dirty}
-            >
-              Publish…
-            </Button>
-          ) : null}
-        </div>
+        {version === null || isPublished ? null : question.status === 'draft' ? (
+          <Button
+            onClick={() => {
+              sendForReview.mutate();
+            }}
+            busy={sendForReview.isPending}
+            disabled={busy || dirty}
+          >
+            Send for review
+          </Button>
+        ) : question.status === 'review' ? (
+          <Button
+            tone="primary"
+            onClick={() => {
+              setConfirmingPublish(true);
+            }}
+            disabled={busy || dirty}
+          >
+            Publish…
+          </Button>
+        ) : null}
+      </PageBar>
+
+      <header className="ab-screen__header">
+        <h1 className="ab-screen__title" id="page-heading" tabIndex={-1}>
+          {excerpt(draft.prompt_md, 80)}
+        </h1>
+        <p className="ab-editor__facts">
+          <Badge tone={STATUS_TONES[question.status]} label="Status">
+            {STATUS_LABELS[question.status]}
+          </Badge>
+          <span>{KIND_LABELS[question.kind]}</span>
+          {version === null ? (
+            <span>No version yet</span>
+          ) : (
+            <span>
+              Version {version.version_no}
+              {isPublished ? ' · published' : ' · draft'}
+            </span>
+          )}
+        </p>
       </header>
 
       {/* ADR-003, said before it is enforced. */}

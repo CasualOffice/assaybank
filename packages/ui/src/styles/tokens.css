@@ -149,6 +149,7 @@
   --ab-space-2: 0.5rem;
   --ab-space-3: 0.75rem;
   --ab-space-4: 1rem;
+  --ab-space-5: 1.25rem;
   --ab-space-6: 1.5rem;
   --ab-space-8: 2rem;
   --ab-space-12: 3rem;
@@ -157,9 +158,15 @@
   --ab-radius: 8px;
   --ab-radius-lg: 14px;
 
-  /* SC 2.5.8 Target Size (Minimum) is 24px. docs/15 §2.3 commits the candidate app to
-     44px, and the console to a 40px control height that clears the criterion with room
-     for a focus ring. */
+  /* SC 2.5.8 Target Size (Minimum) is 24px, and that is the floor that binds. docs/15
+     §2.3 commits the candidate app to 44px — a candidate meets one question at a time,
+     under a timer, on whatever device they own, and a target they can miss is a target
+     that costs them marks. This 40px default serves that surface.
+
+     The staff console overrides it to 32px in its own stylesheet, and the reason is in
+     the override: a recruiter works a dense table on a desktop for an hour, and every 8px
+     of control height is a row of data pushed off the screen. 32px still clears 24px with
+     room for the focus ring. */
   --ab-control-height: 2.5rem;
   --ab-target-min: 24px;
 
