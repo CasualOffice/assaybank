@@ -31,7 +31,14 @@ const asBuffer = (bytes: Uint8Array): Buffer =>
   Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
 
 export type BankJobKind = 'import' | 'export';
-export type BankJobFormat = 'json' | 'qti';
+/**
+ * `json` and `qti` go both ways; the three datasets are import-only (`H-032`, migration 0013).
+ *
+ * We do not own those file shapes, and a question edited here has no MBPP row to become — so
+ * writing one back out would claim a fidelity we cannot promise. An export of imported content
+ * is a JSON bank document, which keeps `source_license` and `external_ref` per item.
+ */
+export type BankJobFormat = 'json' | 'qti' | 'humaneval' | 'mbpp' | 'lbpp';
 export type BankJobStatus = 'queued' | 'dispatched' | 'running' | 'succeeded' | 'failed';
 
 /** The largest file either direction may carry, matching the `bank_jobs_*_bytes_check` constraints. */

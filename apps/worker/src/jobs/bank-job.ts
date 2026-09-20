@@ -58,6 +58,11 @@ import {
 } from '../interchange/bank-document.js';
 import type { ItemProblem } from '../interchange/bank-item.js';
 import {
+  JSONL_DATASETS,
+  readJsonlDataset,
+  type JsonlDataset,
+} from '../interchange/datasets/index.js';
+import {
   readQtiPackage,
   unzipPackage,
   UnreadablePackageError,
@@ -79,6 +84,10 @@ export const BankJobPayloadSchema = z.strictObject({
   org_id: OrgIdSchema,
 });
 export type BankJobPayload = z.infer<typeof BankJobPayloadSchema>;
+
+/** Whether a job's format is one of the line-delimited datasets. */
+const isJsonlDataset = (format: string): format is JsonlDataset =>
+  (JSONL_DATASETS as readonly string[]).includes(format);
 
 /** What the API wrote into `options`, re-parsed here because it came out of a database column. */
 export const ImportOptionsSchema = z.strictObject({
@@ -152,16 +161,22 @@ async function runImport(deps: RunDeps, orgId: OrgId, job: BankJobRow): Promise<
     return fail(deps, orgId, job.id, 'The uploaded file is no longer available; upload it again.');
   }
 
+  const difficulty =
+    options.data.default_difficulty === undefined
+      ? {}
+      : { defaultDifficulty: options.data.default_difficulty };
+
   let read: ReadResult;
   try {
-    read =
-      job.format === 'json'
+    // A dataset format is a third-party file shape we read and never write (`H-032`). Its
+    // licence comes from the descriptor rather than from `options.source_license`, which is
+    // the whole point: docs/05 §2 is the record of what a dataset's terms are, and an uploader
+    // is not the authority on somebody else's licence.
+    read = isJsonlDataset(job.format)
+      ? readJsonlDataset(job.format, Buffer.from(input).toString('utf8'), difficulty)
+      : job.format === 'json'
         ? readBankDocument(Buffer.from(input).toString('utf8'))
-        : readQtiPackage(unzipPackage(input), {
-            ...(options.data.default_difficulty === undefined
-              ? {}
-              : { defaultDifficulty: options.data.default_difficulty }),
-          });
+        : readQtiPackage(unzipPackage(input), difficulty);
   } catch (error) {
     if (error instanceof UnreadableDocumentError || error instanceof UnreadablePackageError) {
       return fail(deps, orgId, job.id, error.message);

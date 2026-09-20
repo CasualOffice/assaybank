@@ -197,6 +197,12 @@ Migration 0010 (2026-09-17) adds `bank_jobs`, a tenant table with the ordinary `
 index on `(status, created_at, id)`. Neither touches a gated table, and no captured plan changed.
 The claim's own plan has not been captured.
 
+Migration 0013 (2026-09-20) widens the `bank_jobs.format` CHECK to admit three import-only
+dataset formats and adds a second CHECK confining an export row to the two formats we write. Both
+are constraints rather than predicates or indexes; `bank_jobs` is not on the gated list, and its
+read path is `claim_bank_jobs()`'s partial index on `(status, created_at, id)`, which neither
+constraint touches. Nothing was re-measured.
+
 Migration 0012 (2026-09-20) adds a nullable `assertion_code` column to `test_cases` and changes no
 policy, no index and no predicate (ADR-024). `test_cases` is not on the gated list; it is read by
 primary-key join from one `question_version`, and a wider row does not change that plan's shape. The

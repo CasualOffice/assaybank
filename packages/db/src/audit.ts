@@ -128,7 +128,8 @@ const ENTITY_TYPE_PATTERN = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/;
  * makes this a static property of the code: it fails the first time the route is
  * exercised, in development, not at 03:00 eighteen months later.
  */
-const SECRET_KEY_PATTERN = /password|passwd|secret|token|credential|api[_-]?key|private[_-]?key|authorization|cookie|pepper/i;
+const SECRET_KEY_PATTERN =
+  /password|passwd|secret|token|credential|api[_-]?key|private[_-]?key|authorization|cookie|pepper/i;
 
 /** The longest `action` this writer will record. */
 export const MAX_ACTION_LENGTH = 100;
@@ -343,7 +344,12 @@ function actorColumn(actor: AuditActor, action: string): UserId | null {
 }
 
 /** Walks a payload rejecting reserved keys, secret-shaped keys and runaway nesting. */
-function inspectPayload(action: string, column: 'before' | 'after', value: unknown, depth = 0): void {
+function inspectPayload(
+  action: string,
+  column: 'before' | 'after',
+  value: unknown,
+  depth = 0,
+): void {
   if (depth > MAX_PAYLOAD_DEPTH) {
     throw new AuditEntryError(
       action,
@@ -387,7 +393,11 @@ function inspectPayload(action: string, column: 'before' | 'after', value: unkno
  * payload *before* merging the writer's own keys into it, because inspecting afterwards
  * would find `reason` present and reject the writer's own work.
  */
-function serialise(action: string, column: 'before' | 'after', payload: AuditPayload | null): string | null {
+function serialise(
+  action: string,
+  column: 'before' | 'after',
+  payload: AuditPayload | null,
+): string | null {
   if (payload === null || Object.keys(payload).length === 0) return null;
 
   let json: string;

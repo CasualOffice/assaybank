@@ -22,7 +22,21 @@ export const IMPORT_JOB_PATH = '/import-jobs/{id}';
 export const EXPORT_JOB_PATH = '/export-jobs/{id}';
 export const EXPORT_JOB_FILE_PATH = '/export-jobs/{id}/file';
 
-export const BANK_FORMATS = ['json', 'qti'] as const;
+/**
+ * The formats an import or export job speaks.
+ *
+ * `json` and `qti` are ours and go both ways. The three dataset formats are **import only**
+ * (`H-032`): they are somebody else's file shape, we do not own them, and writing one back out
+ * would claim a fidelity we cannot promise — a question edited here has no MBPP row to become.
+ * An export of imported content is a JSON bank document, which keeps its `source_license` and
+ * `external_ref` and so keeps the attribution CC-BY-4.0 requires (docs/05 §2).
+ */
+export const BANK_FORMATS = ['json', 'qti', 'humaneval', 'mbpp', 'lbpp'] as const;
+
+/** The formats an export may be asked for. A dataset format is not one of them. */
+export const EXPORT_FORMATS = ['json', 'qti'] as const;
+export const ExportFormatSchema = z.enum(EXPORT_FORMATS);
+export type ExportFormat = z.infer<typeof ExportFormatSchema>;
 export const BankFormatSchema = z.enum(BANK_FORMATS);
 export type BankFormat = z.infer<typeof BankFormatSchema>;
 
@@ -41,6 +55,11 @@ const repeated = <T extends z.ZodType>(item: T) =>
  *
  * `source_license` is mandatory (docs/05 §2): it is applied to every item that carries none of its
  * own. `default_difficulty` is used only for QTI items from other tools, which have no difficulty.
+ *
+ * For a **named dataset** `source_license` is still required and is still ignored for the items
+ * themselves: HumanEval is MIT because it is MIT, and an import that let an uploader relabel it
+ * would put content in the bank whose real terms nobody could reconstruct (`H-032`). The dataset's
+ * own licence is in `apps/worker/src/interchange/datasets/spec.ts`, from docs/05 §2.
  */
 export const ImportQuerySchema = z.strictObject({
   format: BankFormatSchema,
@@ -50,9 +69,14 @@ export const ImportQuerySchema = z.strictObject({
 });
 export type ImportQuery = z.infer<typeof ImportQuerySchema>;
 
-/** `POST /questions/export?format=&status=&skill_id=` */
+/**
+ * `POST /questions/export?format=&status=&skill_id=`
+ *
+ * `ExportFormatSchema`, not `BankFormatSchema`: a dataset format is import-only, so asking for
+ * one here is a `422` rather than a job that fails later with the same information.
+ */
 export const ExportQuerySchema = z.strictObject({
-  format: BankFormatSchema,
+  format: ExportFormatSchema,
   status: QuestionStatusSchema.optional(),
   skill_id: SkillIdSchema.optional(),
 });

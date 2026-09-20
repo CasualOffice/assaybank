@@ -58,12 +58,13 @@ function byVersion(rows: readonly ItemResponseRow[]): Map<string, ItemResponse[]
 export async function runQuestionStats(deps: QuestionStatsDeps): Promise<QuestionStatsOutcome> {
   const at = deps.now();
 
-  const organisations = (
+  const organisations =
     // The reason is an audit action, not prose: `job.` marks the null-actor audit row as a
     // machine. What it did — list every organisation so each can be recomputed in turn under
     // its own row-level security — is this comment's job, not the audit row's.
-    await withElevated(deps.db, 'job.question_stats', listOrganisationIds)
-  ).map((id) => OrgIdSchema.parse(id));
+    (await withElevated(deps.db, 'job.question_stats', listOrganisationIds)).map((id) =>
+      OrgIdSchema.parse(id),
+    );
 
   let versionsWritten = 0;
   let versionsWithStatistics = 0;

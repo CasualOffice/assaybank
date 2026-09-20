@@ -88,7 +88,9 @@ describe('the reason (FR-21, FR-25)', () => {
 
   it('refuses an elevated access with no reason', () => {
     expect(() =>
-      prepareAuditEntry(entry({ actor: { kind: 'job' }, action: 'job.grade', entityType: 'system' })),
+      prepareAuditEntry(
+        entry({ actor: { kind: 'job' }, action: 'job.grade', entityType: 'system' }),
+      ),
     ).toThrow(AuditReasonRequiredError);
   });
 
@@ -128,7 +130,11 @@ describe('the reason (FR-21, FR-25)', () => {
   it('refuses a reason long enough to be a payload', () => {
     expect(() =>
       prepareAuditEntry(
-        entry({ action: 'attempt.void', entityType: 'attempt', reason: 'x'.repeat(MAX_REASON_LENGTH + 1) }),
+        entry({
+          action: 'attempt.void',
+          entityType: 'attempt',
+          reason: 'x'.repeat(MAX_REASON_LENGTH + 1),
+        }),
       ),
     ).toThrow(/may not exceed/);
   });
@@ -141,14 +147,23 @@ describe('the actor', () => {
 
   it('leaves actor_user_id null for a background job, which has no human behind it', () => {
     const prepared = prepareAuditEntry(
-      entry({ actor: { kind: 'job' }, action: 'job.grade', entityType: 'attempt', reason: 'job.grade' }),
+      entry({
+        actor: { kind: 'job' },
+        action: 'job.grade',
+        entityType: 'attempt',
+        reason: 'job.grade',
+      }),
     );
     expect(prepared.actorUserId).toBeNull();
   });
 
   it('leaves actor_user_id null for a candidate, who has no account (docs/03 §1)', () => {
     const prepared = prepareAuditEntry(
-      entry({ actor: { kind: 'candidate', attemptId: ATTEMPT }, action: 'candidate.submit', entityType: 'attempt' }),
+      entry({
+        actor: { kind: 'candidate', attemptId: ATTEMPT },
+        action: 'candidate.submit',
+        entityType: 'attempt',
+      }),
     );
     expect(prepared.actorUserId).toBeNull();
     // ...so the attempt is what identifies them. A null actor column with nothing else
@@ -174,7 +189,9 @@ describe('the actor', () => {
 
   it('refuses a candidate action that does not carry the candidate prefix', () => {
     expect(() =>
-      prepareAuditEntry(entry({ actor: { kind: 'candidate', attemptId: ATTEMPT }, action: 'attempt.submit' })),
+      prepareAuditEntry(
+        entry({ actor: { kind: 'candidate', attemptId: ATTEMPT }, action: 'attempt.submit' }),
+      ),
     ).toThrow(/must record a "candidate\."/);
   });
 });
@@ -246,7 +263,10 @@ describe('the payload', () => {
     expect(prepared.before).not.toBeNull();
     expect(JSON.parse(prepared.before ?? '{}')).toEqual({ score: 41 });
     // FR-21: both numbers survive, and so does the sentence explaining the disagreement.
-    expect(afterOf(prepared)).toEqual({ score: 55, [AUDIT_REASON_KEY]: 'Grader mis-scored question 3.' });
+    expect(afterOf(prepared)).toEqual({
+      score: 55,
+      [AUDIT_REASON_KEY]: 'Grader mis-scored question 3.',
+    });
   });
 
   it('refuses a caller payload that claims a key the writer owns', () => {
@@ -254,7 +274,12 @@ describe('the payload', () => {
     // present, looks complete, and is wrong.
     expect(() =>
       prepareAuditEntry(
-        entry({ action: 'attempt.void', entityType: 'attempt', reason: 'a', after: { reason: 'b' } }),
+        entry({
+          action: 'attempt.void',
+          entityType: 'attempt',
+          reason: 'a',
+          after: { reason: 'b' },
+        }),
       ),
     ).toThrow(/writer owns it/);
 
@@ -283,9 +308,9 @@ describe('the payload', () => {
   });
 
   it('refuses a payload over the size budget', () => {
-    expect(() => prepareAuditEntry(entry({ after: { blob: 'x'.repeat(MAX_PAYLOAD_BYTES) } }))).toThrow(
-      /budget/,
-    );
+    expect(() =>
+      prepareAuditEntry(entry({ after: { blob: 'x'.repeat(MAX_PAYLOAD_BYTES) } })),
+    ).toThrow(/budget/);
   });
 
   it('refuses a payload nested past the depth limit', () => {

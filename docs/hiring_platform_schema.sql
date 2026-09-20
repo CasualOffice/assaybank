@@ -255,7 +255,7 @@ CREATE TABLE bank_jobs (
     id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id              uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     kind                text NOT NULL,      -- import | export
-    format              text NOT NULL,      -- json | qti
+    format              text NOT NULL,      -- json | qti (both ways); humaneval | mbpp | lbpp (import only, 0013)
     status              text NOT NULL DEFAULT 'queued',  -- queued | dispatched | running | succeeded | failed
     requested_by        uuid NOT NULL REFERENCES users(id),
     options             jsonb NOT NULL DEFAULT '{}',

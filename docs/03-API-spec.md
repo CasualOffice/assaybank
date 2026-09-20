@@ -202,7 +202,7 @@ Requires `question.write`. Only `coding` and `sql` questions can be previewed; a
 ### Bulk
 
 ```
-POST   /questions/import            ?format=json|qti&source_license=&default_skill_id=…&default_difficulty=
+POST   /questions/import            ?format=json|qti|humaneval|mbpp|lbpp&source_license=&default_skill_id=…&default_difficulty=
                                     body: the file, Content-Type: application/octet-stream
                                     → 202 {job_id, status: "queued", job_url}
 GET    /import-jobs/{id}            → job view
@@ -213,7 +213,27 @@ GET    /export-jobs/{id}/file       → the file, until expires_at
 
 Import is asynchronous and reports per-row errors rather than failing the whole file. `source_license` is mandatory on import — see `05-licensing-and-compliance.md`.
 
-**As built (2026-09-17)**, for `json` and `qti`; the dataset formats (`humaneval`, `mbpp`, `lbpp`, `exercism`) are H-032 and not yet accepted.
+**As built (2026-09-17)**, for `json` and `qti`. **Extended 2026-09-20 (`H-032`)** with three
+dataset formats — `humaneval`, `mbpp`, `lbpp` — which are **import only**. `exercism` is a
+directory tree rather than a line-delimited file and is not accepted yet.
+
+Three things about a dataset import differ from a bank document, and each is a decision rather
+than an omission:
+
+- **`source_license` is still required and is still ignored for the items.** HumanEval is MIT
+  because it is MIT; an import that let an uploader relabel it would put content in the bank
+  whose real terms nobody could reconstruct. The dataset's own licence is applied to every row,
+  from docs/05 §2.
+- **Everything arrives as a draft**, never published. Nobody has read it, its difficulty is a
+  declared placeholder rather than a measurement, and publishing is irreversible (ADR-003).
+- **`external_ref` keeps the dataset's own `dataset/id`**; the item's interchange `ref` is the
+  same identifier with its slashes replaced, because in a QTI package a `ref` becomes a file
+  name.
+
+Asking for a dataset format on **export** is `422`: we do not own those file shapes, and a
+question edited here has no MBPP row to become. An export of imported content is a JSON bank
+document, which carries `source_license` and `external_ref` per item and an `attributions`
+list in its header — so the CC-BY credit MBPP requires survives the round trip.
 
 - **The upload is the body**, `application/octet-stream`, up to 32 MiB — one file per request, and no multipart parser between the socket and the bytes. Options are query parameters. Any other content type, an empty body, a body over 32 MiB, an unknown format, a missing `source_license`, or a `default_skill_id` the organisation cannot see is `422 validation_failed`, and nothing is stored. (Every refusal Fastify makes before a handler — 413 included — is `validation_failed`; see §2.)
 - **Export is `POST`**, not `GET` as first drafted: it creates a job, and a `GET` that creates something is neither safe nor idempotent.

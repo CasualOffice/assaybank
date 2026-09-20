@@ -398,6 +398,24 @@ Explicitly not allowed, each because it has a specific failure mode here:
 
 ---
 
+## 1b. Parse structure, never meaning, in somebody else's file
+
+An importer reads a format it does not own. The line that keeps it honest: **find where things
+begin and end; never work out what they say.**
+
+`H-032` is the worked example. HumanEval hands over a block of Python assertions and the bank needs
+them one at a time, so the reader tracks string literals and bracket depth and splits at a line
+beginning `assert` at depth zero. That is structure. The thing it refuses to do is read
+`assert f(a, b) == c` and extract `a`, `b` and `c` — that is meaning, and MBPP alone will answer
+with `math.isclose`, unordered sets and nested structures.
+
+The reason is the failure mode, not the difficulty. A structural mistake yields something
+syntactically broken that fails loudly the first time it runs. A semantic mistake yields a case that
+runs perfectly and marks a correct answer wrong, and the person who pays is a candidate who never
+finds out. When a choice is between a loud failure and a quiet one, buy the loud one — and if the
+format genuinely requires understanding its contents, that is a signal to store the source as it is
+and interpret it at execution time, which is what ADR-024 did.
+
 ## 2b. Decide the shape before the data arrives
 
 A column whose meaning has never been settled is not a spare column, it is a decision deferred to

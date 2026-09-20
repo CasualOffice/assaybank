@@ -176,6 +176,8 @@ const PUBLIC_SURFACE = [
   'EXPORT_JOB_FILE_PATH',
   'BANK_FORMATS',
   'BankFormatSchema',
+  'EXPORT_FORMATS',
+  'ExportFormatSchema',
   'MAX_BANK_FILE_BYTES',
   'ImportQuerySchema',
   'ExportQuerySchema',
