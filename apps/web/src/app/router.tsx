@@ -28,7 +28,9 @@ import { type QuestionFilters } from '../api/questions.js';
 import { QuestionEditor } from '../routes/QuestionEditor.js';
 import { QuestionsScreen } from '../routes/QuestionsScreen.js';
 import { AppShellLayout } from './AppShell.js';
+import { AccountMenu } from './AccountMenu.js';
 import { NavIcon } from './NavIcon.js';
+import { SessionGate } from './SessionGate.js';
 import { AttributionsScreen } from '../routes/AttributionsScreen.js';
 import { RolesScreen } from '../routes/RolesScreen.js';
 import { ErrorEnvelopeView, toDisplayEnvelope } from './ErrorBoundary.js';
@@ -144,13 +146,24 @@ function ConsoleNav(): ReactNode {
   );
 }
 
-/** The chrome every route renders inside. */
+/**
+ * The chrome every route renders inside — behind the session gate.
+ *
+ * The gate wraps the *shell*, not the outlet, because the shell is the thing that must not
+ * render for an unidentified visitor (`H-177`). A gate inside `AppShellLayout` would still
+ * draw the sidebar, the brand and every navigation link around a sign-in form, which is
+ * precisely the "shell around an empty session" the row names.
+ */
 function RootLayout(): ReactNode {
   return (
-    <AppShellLayout nav={<ConsoleNav />}>
-      <RouteAnnouncer />
-      <Outlet />
-    </AppShellLayout>
+    <SessionGate>
+      {(profile) => (
+        <AppShellLayout nav={<ConsoleNav />} account={<AccountMenu profile={profile} />}>
+          <RouteAnnouncer />
+          <Outlet />
+        </AppShellLayout>
+      )}
+    </SessionGate>
   );
 }
 

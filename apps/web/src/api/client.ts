@@ -212,6 +212,26 @@ export class ApiClient {
   }
 
   /**
+   * Performs a request that answers `204` and returns nothing.
+   *
+   * A separate method rather than a nullable schema: "this endpoint returns no body" is a
+   * fact about the endpoint, and expressing it as a parser that accepts `undefined` would
+   * let a body-returning endpoint be called this way and have its body silently dropped.
+   */
+  async requestVoid(path: string, options: Omit<RequestOptions<void>, 'schema'>): Promise<void> {
+    await this.request<void>(path, {
+      ...options,
+      schema: {
+        parse: (value: unknown): void => {
+          if (value !== undefined) {
+            throw new Error('expected no response body');
+          }
+        },
+      },
+    });
+  }
+
+  /**
    * Performs a request and parses the response, or throws an {@link ApiRequestError}.
    *
    * Nothing else escapes: the `catch` below converts a thrown `TypeError` from a failed
@@ -235,6 +255,11 @@ export class ApiClient {
       response = await this.#fetch(url, {
         method,
         headers,
+        // The staff session is an HttpOnly cookie, so every request has to carry it. This is
+        // already `fetch`'s default for a same-origin request — which the console always is
+        // (docs/13) — and it is written out because a default that is load-bearing and
+        // invisible is a default somebody removes.
+        credentials: 'same-origin',
         ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       });

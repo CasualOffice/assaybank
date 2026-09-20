@@ -296,7 +296,7 @@ planned.
 | H-174 | P1 | One CSV writer used by every export path, prefixing fields beginning `=`, `+`, `-`, `@`, tab or carriage return, quoting all fields and writing UTF-8 with a BOM | core-domain | M2 | — | T-039 | S | todo | _unassigned_ |
 | H-175 | P0 | `audit_log` append-only at the database level, asserted by a test attempting `UPDATE` and `DELETE` as both application roles — _built 2026-09-17: migration 0002 revokes both and `packages/db/tests/rls.test.ts` asserts it; the seven-year retention half remains_ | db | M0 | — | T-040 | S | todo | _unassigned_ |
 | H-176 | P0 | A failed staff login is byte-identical whether or not the address exists — one envelope, one message, and a dummy verify so the timing does not answer either; the same for password reset — _built 2026-09-20: `packages/auth/src/password.ts` and `apps/api/src/auth/routes.ts`, asserted in `staff-identity.test.ts`; the reset path arrives with it_ | auth | M0 | — | T-042 | S | todo | _unassigned_ |
-| H-177 | P0 | Staff console auth guard: an unresolved principal never reaches a screen — the console redirects to login rather than rendering a shell around an empty session, and a 401 from any query returns it there | web | M0 | H-037 | docs/03 §1 | S | todo | _unassigned_ |
+| H-177 | P0 | Staff console auth guard: an unresolved principal never reaches a screen — the console redirects to login rather than rendering a shell around an empty session, and a 401 from any query returns it there — _done 2026-09-20: `SessionGate` wraps the shell rather than the outlet, so neither the sidebar nor the navigation renders for an unidentified visitor. Three states, not two — resolving draws neither the console nor the form, because collapsing it either way is a shell around an empty session or a login flash on every reload. An `unauthenticated` from any query clears the session in one place, so a screen written next year inherits it. `LoginRequest` and `StaffProfile` moved to `packages/contracts`; signing out clears the whole cache, not just the cookie_ | web | M0 | H-037 | docs/03 §1 | S | done | _unassigned_ |
 
 ### The guided flow — raised 2026-09-20
 
@@ -367,8 +367,13 @@ the round trip proved, all as a test that runs on every build. What is left in M
 than the exit bar: `H-177` the console's auth guard, `H-184` near-duplicate detection, `H-036`
 `exposure_count`, `H-019` the expand-contract lint, `H-172` the vulnerability audit.
 
-`H-177` is the one that decides whether the console can be shown to anyone outside the team, and
-`H-184` matters more now that one upload can put a thousand rows in at once. Everything from `H-179`
+`H-177` closed on 2026-09-20, so the console no longer renders anything for a visitor it cannot
+identify. What it still lacks is the rest of that track: `H-149` session cookie attributes,
+`H-153` CSRF on state-changing staff routes, and `H-150` the OIDC callback's validation. The guard
+is the console's half; those three are the server's, and they are what make the session it trusts
+worth trusting.
+
+`H-184` near-duplicate detection matters more now that one upload can put a thousand rows in. Everything from `H-179`
 onwards waits on the assessment engine in P3.
 
 ### The console, which can now read and write the bank
@@ -417,12 +422,12 @@ weeks is how three of the four end up half-done.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 45 | 23 | 25 | 20 |
+| M0 | P1–P2 | 45 | 23 | 26 | 19 |
 | M1 | P3 | 37 | 19 | 0 | 37 |
 | M2 | P4 | 32 | 15 | 0 | 32 |
 | M3 | P5 | 16 | 4 | 0 | 16 |
 | M4 | P6 | 21 | 5 | 0 | 21 |
-| **Total** | | **190** | **102** | **63** | **127** |
+| **Total** | | **190** | **102** | **64** | **126** |
 
 Counted from the rows above on 2026-09-20, not carried forward. The twelve rows added that
 afternoon are the guided flow: `H-178` to `H-189`, from reading the console back as a product

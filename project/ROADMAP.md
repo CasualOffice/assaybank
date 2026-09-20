@@ -276,9 +276,14 @@ re-importable without loss.
 **The goal is met, 2026-09-20** (`H-040`), and it is met as a test that runs on every build rather
 than as a number somebody once read off a staging database —
 `apps/worker/test/integration/m0-exit.integration.test.ts`, recorded with its evidence in
-[`MILESTONES.md`](MILESTONES.md). What remains in P2 is scope rather than the exit bar: the
-console's auth guard (`H-177`), near-duplicate detection (`H-184`), `exposure_count` maintenance
-(`H-036`), the expand-contract lint (`H-019`) and the CI vulnerability audit (`H-172`).
+[`MILESTONES.md`](MILESTONES.md). What remains in P2 is scope rather than the exit bar:
+near-duplicate detection (`H-184`), `exposure_count` maintenance (`H-036`), the expand-contract
+lint (`H-019`) and the CI vulnerability audit (`H-172`).
+
+The console's auth guard closed on 2026-09-20 (`H-177`) — nothing renders for a visitor it cannot
+identify. It is the client half of a track whose server half is still open and belongs together:
+`H-149` session cookie attributes, `H-153` CSRF on state-changing staff routes, `H-150` the OIDC
+callback's validation. A guard is only worth as much as the session it trusts.
 
 **Entry gate.** P1 signed.
 

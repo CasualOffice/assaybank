@@ -15,6 +15,13 @@ export const MAIN_CONTENT_ID = 'main-content';
 export interface AppShellLayoutProps {
   /** The grouped navigation. Supplied by the router-aware `ConsoleNav`. */
   nav: ReactNode;
+  /**
+   * Who is signed in, and the way out. Rendered in the sidebar footer.
+   *
+   * A slot rather than a component, because the shell must not know how a session is read —
+   * that is `SessionGate`'s, and the shell's job is to have somewhere to put the answer.
+   */
+  account?: ReactNode;
   /** The page. */
   children: ReactNode;
 }
@@ -50,7 +57,7 @@ export interface AppShellLayoutProps {
  * survives both themes. An inverse sidebar would need the accent to clear 3:1 on an
  * inverse ground, which `NON_TEXT_CONTRAST_PAIRS` in `@assaybank/ui` says it does not.
  */
-export function AppShellLayout({ nav, children }: AppShellLayoutProps): ReactNode {
+export function AppShellLayout({ nav, account, children }: AppShellLayoutProps): ReactNode {
   return (
     <div className="ab-console">
       <SkipLink targetId={MAIN_CONTENT_ID}>Skip to main content</SkipLink>
@@ -70,6 +77,7 @@ export function AppShellLayout({ nav, children }: AppShellLayoutProps): ReactNod
             console that quietly drifted towards ranking candidates would do it one screen
             at a time — so the sentence sits where every screen carries it. */}
         <footer className="ab-console__footer">
+          {account}
           <p>Assessment results are evidence for a human decision, never a decision.</p>
         </footer>
       </header>

@@ -471,6 +471,23 @@ contract already owns, which is the drift this package exists to prevent. A clie
 *casts* an interface has no check at all: a server change arrives as `undefined` two components
 away from its cause, and the stack trace names the component rather than the response.
 
+## 10a. A loading state is a state, not the absence of one
+
+"Not yet known" is not "known to be absent", and a front end that collapses the two ships one of
+two defects: it renders the authenticated view around a session it has not got, or it flashes the
+unauthenticated view at somebody who is signed in. Both are invisible in development, where the
+answer comes back off localhost in two milliseconds.
+
+So a fetched thing the UI branches on has **three** states, and each gets its own rendering:
+resolving, absent, present. `SessionGate` is the case where it matters most, because the absent
+branch is a security boundary — but the shape applies to anything a screen waits for before it can
+be honest about what it is showing.
+
+Related, and learned the same way: a query library that silently re-runs a failed query on remount
+turns "absent" back into "resolving" for a moment. The session query sets `retryOnMount: false`,
+because a 401 will not answer differently a moment later and the flash is exactly what the
+three-state split exists to prevent.
+
 ## 11a. Console layout
 
 Two rules, because both were learned by looking at a screenshot rather than at markup.

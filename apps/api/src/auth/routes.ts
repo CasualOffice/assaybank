@@ -45,7 +45,12 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { eq } from 'drizzle-orm';
 
 import { verifyPasswordAgainstNothing, type StaffPrincipal } from '@assaybank/auth';
-import { API_BASE_PATH, ApiError } from '@assaybank/contracts';
+import {
+  API_BASE_PATH,
+  ApiError,
+  type LoginRequest,
+  type StaffProfile,
+} from '@assaybank/contracts';
 import { organizations, users, withOrg, type Database, type DbTransaction } from '@assaybank/db';
 
 import { currentPrincipal } from '../principal.js';
@@ -107,30 +112,14 @@ const OIDC_START_BODY = {
   },
 } as const;
 
-interface LoginBody {
-  readonly email: string;
-  readonly password: string;
-  readonly org?: string;
-}
-
 interface OidcStartBody {
   readonly provider?: string;
   readonly org?: string;
 }
 
-/** The `{user, org, permissions[]}` body of docs/03 §1, plus ADR-006's `server_time`. */
-export interface StaffProfile {
-  readonly user: {
-    readonly id: string;
-    readonly email: string;
-    readonly full_name: string;
-    readonly timezone: string;
-  };
-  readonly org: { readonly id: string; readonly name: string; readonly slug: string };
-  readonly permissions: readonly string[];
-  /** ADR-006: the server owns the clock, and says so on every response. */
-  readonly server_time: string;
-}
+// `StaffProfile` and the login body are `packages/contracts`' now, not this file's. The console
+// parses both before it renders a screen (`H-177`), a package may never import an app, and two
+// definitions of one shape drift — so there is one, where docs/17 §3a says it goes.
 
 /**
  * Reads the profile for a signed-in user, inside an already-scoped transaction.
@@ -225,7 +214,7 @@ export function registerStaffAuthRoutes(
     `${API_BASE_PATH}/auth/login`,
     { schema: { body: LOGIN_BODY }, config: rateLimitFor('staff_login') },
     async (request, reply): Promise<StaffProfile> => {
-      const body = request.body as LoginBody;
+      const body = request.body as LoginRequest;
 
       const orgId = await resolveLoginOrg(db, { email: body.email, orgSlug: body.org });
 

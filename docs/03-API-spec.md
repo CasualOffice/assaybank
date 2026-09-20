@@ -27,6 +27,18 @@ POST /auth/logout
 GET  /auth/me                                   → {user, org, permissions[]}
 ```
 
+**The shapes are in `packages/contracts`, 2026-09-20** — `LoginRequestSchema` and
+`StaffProfileSchema`, moved out of `apps/api` when the console had to parse them (`H-177`). A
+package may never import an app, and docs/17 §3a puts a response shape a front end parses in the
+contract. `StaffProfile` carries `permissions[]` per action and no role name, which is what makes a
+custom role possible (FR-27) and what keeps `if (role === 'admin')` out of a screen.
+
+**`GET /auth/me` is what the console asks before it renders anything.** A staff surface has three
+session states — resolving, absent, present — and the console draws a different thing for each; it
+never draws chrome around a session it has not established. `unauthenticated` from *any* endpoint
+means the same thing, which is why it is a code rather than a status: docs/03 distinguishes it from
+`forbidden`, and an expired session is not a staff member lacking a permission.
+
 ### Candidates
 No account. A candidate presents an invitation token; the API exchanges it for a scoped, short-lived attempt token.
 

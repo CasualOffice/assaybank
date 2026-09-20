@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { QueryClient } from '@tanstack/react-query';
+import { QueryCache, QueryClient } from '@tanstack/react-query';
 
 import { ApiRequestError, isRetryable } from './client.js';
+import { isUnauthenticated, SESSION_KEY } from './session.js';
 
 /** How many times a failed query is retried before the screen is told. */
 export const MAX_QUERY_RETRIES = 2;
@@ -49,7 +50,30 @@ export function shouldRetryQuery(failureCount: number, error: unknown): boolean 
  * call site that owns it, not in a global default.
  */
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  const cache = new QueryCache({
+    /**
+     * One place learns that the session has gone (`H-177`).
+     *
+     * A session expires mid-visit and the next query — any query, on any screen — is the one
+     * that finds out. Removing the cached profile here makes `SessionGate` fall back to
+     * sign-in on the next render, and a screen written next year inherits that instead of
+     * having to remember it.
+     *
+     * The session query itself is excluded, or a 401 from `GET /auth/me` would remove the
+     * very entry whose error state the gate is reading, and the gate would go back to
+     * "resolving" — a spinner that never resolves.
+     */
+    onError: (error, query) => {
+      const isSession =
+        query.queryKey[0] === SESSION_KEY[0] && query.queryKey[1] === SESSION_KEY[1];
+      if (!isSession && isUnauthenticated(error)) {
+        client.removeQueries({ queryKey: SESSION_KEY });
+      }
+    },
+  });
+
+  const client: QueryClient = new QueryClient({
+    queryCache: cache,
     defaultOptions: {
       queries: {
         retry: shouldRetryQuery,
@@ -66,4 +90,6 @@ export function createQueryClient(): QueryClient {
       },
     },
   });
+
+  return client;
 }

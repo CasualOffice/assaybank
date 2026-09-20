@@ -973,3 +973,102 @@
   font-size: var(--ab-text-xs);
   line-height: 1.45;
 }
+
+/* ------------------------------------------------------------------- session */
+
+/* Deliberately almost nothing: the gate is resolving, and anything that looked like the
+   console would be the shell it exists to withhold. */
+.ab-gate {
+  min-height: 100dvh;
+}
+
+.ab-signin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: var(--ab-space-6);
+  background: var(--ab-surface);
+}
+
+.ab-signin__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-3);
+  width: 100%;
+  max-width: 24rem;
+  padding: var(--ab-space-8);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-lg);
+  background: var(--ab-surface-raised);
+}
+
+.ab-signin__lockup {
+  height: 1.25rem;
+  width: auto;
+  align-self: flex-start;
+  margin-block-end: var(--ab-space-2);
+}
+
+.ab-signin__title {
+  margin: 0;
+  font-size: var(--ab-text-xl);
+  font-weight: 650;
+  letter-spacing: -0.012em;
+}
+
+.ab-signin__title:focus-visible {
+  width: fit-content;
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 4px;
+  border-radius: var(--ab-radius-sm);
+}
+
+.ab-signin__lede {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-sm);
+}
+
+.ab-signin__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-4);
+  margin-block-start: var(--ab-space-2);
+}
+
+/* ---- who is signed in ---- */
+
+.ab-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-block-end: var(--ab-space-3);
+  margin-block-end: var(--ab-space-3);
+  border-bottom: 1px solid var(--ab-border);
+}
+
+/* The organisation above the person: in a multi-tenant console the question somebody
+   actually has is whose bank they are about to publish into. */
+.ab-account__org {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ab-text);
+  font-size: var(--ab-text-sm);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ab-account__user {
+  margin: 0 0 var(--ab-space-2);
+  overflow: hidden;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ab-account__signout {
+  align-self: flex-start;
+}

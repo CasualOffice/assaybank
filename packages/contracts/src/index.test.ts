@@ -12,9 +12,16 @@ import * as contracts from './index.js';
  * of names those workspaces are entitled to rely on.
  */
 const PUBLIC_SURFACE = [
+  'AUTH_LOGIN_PATH',
+  'AUTH_LOGOUT_PATH',
+  'AUTH_ME_PATH',
+  'AUTH_OIDC_START_PATH',
   'AttributionListResponseSchema',
   'AttributionSchema',
+  'LoginRequestSchema',
+  'MAX_LOGIN_PASSWORD_LENGTH',
   'QUESTIONS_ATTRIBUTIONS_PATH',
+  'StaffProfileSchema',
   'WORKSPACE_NAME',
   // primitives
   'UuidSchema',
