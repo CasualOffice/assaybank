@@ -38,6 +38,8 @@ export { computeDeadline, isPastDeadline, secondsRemaining } from './deadline.js
 export type { Clock } from './deadline.js';
 
 export { QUESTION_KINDS, resolveDraw } from './draw.js';
+export { allocateByWeight, composeFromRole, SCORE_PER_QUESTION } from './compose.js';
+export type { ComposeOptions, ComposedSection, Composition, RoleSkill } from './compose.js';
 export type { DrawCandidate, QuestionKind, SectionRule } from './draw.js';
 
 export {

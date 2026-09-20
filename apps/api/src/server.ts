@@ -51,6 +51,7 @@ import { registerHealthRoutes, type DependencyProbe } from './health.js';
 import { registerHttpMetrics } from './http-metrics.js';
 import { registerOrgRoutes } from './org/routes.js';
 import { registerQuestionRoutes } from './questions/routes.js';
+import { registerAssessmentRoutes } from './assessments/routes.js';
 import { registerTaxonomyRoutes } from './taxonomy/routes.js';
 import { registerBankJobRoutes } from './bank-jobs/routes.js';
 import { registerRateLimit } from './rate-limit.js';
@@ -368,6 +369,9 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
       // would register ten routes whose only possible answer is a 500.
       registerQuestionRoutes(app, { db: options.db, now });
       registerTaxonomyRoutes(app, { db: options.db, now });
+      // Composition reads roles and the bank and writes assessments, so it lands with the
+      // taxonomy routes rather than with the bank ones: a role is what it composes from.
+      registerAssessmentRoutes(app, { db: options.db });
       registerBankJobRoutes(app, { db: options.db, now });
     }
   });

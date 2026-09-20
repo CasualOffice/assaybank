@@ -517,6 +517,45 @@ Two things follow, and the second is the one worth remembering.
 
 The residue of that second one is worth stating plainly, because it is a property of the database and not of this codebase: **a partition's own row-level security governs a direct query on it, and the parent's governs a query through the parent.** Enabling RLS on a partition with no policy denies direct access and changes nothing about access through the parent. That was established by running it, not by reading about it, and the transcript is in the T-043 entry of [`14-threat-model.md`](14-threat-model.md).
 
+## 4a. A list crosses into SQL as one JSON parameter
+
+Writing a rule that filters on a list of enum values cost an afternoon to three separate
+traps, each of which produced the same opaque `42601 syntax error` from Postgres pointing at
+nothing useful. Written down so the next one costs a minute.
+
+**Never build the list into the statement.** `ARRAY[${ids.map(quote).join(',')}]` is string
+interpolation into SQL, which [`../CLAUDE.md`](../CLAUDE.md) forbids outright. That the values
+happen to come from a validated enum is exactly the reasoning that makes the *next* call site,
+where they do not, look safe too.
+
+**A bare `${array}` in a Drizzle template is not one parameter.** Drizzle flattens a JS array
+into one placeholder per element, so an empty list renders `cardinality()` with no argument.
+`sql.param()` did not bind it as a single value either.
+
+**`--` comments do not survive inside a `sql` template.** Put the reasoning above the function
+in TypeScript, where it cannot become part of a statement.
+
+What works, and behaves identically for none, one or twenty values:
+
+```ts
+const kindsJson = JSON.stringify([...filter.kinds]);
+sql`... AND (
+      jsonb_array_length(${kindsJson}::jsonb) = 0
+      OR q.kind::text IN (SELECT jsonb_array_elements_text(${kindsJson}::jsonb))
+    )`;
+```
+
+A `jsonb` scalar is a plain bound parameter. For a write, `array_agg` over
+`jsonb_array_elements_text` rebuilds the array server-side — with `coalesce(…, '{}')`, because
+`array_agg` over an empty set is `NULL` and these columns are `NOT NULL DEFAULT '{}'`.
+
+**And the trap underneath all three: the tests were running the old code.** The integration
+suite resolves `@assaybank/db` to its `dist`, so three of those "fixes" were never executed and
+each looked like it had failed. The error text that finally named the problem —
+`cardinality(()::text[])` — was code I had already replaced. Same shape as §2a: when a change
+to a package appears to have no effect, check that the thing under test is the thing you
+edited.
+
 ## 8a. A suite of negative tests proves nothing until one positive test passes
 
 The OIDC callback had six controls — issuer, audience, `nonce`, `exp`, PKCE, `state` — and a

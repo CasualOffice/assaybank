@@ -17,6 +17,10 @@ describe('@assaybank/core-domain', () => {
         'ATTEMPT_STATUSES',
         'QUESTION_EVENTS',
         'QUESTION_KINDS',
+        // composing an assessment from a role (H-179)
+        'allocateByWeight',
+        'composeFromRole',
+        'SCORE_PER_QUESTION',
         'QUESTION_LIFECYCLE_STATUSES',
         'WORKSPACE_NAME',
         'canTransition',

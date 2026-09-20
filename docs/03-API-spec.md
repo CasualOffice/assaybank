@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (backend lead)
-**Last updated:** 2026-09-20
+**Last updated:** 2026-09-21
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`09-ats-integration.md`](09-ats-integration.md)
 
 ---
@@ -372,13 +372,51 @@ POST   /assessments/{id}/simulate   → resolves all rules against the current b
 
 ### Auto-compose
 
+**Built 2026-09-21** (`H-179`). Two endpoints, because a plan is a read and an assessment is a
+write:
+
 ```
-POST   /assessments/auto            {job_role_id, duration_seconds, difficulty_profile}
-                                    → draft assessment with sections derived from
-                                      job_role_skills weights
+GET    /job-roles/{id}/assessment-plan  ?question_count=&duration_seconds=&kind=
+                                        &exclude_seen_days=
+                                    → {role_title, question_count, duration_seconds,
+                                       total_score, sections[{name, rules[]}], feasible}
+                                      where each rule carries {skill_id, skill_name,
+                                      pick_count, min_difficulty, max_difficulty, available}
+
+POST   /assessments/auto            {job_role_id, name?, question_count?, duration_seconds?,
+                                     kind?, exclude_seen_days?}
+                                    → 201 the composed assessment, saved as a draft
 ```
 
-Generates a starting point from the role's skill weights. Always a draft; a human reviews before publish.
+The plan writes nothing, so a recruiter can look at the paper before committing to it. Both
+derive from one pure function (`composeFromRole` in `packages/core-domain`), so the plan shown
+and the assessment written cannot disagree.
+
+**What composition decides, from the role alone.** One section holding one rule per *required*
+skill; the count allocated in proportion to the skill's weight by largest remainder, so the
+rules always sum to exactly `question_count`; each rule carrying the band the role declares for
+that skill. Every required skill gets at least one question before proportionality applies —
+otherwise the lightest skills round to zero and the paper silently stops measuring things the
+role calls required. That gives a floor: a role with six required skills cannot have a
+five-question assessment, and asking for one is refused rather than quietly served.
+
+Defaults when the caller says nothing: two questions per required skill, and five minutes per
+question. Every question is worth one mark, so a percentage is questions correct — weight
+decides how *many* questions a skill gets, never what one is worth.
+
+**`available` and `feasible`.** Each rule reports how many published questions the bank holds
+for it right now, counted exactly as the coverage report counts: published, not archived,
+current version inside the band. `feasible` is false when any rule asks for more than it has.
+The plan still returns the composition, so the screen can name the skills that fall short;
+`POST /assessments/auto` refuses with `validation_failed` and `details.shortfalls`.
+
+Refusing matters more than it looks: the draw will not short-draw at attempt start (ADR-004),
+so an infeasible assessment does not degrade — it fails for the first candidate to open the
+link. The check is a snapshot and deliberately not recorded as a guarantee, because a question
+retired on Friday can make Tuesday's assessment infeasible; `POST /assessments/{id}/simulate`
+remains the check that runs against the bank as it is.
+
+Always a draft; a human reviews before publish.
 
 ---
 

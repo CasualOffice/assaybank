@@ -224,4 +224,5 @@ export const WORKSPACE_NAME = '@assaybank/contracts';
 
 export * from './taxonomy.js';
 export * from './bank-jobs.js';
+export * from './assessments.js';
 export * from './staff-session.js';

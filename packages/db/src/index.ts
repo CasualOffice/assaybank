@@ -182,6 +182,15 @@ export {
   setJobRoleSkills,
   updateJobRole,
 } from './job-roles.js';
+
+export { countAvailable, createAssessment, listAssessments } from './assessments.js';
+export type {
+  AssessmentRow,
+  AvailabilityFilter,
+  CreateAssessmentRecord,
+  SectionRecord,
+  SectionRuleRecord,
+} from './assessments.js';
 export type {
   CreateJobRoleRecord,
   JobRolePatch,

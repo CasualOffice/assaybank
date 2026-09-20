@@ -28,6 +28,15 @@ import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-ope
 import { ERROR_CODE_MESSAGES, ErrorCodeSchema, ErrorEnvelopeSchema } from './errors.js';
 import { ID_SCHEMAS } from './ids.js';
 import {
+  ASSESSMENTS_PATH,
+  ASSESSMENT_AUTO_PATH,
+  AssessmentListResponseSchema,
+  AssessmentPlanSchema,
+  AssessmentSchema,
+  CreateAssessmentSchema,
+  JOB_ROLE_ASSESSMENT_PLAN_PATH,
+} from './assessments.js';
+import {
   ORG_SETTINGS_PATH,
   OrgSettingsPatchSchema,
   OrgSettingsResponseSchema,
@@ -135,6 +144,7 @@ export function buildOpenApiDocument(): OpenApiDocument {
   }
 
   registerOrgSettings(registry);
+  registerAssessments(registry);
   registerQuestionBank(registry);
 
   return new OpenApiGeneratorV31(registry.definitions).generateDocument({
@@ -184,6 +194,76 @@ const STAFF_ROUTE_ERRORS = {
  * other tenant holds the row — a cross-tenant disclosure made of nothing but a status
  * code (ADR-010).
  */
+/**
+ * Composing an assessment from a role (`H-179`, docs/18 §2.2).
+ *
+ * The plan is a `GET` and deliberately so: it answers "what would be composed, and can the
+ * bank supply it" without writing anything, so a recruiter can look at the paper before
+ * committing to it and looking costs nothing.
+ */
+function registerAssessments(registry: OpenAPIRegistry): void {
+  registry.registerPath({
+    method: 'get',
+    path: JOB_ROLE_ASSESSMENT_PLAN_PATH,
+    tags: ['Assessments'],
+    summary: 'What would be composed for this role',
+    description:
+      'Derives section rules from the role’s required skills — one rule per skill, the ' +
+      'count in proportion to its weight, the band the role declares — and reports how ' +
+      'many published questions the bank currently holds for each. `feasible` is false ' +
+      'when any rule asks for more than its band holds; the composition is still returned, ' +
+      'so the caller can show which skills fall short. Writes nothing.',
+    security: [{ staffSession: [] }],
+    responses: {
+      200: {
+        description: 'The composition, and whether the bank can supply it.',
+        content: { 'application/json': { schema: AssessmentPlanSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'post',
+    path: ASSESSMENT_AUTO_PATH,
+    tags: ['Assessments'],
+    summary: 'Compose an assessment from a role and save it',
+    description:
+      'Composes exactly what the plan endpoint would, then writes it. Requires ' +
+      '`assessment.write` and records one `audit_log` row. Refused with ' +
+      '`validation_failed` when the bank cannot supply the composition — `details.shortfalls` ' +
+      'names each skill with what was needed and what is available. The refusal is ' +
+      'deliberate: the draw will not short-draw at attempt start (ADR-004), so an ' +
+      'infeasible assessment fails for the first candidate rather than degrading.',
+    request: {
+      body: { content: { 'application/json': { schema: CreateAssessmentSchema } } },
+    },
+    security: [{ staffSession: [] }],
+    responses: {
+      201: {
+        description: 'The assessment as composed.',
+        content: { 'application/json': { schema: AssessmentSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+
+  registry.registerPath({
+    method: 'get',
+    path: ASSESSMENTS_PATH,
+    tags: ['Assessments'],
+    summary: 'Every assessment this organisation has composed',
+    security: [{ staffSession: [] }],
+    responses: {
+      200: {
+        description: 'Assessments, newest first.',
+        content: { 'application/json': { schema: AssessmentListResponseSchema } },
+      },
+      ...STAFF_ROUTE_ERRORS,
+    },
+  });
+}
+
 function registerOrgSettings(registry: OpenAPIRegistry): void {
   registry.registerPath({
     method: 'get',
