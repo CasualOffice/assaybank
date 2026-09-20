@@ -279,8 +279,8 @@ describe('Placeholder', () => {
 });
 
 describe('the route manifest', () => {
-  it('describes four routes, each with a phase and a note', () => {
-    expect(ROUTE_MANIFEST).toHaveLength(4);
+  it('describes five routes, each with a phase and a note', () => {
+    expect(ROUTE_MANIFEST).toHaveLength(5);
 
     for (const route of ROUTE_MANIFEST) {
       expect(route.title.length).toBeGreaterThan(0);

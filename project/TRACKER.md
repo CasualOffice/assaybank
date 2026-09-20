@@ -308,7 +308,7 @@ tedious and the mechanism by which a bank fills with near-duplicates.
 
 | Id | Pri | Task | Area | M | Depends on | Ref | Est | Status | Owner |
 |---|---|---|---|---|---|---|---|---|---|
-| H-178 | P1 | Roles screen: the roles being hired for, their required skills, and `GET /job-roles/{id}/coverage` rendered as what the bank can and cannot measure — a required skill with no published question in band named as a gap with the action that closes it | web | M0 | H-037 | docs/18 §2.1 | M | todo | _unassigned_ |
+| H-178 | P1 | Roles screen: the roles being hired for, their required skills, and `GET /job-roles/{id}/coverage` rendered as what the bank can and cannot measure — a required skill with no published question in band named as a gap with the action that closes it — _done 2026-09-20: `/roles`, one card per role, three verdicts (blocked, thin, ready) with the per-difficulty distribution as the evidence and the in-band levels marked. Needed no server work: the endpoint was already built. Reading only — creating and editing a role from the console is still missing_ | web | M0 | H-037 | docs/18 §2.1 | M | done | _unassigned_ |
 | H-179 | P1 | Compose an assessment from a role rather than from the bank: the draw rules are derived from the role's required skills, weights and difficulty bands, and the feasibility check runs before the user names it | web | M1 | H-178 | docs/18 §2.2, FR-6 | L | todo | _unassigned_ |
 | H-180 | P0 | Per-candidate draw with difficulty parity: two candidates for one role sit different questions of comparable difficulty, balanced on declared difficulty until `question_stats` has n ≥ 30 and on observed p-value after — and the parity is asserted by a test over a simulated cohort | core-domain | M1 | H-179 | docs/18 §3.2, FR-5, FR-6 | L | todo | _unassigned_ |
 | H-181 | P1 | Candidate pipeline screen: one row per candidate per role, sortable and filterable by stage, score, per-skill score, date and source, with the filter state in the URL | web | M2 | H-179 | docs/18 §2.5 | L | todo | _unassigned_ |
@@ -355,9 +355,9 @@ tedious path through the product and the mechanism by which a bank fills with ne
 [`../docs/18-hiring-workflows.md`](../docs/18-hiring-workflows.md) is the journey end to end.
 `H-178` is the first step and needs no server work at all: the endpoint exists.
 
-`H-178` roles and coverage → `H-184` near-duplicate detection. Both are startable today against
-endpoints that are already built and tested. Everything from `H-179` onwards waits on the assessment
-engine in P3.
+`H-178` shipped on 2026-09-20 and needed no server work at all — the endpoint was already there.
+`H-184` near-duplicate detection is the next one that is startable today. Everything from `H-179`
+onwards waits on the assessment engine in P3.
 
 ### The console, which can now read and write the bank
 
@@ -405,12 +405,12 @@ weeks is how three of the four end up half-done.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 44 | 22 | 21 | 23 |
+| M0 | P1–P2 | 44 | 22 | 22 | 22 |
 | M1 | P3 | 37 | 19 | 0 | 37 |
 | M2 | P4 | 32 | 15 | 0 | 32 |
 | M3 | P5 | 16 | 4 | 0 | 16 |
 | M4 | P6 | 21 | 5 | 0 | 21 |
-| **Total** | | **189** | **101** | **59** | **130** |
+| **Total** | | **189** | **101** | **60** | **129** |
 
 Counted from the rows above on 2026-09-20, not carried forward. The twelve rows added that
 afternoon are the guided flow: `H-178` to `H-189`, from reading the console back as a product

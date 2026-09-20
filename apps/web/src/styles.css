@@ -847,3 +847,108 @@
   font-family: var(--ab-font-mono);
   font-size: var(--ab-text-xs);
 }
+
+/* ---------------------------------------------------------------------- roles */
+
+/* One card per role: the verdict, then the evidence for it. Cards rather than rows
+   because a role is a thing you read, not a thing you scan a hundred of — an
+   organisation has tens of roles, and the useful unit is "can we assess this", which
+   needs three lines of answer rather than a cell. */
+
+.ab-roles__loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-3);
+}
+
+.ab-roles__role {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-3);
+  padding: var(--ab-space-4);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface-raised);
+}
+
+.ab-roles__role-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ab-space-3);
+}
+
+.ab-roles__role-title {
+  margin: 0;
+  font-size: var(--ab-text-base);
+  font-weight: 650;
+  letter-spacing: -0.008em;
+}
+
+.ab-roles__role-meta {
+  margin: var(--ab-space-1) 0 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+.ab-roles__role-actions {
+  display: flex;
+  gap: var(--ab-space-2);
+}
+
+.ab-roles__key {
+  font-family: var(--ab-font-mono);
+  font-size: 0.9em;
+}
+
+.ab-roles__skill-name {
+  display: block;
+  font-weight: 550;
+}
+
+.ab-roles__skill-meta {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  font-weight: 400;
+}
+
+.ab-roles__optional {
+  color: var(--ab-text-muted);
+}
+
+/* The two or three columns the role's band actually asks for. Marked with a ground and a
+   weight rather than a colour alone (SC 1.4.1): which levels count is information, and a
+   tint is the one way of carrying it that a monochrome display loses. */
+.ab-roles__in-band {
+  background: var(--ab-surface-sunken);
+  font-weight: 600;
+}
+
+.ab-roles__out {
+  color: var(--ab-text-muted);
+}
+
+.ab-roles__zero {
+  color: var(--ab-text-muted);
+}
+
+.ab-roles__table {
+  min-width: 42rem;
+}
+
+/* The sentence beside a control that is deliberately inert. A disabled button with no
+   explanation is a dead end somebody clicks twice and then stops trusting. */
+.ab-roles__pending {
+  margin: var(--ab-space-1) 0 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  text-align: end;
+}
+
+.ab-roles__role-actions {
+  flex-direction: column;
+  align-items: flex-end;
+}

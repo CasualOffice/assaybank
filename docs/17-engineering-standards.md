@@ -398,6 +398,17 @@ Explicitly not allowed, each because it has a specific failure mode here:
 
 ---
 
+## 3a. Read models are schemas when a client parses them
+
+`packages/contracts` publishes request schemas because the server validates against them. A read
+model — what a `GET` returns — can be an interface instead, and several are. The rule for which:
+
+**Where a front end parses a response, its schema lives in `packages/contracts`.** An app that
+declares its own needs `zod` as a dependency and then holds a second definition of a shape the
+contract already owns, which is the drift this package exists to prevent. A client that instead
+*casts* an interface has no check at all: a server change arrives as `undefined` two components
+away from its cause, and the stack trace names the component rather than the response.
+
 ## 11a. Console layout
 
 Two rules, because both were learned by looking at a screenshot rather than at markup.

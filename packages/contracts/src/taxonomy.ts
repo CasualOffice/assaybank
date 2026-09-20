@@ -196,16 +196,38 @@ export const SkillParamsSchema = z.strictObject({ id: SkillIdSchema });
 
 // ---------------------------------------------------------------------------- views
 
-export interface JobRoleView {
-  readonly id: string;
-  readonly code: string;
-  readonly title: string;
-  readonly family: string | null;
-  readonly seniority: string | null;
-  readonly description: string | null;
-  readonly is_active: boolean;
-  readonly created_at: string;
-}
+/**
+ * A job role as a client reads it — `GET /job-roles`, `GET /job-roles/{id}`.
+ *
+ * A schema rather than an interface, unlike the rest of this section's read models. The
+ * distinction is not stylistic: a console that trusts an interface trusts a cast, and a
+ * server change then arrives as `undefined` two components away from its cause. Where a
+ * front end parses a response, the schema lives here — the single source of API truth —
+ * rather than being redeclared in an app that would then need `zod` as a dependency.
+ */
+export const JobRoleSchema = z
+  .object({
+    id: JobRoleIdSchema,
+    code: z.string(),
+    title: z.string(),
+    family: z.string().nullable(),
+    seniority: z.string().nullable(),
+    description: z.string().nullable(),
+    is_active: z.boolean(),
+    created_at: z.string(),
+  })
+  .describe('A job role: a named set of weighted skill requirements (ADR-009).')
+  .openapi('JobRole');
+
+export type JobRoleView = z.infer<typeof JobRoleSchema>;
+
+/** The body of `GET /job-roles`. Unpaginated: an organisation has tens of roles, not thousands. */
+export const JobRoleListResponseSchema = z
+  .object({ data: z.array(JobRoleSchema) })
+  .describe('Every job role the organisation defines.')
+  .openapi('JobRoleListResponse');
+
+export type JobRoleListResponse = z.infer<typeof JobRoleListResponseSchema>;
 
 export interface JobRoleSkillView {
   readonly skill_id: string;
@@ -226,20 +248,31 @@ export interface JobRoleSkillView {
  * and counting it would report a bank that does not exist. `by_difficulty` is the useful part:
  * a role needing difficulty 4–5 is not served by thirty questions at difficulty 1.
  */
-export interface SkillCoverage {
-  readonly skill_id: string;
-  readonly skill_key: string;
-  readonly skill_name: string;
-  readonly is_required: boolean;
-  readonly weight: number;
-  readonly min_difficulty: number | null;
-  readonly max_difficulty: number | null;
-  /** Published questions in the requested band. The number that decides feasibility. */
-  readonly in_band: number;
-  /** Published questions tagged with this skill at any difficulty. */
-  readonly published: number;
-  readonly by_difficulty: Readonly<Record<'1' | '2' | '3' | '4' | '5', number>>;
-}
+export const SkillCoverageSchema = z
+  .object({
+    skill_id: SkillIdSchema,
+    skill_key: z.string(),
+    skill_name: z.string(),
+    is_required: z.boolean(),
+    weight: z.number(),
+    min_difficulty: z.number().nullable(),
+    max_difficulty: z.number().nullable(),
+    /** Published questions in the requested band. The number that decides feasibility. */
+    in_band: z.number().int().min(0),
+    /** Published questions tagged with this skill at any difficulty. */
+    published: z.number().int().min(0),
+    by_difficulty: z.object({
+      '1': z.number().int().min(0),
+      '2': z.number().int().min(0),
+      '3': z.number().int().min(0),
+      '4': z.number().int().min(0),
+      '5': z.number().int().min(0),
+    }),
+  })
+  .describe('What the bank holds for one required skill of a role.')
+  .openapi('SkillCoverage');
+
+export type SkillCoverage = z.infer<typeof SkillCoverageSchema>;
 
 /**
  * Whether a role can be assessed from the bank as it stands, and where it cannot.
@@ -248,10 +281,15 @@ export interface SkillCoverage {
  * cannot support. It is advisory and it never blocks: the judgement about how thin is too thin
  * belongs to a person, and `POST /assessments/{id}/simulate` (P3) is what actually refuses.
  */
-export interface JobRoleCoverage {
-  readonly job_role_id: string;
-  readonly generated_at: string;
-  readonly skills: readonly SkillCoverage[];
-  /** Required skills with no published question in band. Empty means nothing is missing. */
-  readonly gaps: readonly string[];
-}
+export const JobRoleCoverageSchema = z
+  .object({
+    job_role_id: JobRoleIdSchema,
+    generated_at: z.string(),
+    skills: z.array(SkillCoverageSchema),
+    /** Required skills with no published question in band. Empty means nothing is missing. */
+    gaps: z.array(z.string()),
+  })
+  .describe('Whether a role can be assessed from the bank as it stands, and where it cannot.')
+  .openapi('JobRoleCoverage');
+
+export type JobRoleCoverage = z.infer<typeof JobRoleCoverageSchema>;

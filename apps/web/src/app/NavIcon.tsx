@@ -44,6 +44,15 @@ const PATHS: Readonly<Record<ConsolePath, ReactNode>> = {
       <path d="m3 17 9 4.5 9-4.5" />
     </>
   ),
+  // A briefcase: the job, which is what a role is. Not a person — that is `/candidates`
+  // below, and the two must not read as variations of one another.
+  '/roles': (
+    <>
+      <rect x="2.5" y="7" width="19" height="13" rx="2" />
+      <path d="M9 7V5.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5.5V7" />
+      <path d="M2.5 12h19" />
+    </>
+  ),
   // A checklist on a clipboard: a composed assessment is a list of things to be done.
   '/assessments': (
     <>

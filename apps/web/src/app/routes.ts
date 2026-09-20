@@ -16,7 +16,7 @@
  */
 
 /** The paths the console serves. A closed union, so a `to` prop cannot be a typo. */
-export type ConsolePath = '/' | '/questions' | '/assessments' | '/candidates';
+export type ConsolePath = '/' | '/questions' | '/roles' | '/assessments' | '/candidates';
 
 /**
  * A route that is reached from another screen rather than from the navigation.
@@ -88,6 +88,16 @@ export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
     phaseNote:
       'P2 builds the bank — the list, the authoring editor, and the publish flow that ' +
       'makes a version immutable (ADR-003).',
+  },
+  {
+    path: '/roles',
+    section: 'Hiring',
+    title: 'Roles',
+    summary: 'What you are hiring for, and whether the bank can measure it.',
+    phase: 'P2',
+    phaseNote:
+      'P2 builds the role definitions and the coverage report; P3 turns a role into a ' +
+      'composed assessment (docs/18 §2.3).',
   },
   {
     path: '/assessments',

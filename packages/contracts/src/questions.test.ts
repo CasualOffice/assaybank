@@ -20,12 +20,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { findAnswerKeyFields } from './audience.js';
-import {
-  QuestionIdSchema,
-  QuestionVersionIdSchema,
-  SkillIdSchema,
-  UserIdSchema,
-} from './ids.js';
+import { QuestionIdSchema, QuestionVersionIdSchema, SkillIdSchema, UserIdSchema } from './ids.js';
 import {
   CHOICE_KINDS,
   CODE_KINDS,
@@ -214,9 +209,9 @@ describe('toAuthorView', () => {
   });
 
   it('produces a value its own schema accepts', () => {
-    expect(AuthorQuestionSchema.safeParse(toAuthorView(dangerousQuestion('mcq_single'))).success).toBe(
-      true,
-    );
+    expect(
+      AuthorQuestionSchema.safeParse(toAuthorView(dangerousQuestion('mcq_single'))).success,
+    ).toBe(true);
   });
 
   it('serves a question that has no version yet as a null current_version', () => {
@@ -335,11 +330,14 @@ describe('toCandidateView', () => {
     }
   });
 
-  it.each(QUESTION_KINDS)('produces a value the candidate schema accepts for a %s question', (kind) => {
-    const version = dangerousQuestion(kind).current_version;
-    if (version === null) throw new Error('the fixture must carry a version');
-    expect(CandidateQuestionSchema.safeParse(toCandidateView(kind, version)).success).toBe(true);
-  });
+  it.each(QUESTION_KINDS)(
+    'produces a value the candidate schema accepts for a %s question',
+    (kind) => {
+      const version = dangerousQuestion(kind).current_version;
+      if (version === null) throw new Error('the fixture must carry a version');
+      expect(CandidateQuestionSchema.safeParse(toCandidateView(kind, version)).success).toBe(true);
+    },
+  );
 
   it.each(QUESTION_KINDS)('serves the version id and never the question id for a %s', (kind) => {
     const version = dangerousQuestion(kind).current_version;
@@ -358,7 +356,11 @@ describe('toCandidateView', () => {
     if (!('options' in served)) throw new Error(`${kind} should have been served as a choice`);
 
     expect(served.options).toEqual([
-      { id: 'aa11bb22-cc33-4d44-8e55-ff6677889900', ordinal: 1, body_md: 'Iteratively, with three pointers' },
+      {
+        id: 'aa11bb22-cc33-4d44-8e55-ff6677889900',
+        ordinal: 1,
+        body_md: 'Iteratively, with three pointers',
+      },
       { id: 'bb22cc33-dd44-4e55-9f66-001122334455', ordinal: 2, body_md: 'By sorting the list' },
     ]);
   });

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (backend lead)
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`09-ats-integration.md`](09-ats-integration.md)
 
 ---
@@ -103,6 +103,8 @@ POST   /skills/{id}/merge           {target_id, reason}
 ```
 
 `coverage` is the endpoint that stops you from building an assessment for a role you have no questions for. Call it before assessment creation and warn the recruiter. It answers `404` for a role that does not exist rather than an empty report, and names every required skill with nothing in band in `gaps`.
+
+**It is a read model with a published schema, 2026-09-20.** `JobRoleSchema`, `JobRoleListResponseSchema`, `SkillCoverageSchema` and `JobRoleCoverageSchema` are zod schemas in `packages/contracts` rather than bare interfaces, so the staff console parses these responses rather than casting them — the same treatment the question bank's responses already had. The rule that produced the change is worth stating: **where a front end parses a response, its schema belongs in `packages/contracts`.** An app that declares its own would need `zod` as a dependency and would hold a second definition of the same shape, which is the drift this package exists to prevent. `GET /job-roles` is deliberately unpaginated — an organisation has tens of roles, not thousands — and says so in the schema's description rather than leaving a caller to discover it.
 
 **As built (2026-09-17).** Everything above except `PATCH /skills/{id}` and the job-openings routes.
 

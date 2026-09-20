@@ -15,6 +15,13 @@
 import { type AuthorQuestionView } from '@assaybank/contracts';
 import { LiveRegionProvider } from '@assaybank/ui';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  RouterProvider,
+} from '@tanstack/react-router';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
@@ -68,17 +75,42 @@ function question(overrides: {
   } as unknown as AuthorQuestionView;
 }
 
+/**
+ * One router, loaded once, shared by every render below.
+ *
+ * A router is in scope because the page bar's breadcrumb links back to the bank, and a
+ * `Link` outside one throws. It has to be *loaded* before it renders anything — a TanStack
+ * router matches before it draws — and loading is async, which would otherwise make every
+ * assertion in this file await a promise for a reason that has nothing to do with what is
+ * being asserted. Hoisting it here keeps `render` synchronous and the tests about the
+ * editor.
+ */
+let current: AuthorQuestionView | null = null;
+
+const rootRoute = createRootRoute({
+  component: () => (current === null ? null : <QuestionEditor questionId={QUESTION_ID} />),
+});
+const questionsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/questions' });
+const router = createRouter({
+  routeTree: rootRoute.addChildren([questionsRoute]),
+  history: createMemoryHistory({ initialEntries: ['/'] }),
+});
+
+await router.load();
+
+/** Renders the editor with its query already resolved. */
 function render(data: AuthorQuestionView): string {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false, staleTime: Infinity } },
   });
   client.setQueryData(['question', QUESTION_ID], data);
+  current = data;
 
   return renderToStaticMarkup(
     <QueryClientProvider client={client}>
       <ApiProvider client={new ApiClient({ baseUrl: '/api/v1' })}>
         <LiveRegionProvider>
-          <QuestionEditor questionId={QUESTION_ID} />
+          <RouterProvider router={router} />
         </LiveRegionProvider>
       </ApiProvider>
     </QueryClientProvider>,

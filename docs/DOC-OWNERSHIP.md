@@ -44,7 +44,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`docs/README.md`](README.md) | Index of the design record and the reading order for each audience | engineering lead | monthly | 45 | — | 2026-09-20 |
 | [`docs/01-PRD.md`](01-PRD.md) | What we are building and why: users, scope by milestone, requirements, success metrics | product lead | quarterly | 120 | — | 2026-09-14 |
 | [`docs/02-HLD.md`](02-HLD.md) | Components, flows, technology choices, scaling, security, failure modes, deployment | engineering lead | on-change | 180 | `code-graph.json`, `infra/docker/**` | 2026-09-20 |
-| [`docs/03-API-spec.md`](03-API-spec.md) | Endpoints, auth model, attempt state machine, webhooks, error format | backend lead | on-change | 90 | `apps/api/src/routes/**`, `packages/contracts/**` | 2026-09-17 |
+| [`docs/03-API-spec.md`](03-API-spec.md) | Endpoints, auth model, attempt state machine, webhooks, error format | backend lead | on-change | 90 | `apps/api/src/routes/**`, `packages/contracts/**` | 2026-09-20 |
 | [`docs/04-ADRs.md`](04-ADRs.md) | The decisions that are expensive to reverse, each with its reversal conditions | engineering lead | annually | 400 | — | 2026-09-20 |
 | [`docs/05-licensing-and-compliance.md`](05-licensing-and-compliance.md) | Dependency licence policy, question content licensing, employment-assessment regulation | legal counsel | on-change | 180 | `pnpm-lock.yaml`, `.licence-allowlist.json` | 2026-09-20 |
 | [`docs/06-testing-strategy.md`](06-testing-strategy.md) | What is tested at which layer, the test data strategy, what a milestone must prove | QA lead | on-change | 180 | `.github/workflows/ci.yml`, `.github/workflows/e2e.yml`, `packages/grading/**` | 2026-09-17 |

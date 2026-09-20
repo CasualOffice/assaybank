@@ -68,8 +68,11 @@ be queried with.
 `is_required`, and the taxonomy underneath with merge so two spellings of one skill do not split a
 role in half. `GET /job-roles`, `POST /job-roles`, `PUT /job-roles/{id}/skills`.
 
-**Missing.** Any screen at all (`H-178`). JD as an input (`H-185`), which is where a suggestion
-engine belongs and where §5 applies.
+**Built 2026-09-20.** The screen (`H-178`) — `/roles`, one card per role with its requirement and
+the verdict on it.
+
+**Missing.** JD as an input (`H-185`), which is where a suggestion engine belongs and where §5
+applies. Creating and editing a role from the console: the endpoints exist, the screen reads only.
 
 ### 2.2 Coverage — can we measure it yet?
 
@@ -88,7 +91,12 @@ pre-filled.
 skill and a `gaps` list. It is advisory by design — the judgement about how thin is too thin
 belongs to a person, and it is `POST /assessments/{id}/simulate` (P3) that actually refuses.
 
-**Missing.** The screen (`H-178`).
+**Built 2026-09-20** (`H-178`). Three verdicts rather than a number: **blocked** — a required skill
+with nothing published in band, so an assessment cannot be composed at all; **thin** — composable,
+but with too few questions to give two candidates meaningfully different papers, which is §3.2's
+problem rather than a feasibility one; and **ready**, said plainly, because a screen that only ever
+warns is one people learn to ignore. A blocked role offers the bank; a ready one offers the
+composition step that P3 builds.
 
 ### 2.3 Assessment — composed from the role, not from the bank
 

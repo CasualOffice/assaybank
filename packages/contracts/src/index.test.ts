@@ -37,6 +37,7 @@ const PUBLIC_SURFACE = [
   'InvitationIdSchema',
   'SkillIdSchema',
   'JobRoleIdSchema',
+  'JobRoleListResponseSchema',
   'ScorecardIdSchema',
   'ID_SCHEMAS',
   // errors
@@ -147,9 +148,11 @@ const PUBLIC_SURFACE = [
   'ListSkillsQuerySchema',
   'MergeSkillSchema',
   'JobRoleCodeSchema',
+  'JobRoleCoverageSchema',
   'CreateJobRoleSchema',
   'UpdateJobRoleSchema',
   'JobRoleParamsSchema',
+  'JobRoleSchema',
   'ListJobRolesQuerySchema',
   'JobRoleSkillSchema',
   'PutJobRoleSkillsSchema',
@@ -162,6 +165,7 @@ const PUBLIC_SURFACE = [
   'JOB_ROLE_SKILLS_PATH',
   'JOB_ROLE_COVERAGE_PATH',
   'QUESTION_SKILLS_PATH',
+  'SkillCoverageSchema',
   'SkillParamsSchema',
   // bank jobs — import and export (ADR-021)
   'QUESTIONS_IMPORT_PATH',

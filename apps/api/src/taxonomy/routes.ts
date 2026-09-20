@@ -40,6 +40,7 @@ import {
   JOB_ROLE_COVERAGE_PATH,
   JOB_ROLE_PATH,
   JOB_ROLE_SKILLS_PATH,
+  JobRoleIdSchema,
   JobRoleParamsSchema,
   ListJobRolesQuerySchema,
   ListSkillsQuerySchema,
@@ -50,6 +51,7 @@ import {
   QuestionParamsSchema,
   SKILLS_PATH,
   SKILL_MERGE_PATH,
+  SkillIdSchema,
   SkillParamsSchema,
   UpdateJobRoleSchema,
   parseRequestPart,
@@ -117,9 +119,13 @@ const QUESTION_ENTITY = 'question';
 
 // ---------------------------------------------------------------------------- views
 
+// The two views below mint branded ids by parsing rather than by casting. The rows come
+// from our own database so the value is a UUID either way, and the cost is a regex per row
+// on a list that holds tens of entries — but a cast here would be the one place the brand
+// is asserted rather than established, which is the place it would eventually be wrong.
 function toJobRoleView(row: JobRoleRow): JobRoleView {
   return {
-    id: row.id,
+    id: JobRoleIdSchema.parse(row.id),
     code: row.code,
     title: row.title,
     family: row.family,
@@ -144,7 +150,7 @@ function toJobRoleSkillView(row: JobRoleSkillRow): JobRoleSkillView {
 
 function toCoverageView(row: CoverageRow): SkillCoverage {
   return {
-    skill_id: row.skillId,
+    skill_id: SkillIdSchema.parse(row.skillId),
     skill_key: row.skillKey,
     skill_name: row.skillName,
     is_required: row.isRequired,
