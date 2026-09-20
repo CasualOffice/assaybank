@@ -268,11 +268,11 @@ planned.
 | H-146 | P0 | Invitation tokens 256-bit from a CSPRNG peppered at rest; `POST /join/{room_code}` rate-limited per IP and per room, joins accepted only in a window around `scheduled_at` | api | M1 | — | T-011 | M | todo | _unassigned_ |
 | H-147 | P1 | Results UI labels every non-proctored attempt with its verification level, and the async-screen-then-live-confirmation flow is stated in recruiter-facing copy | web | M1 | — | T-012 | S | todo | _unassigned_ |
 | H-148 | P1 | WebSocket ticket redemption is one atomic Valkey operation; a second connection for the same participant is rejected and writes a `session_events` row | collab | M3 | — | T-013 | S | todo | _unassigned_ |
-| H-149 | P0 | Staff session cookies `HttpOnly`, `Secure`, `SameSite=Lax`, host-prefixed, identifier regenerated on login, privilege change and logout, with fixation and namespace-disjointness tests | api | M0 | — | T-014 | M | todo | _unassigned_ |
+| H-149 | P0 | Staff session cookies `HttpOnly`, `Secure`, `SameSite=Lax`, host-prefixed, identifier regenerated on login, privilege change and logout, with fixation and namespace-disjointness tests | api | M0 | — | T-014 | M | done | _unassigned_ |
 | H-150 | P0 | OIDC callback validates issuer, audience, `nonce`, `exp`, `iat` skew and the PKCE verifier with `state` bound to the originating session; email claims map to an existing user, never auto-provision | auth | M0 | — | T-015 | M | todo | _unassigned_ |
 | H-151 | P1 | Bulk export is asynchronous, audited, notifies org admins on completion and is rate-limited separately from the general staff budget | api | M0 | — | T-016 | M | todo | _unassigned_ |
 | H-152 | P1 | Enforced MFA or IdP-only login per organisation, configurable in `/org/settings` | auth | M0 | — | T-016 | M | todo | _unassigned_ |
-| H-153 | P0 | Double-submit CSRF tokens on every state-changing staff route, an `Origin`/`Sec-Fetch-Site` check, and CORS from `CORS_ALLOWED_ORIGINS` with credentials never for `*` | api | M0 | — | T-017 | M | todo | _unassigned_ |
+| H-153 | P0 | Double-submit CSRF tokens on every state-changing staff route, an `Origin`/`Sec-Fetch-Site` check, and CORS from `CORS_ALLOWED_ORIGINS` with credentials never for `*` | api | M0 | — | T-017 | M | done | _unassigned_ |
 | H-154 | P0 | Every candidate-facing route resolves its target row through the token’s attempt id in the same query, with an authorisation matrix test asserting `not_found` and never `forbidden` | api | M1 | — | T-018 | M | todo | _unassigned_ |
 | H-155 | P0 | The job role is granted per-table and write-only where possible; every job touching tenant data sets `app.current_org` or is on a documented cross-tenant allow list, with a lint rule on raw job-role connections | db | M1 | — | T-019 | M | todo | _unassigned_ |
 | H-156 | P0 | Extend the RLS negative-test suite to the job role: a job processing org A must read and write no org B row, asserted per job type | db | M1 | — | T-019 | M | todo | _unassigned_ |
@@ -368,10 +368,11 @@ than the exit bar: `H-177` the console's auth guard, `H-184` near-duplicate dete
 `exposure_count`, `H-019` the expand-contract lint, `H-172` the vulnerability audit.
 
 `H-177` closed on 2026-09-20, so the console no longer renders anything for a visitor it cannot
-identify. What it still lacks is the rest of that track: `H-149` session cookie attributes,
-`H-153` CSRF on state-changing staff routes, and `H-150` the OIDC callback's validation. The guard
-is the console's half; those three are the server's, and they are what make the session it trusts
-worth trusting.
+identify, and `H-149` and `H-153` closed the same day behind it — the session cookie is host-
+prefixed rather than merely secure-prefixed, and every state-changing staff request now carries a
+signed double-submit token as well as passing the origin check. `H-150`, the OIDC callback's
+validation, is the one left of that track. The guard was the console's half; these are the
+server's, and they are what make the session the console trusts worth trusting.
 
 `H-184` near-duplicate detection matters more now that one upload can put a thousand rows in. Everything from `H-179`
 onwards waits on the assessment engine in P3.
@@ -407,6 +408,14 @@ has nowhere to exist. Adding a markdown library to the tree now fails a test, de
 `H-149` session cookies → `H-153` CSRF → `H-150` OIDC validation → `H-177` the guard. These are one
 track and they belong together: each is a claim about the same credential, and splitting them across
 weeks is how three of the four end up half-done.
+
+Three of the four are done (2026-09-20). Keeping them together paid twice over. `H-153`'s
+double-submit half had been deferred in a comment on the grounds that no client existed to carry a
+token — a premise `H-177` retired without anyone noticing, because the note lived in the code rather
+than in this file. And the token's soundness turned out to rest on `H-149`'s cookie prefix: a
+double-submit token a sibling subdomain can write is a token an attacker can also echo, so the two
+tasks are one control wearing two row numbers. `H-150` remains, and it is the one with no such
+coupling — the callback's validation stands or falls on its own.
 
 ### The three that will be skipped under pressure, and must not be
 

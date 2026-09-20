@@ -30,12 +30,15 @@
  */
 
 import {
+  CSRF_HEADER,
   type ErrorCode,
   type ErrorDetails,
   type ErrorEnvelope,
   ErrorEnvelopeSchema,
   INTERNAL_ERROR_MESSAGE,
 } from '@assaybank/contracts';
+
+import { csrfToken } from './csrf.js';
 
 /** The HTTP methods the console uses. `PUT` is whole-collection replacement only. */
 export type ApiMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -60,6 +63,14 @@ export interface ApiClientOptions {
   readonly baseUrl: string;
   /** The `fetch` to use. Defaults to the global one. */
   readonly fetch?: FetchLike;
+  /**
+   * The double-submit CSRF token to echo on a state-changing request (`H-153`).
+   *
+   * A function rather than a value, because the token changes whenever the session does and
+   * a copy taken at construction would be stale from the first sign-out onwards. Injected so
+   * the client is testable without a DOM; defaults to reading the cookie.
+   */
+  readonly csrfToken?: () => string | undefined;
 }
 
 /** Per-request options. */
@@ -205,10 +216,12 @@ export function isRetryable(error: unknown): boolean {
 export class ApiClient {
   readonly #baseUrl: string;
   readonly #fetch: FetchLike;
+  readonly #csrfToken: () => string | undefined;
 
   constructor(options: ApiClientOptions) {
     this.#baseUrl = options.baseUrl.replace(/\/+$/u, '');
     this.#fetch = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
+    this.#csrfToken = options.csrfToken ?? csrfToken;
   }
 
   /**
@@ -248,6 +261,16 @@ export class ApiClient {
     }
     if (options.idempotencyKey !== undefined) {
       headers['idempotency-key'] = options.idempotencyKey;
+    }
+
+    // The double-submit CSRF token, on the methods that can change something (`H-153`). Not
+    // on a `GET`: a `GET` that changes state is the bug, and sending the token there would
+    // put it on the requests most likely to be logged, cached and carried in a `Referer`.
+    if (method !== 'GET') {
+      const token = this.#csrfToken();
+      if (token !== undefined) {
+        headers[CSRF_HEADER] = token;
+      }
     }
 
     let response: Response;

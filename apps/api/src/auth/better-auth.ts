@@ -73,6 +73,7 @@ import {
   verifyPassword,
 } from '@assaybank/auth';
 
+import { BETTER_AUTH_COOKIES, STAFF_COOKIE_PREFIX, staffCookieName } from './cookie-names.js';
 import type { SessionStore } from './session-store.js';
 import { tenantScopedDb } from './tenant-db.js';
 
@@ -128,7 +129,7 @@ export interface StaffAuthOptions {
    */
   readonly store: SessionStore;
   /**
-   * Whether cookies carry `Secure` and the `__Secure-` prefix.
+   * Whether cookies carry `Secure` and the `__Host-` prefix.
    *
    * Defaults to `true`, and should stay `true` in every environment that speaks https —
    * which, for a browser, includes `localhost`. It exists as an option only because a
@@ -186,14 +187,28 @@ export function createStaffAuth(options: StaffAuthOptions) {
     secondaryStorage: store,
 
     advanced: {
-      // docs/14 `H-149`: HttpOnly, Secure, SameSite=Lax, host-prefixed. `useSecureCookies`
-      // is what produces the `__Secure-` prefix as well as the attribute.
-      useSecureCookies: secureCookies,
-      cookiePrefix: 'assaybank',
+      // docs/14 `H-149`: HttpOnly, Secure, SameSite=Lax, host-prefixed.
+      //
+      // `useSecureCookies` is off and the names are given in full because the prefix it
+      // produces is `__Secure-`, and `H-149` asks for the host prefix — a stronger promise
+      // that `__Secure-` does not make and that the library offers no option for. The
+      // reasoning, and why the difference is not cosmetic, is in `cookie-names.ts`.
+      //
+      // Turning it off also turns off the `Secure` *attribute*, which is restored below.
+      // The two travel together by construction: a browser refuses a `__Host-` cookie that
+      // is not `Secure`, so a mistake here fails at the first sign-in rather than quietly.
+      useSecureCookies: false,
+      cookiePrefix: STAFF_COOKIE_PREFIX,
+      cookies: Object.fromEntries(
+        BETTER_AUTH_COOKIES.map((base) => [base, { name: staffCookieName(base, secureCookies) }]),
+      ),
       defaultCookieAttributes: {
         httpOnly: true,
         sameSite: 'lax',
+        // Required by the `__Host-` prefix, and required to be exactly this. A narrower
+        // path would make the browser drop the cookie.
         path: '/',
+        secure: secureCookies,
       },
       database: {
         // uuid, because every id in this schema is a uuid and `gen_random_uuid()` is what

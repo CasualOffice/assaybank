@@ -256,10 +256,47 @@ function setCookies(response: { headers: Record<string, unknown> }): string[] {
 /** The session cookie as a browser would send it back. */
 function sessionCookie(response: { headers: Record<string, unknown> }): string {
   const entry = setCookies(response).find(
-    (cookie) => cookie.startsWith('__Secure-assaybank.session_token=') && !cookie.includes('=;'),
+    (cookie) => cookie.startsWith('__Host-assaybank.session_token=') && !cookie.includes('=;'),
   );
   if (entry === undefined) throw new Error('the response set no session cookie');
   return entry.split(';', 1)[0] ?? '';
+}
+
+/**
+ * The CSRF token cookie a response set, as a browser would send it back (`H-153`).
+ *
+ * Throws rather than returning `undefined`, because every response this is asked of is one
+ * that establishes a session — a missing token there is the control not working, and a
+ * helper that shrugged would turn that into a confusing 403 three assertions later.
+ */
+function csrfCookieOf(response: { headers: Record<string, unknown> }): string {
+  const entry = setCookies(response).find(
+    (cookie) => cookie.startsWith('__Host-assaybank.csrf_token=') && !cookie.includes('=;'),
+  );
+  if (entry === undefined) throw new Error('the response set no CSRF token cookie');
+  return entry.split(';', 1)[0] ?? '';
+}
+
+/** What a console holds after signing in: both cookies, and the token to echo in a header. */
+function consoleSession(response: { headers: Record<string, unknown> }): {
+  cookie: string;
+  token: string;
+} {
+  const csrf = csrfCookieOf(response);
+  return {
+    cookie: `${sessionCookie(response)}; ${csrf}`,
+    token: csrf.slice(csrf.indexOf('=') + 1),
+  };
+}
+
+/** The headers a state-changing request from the console carries. */
+function consoleHeaders(held: { cookie: string; token: string }): Record<string, string> {
+  return {
+    origin: CONSOLE_ORIGIN,
+    'sec-fetch-site': 'same-origin',
+    cookie: held.cookie,
+    'x-csrf-token': held.token,
+  };
 }
 
 interface Profile {
@@ -292,9 +329,35 @@ describe('POST /auth/login', () => {
     expect(cookie).toContain('HttpOnly');
     expect(cookie).toContain('Secure');
     expect(cookie).toContain('SameSite=Lax');
-    // Host-prefixed, which a browser refuses to accept without `Secure` — so the prefix
-    // and the attribute cannot drift apart.
-    expect(cookie).toContain('__Secure-');
+
+    // Host-prefixed, which is the part `H-149` names and the part that is easy to get
+    // approximately right. `__Secure-` promises only that the cookie was set over https,
+    // which any sibling subdomain of the deployment's site can also do; `__Host-` confines
+    // it to exactly this host. A browser enforces that by refusing the cookie outright
+    // unless `Secure` is set, `Path` is exactly `/` and there is no `Domain` — so all four
+    // are asserted together, because three of them silently disable the fourth.
+    expect(cookie).toContain('__Host-assaybank.session_token=');
+    expect(cookie).not.toContain('__Secure-');
+    expect(cookie).toContain('Path=/;');
+    expect(cookie).not.toContain('Domain=');
+  });
+
+  it('issues a CSRF token bound to that session, readable by script and nothing else (H-153)', async () => {
+    const response = await login(build(), { email: ADA, password: PASSWORD });
+    const token = setCookies(response).find((c) => c.includes('csrf_token='));
+
+    expect(token).toBeDefined();
+    // Deliberately *not* HttpOnly: the console has to read it to echo it, which is the
+    // whole mechanism. Everything else about it is the session cookie's shape.
+    expect(token).not.toContain('HttpOnly');
+    expect(token).toContain('Secure');
+    expect(token).toContain('SameSite=Lax');
+    expect(token).toContain('__Host-assaybank.csrf_token=');
+    expect(token).not.toContain('Domain=');
+
+    // It carries no authority of its own, so it is not a second copy of the session.
+    const sessionValue = sessionCookie(response).split('=').slice(1).join('=');
+    expect(token).not.toContain(sessionValue);
   });
 
   it('answers with the documented profile, not with a token in the body', async () => {
@@ -419,7 +482,7 @@ describe('a failed login discloses nothing about whether the address exists (doc
 describe('session fixation (docs/14 T-014)', () => {
   it('does not authenticate an identifier the attacker planted', async () => {
     const instance = build();
-    const planted = '__Secure-assaybank.session_token=attacker-chosen-value.forged-signature';
+    const planted = '__Host-assaybank.session_token=attacker-chosen-value.forged-signature';
 
     // The attacker's cookie is already in the browser when the victim signs in, so the
     // sign-in arrives carrying it — from the real console, which is what makes this a
@@ -498,15 +561,124 @@ describe('cross-site request forgery (docs/14 T-017)', () => {
 
   it('allows the same request from the console', async () => {
     const instance = build();
-    const cookie = sessionCookie(await login(instance, { email: ADA, password: PASSWORD }));
+    const held = consoleSession(await login(instance, { email: ADA, password: PASSWORD }));
 
     const honest = await instance.inject({
       method: 'POST',
       url: `${API_BASE_PATH}/auth/logout`,
-      headers: { origin: CONSOLE_ORIGIN, cookie, 'sec-fetch-site': 'same-origin' },
+      headers: consoleHeaders(held),
     });
 
     expect(honest.statusCode).toBe(204);
+  });
+});
+
+describe('the double-submit token, end to end (docs/14 H-153)', () => {
+  it('refuses a state change that carries the session cookie and no token', async () => {
+    // What a hostile page can actually do: cause the browser to attach its cookies. It
+    // cannot read one, so it cannot produce the header — and this is the case that
+    // survives even if `Origin` were stripped in transit, which is the point of having a
+    // second control at all.
+    const instance = build();
+    const held = consoleSession(await login(instance, { email: ADA, password: PASSWORD }));
+
+    const response = await instance.inject({
+      method: 'POST',
+      url: `${API_BASE_PATH}/auth/logout`,
+      headers: { origin: CONSOLE_ORIGIN, 'sec-fetch-site': 'same-origin', cookie: held.cookie },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json<{ error: { code: string } }>().error.code).toBe('forbidden');
+
+    // And the session is untouched, so the refusal is a refusal rather than a side effect.
+    const me = await instance.inject({
+      method: 'GET',
+      url: `${API_BASE_PATH}/auth/me`,
+      headers: { cookie: held.cookie },
+    });
+    expect(me.statusCode).toBe(200);
+  });
+
+  it('refuses one session\u2019s token presented with another session\u2019s cookie', async () => {
+    // The property the signature buys over a plain random double submit. Both halves are
+    // genuine, they agree with each other, and they belong to a different session.
+    const instance = build();
+    const mine = consoleSession(await login(instance, { email: ADA, password: PASSWORD }));
+    const theirs = consoleSession(await login(instance, { email: ADA, password: PASSWORD }));
+
+    const response = await instance.inject({
+      method: 'POST',
+      url: `${API_BASE_PATH}/auth/logout`,
+      headers: {
+        origin: CONSOLE_ORIGIN,
+        'sec-fetch-site': 'same-origin',
+        cookie: `${sessionCookie(await login(instance, { email: ADA, password: PASSWORD }))}; __Host-assaybank.csrf_token=${theirs.token}`,
+        'x-csrf-token': theirs.token,
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    // `mine` is named so the reader can see two sessions were involved; it is also the
+    // one that must still work afterwards.
+    const me = await instance.inject({
+      method: 'GET',
+      url: `${API_BASE_PATH}/auth/me`,
+      headers: { cookie: mine.cookie },
+    });
+    expect(me.statusCode).toBe(200);
+  });
+
+  it('gives a session that predates the control a token on the next page load', async () => {
+    // The rollout case, and the reason `GET /auth/me` mints as well as `POST /auth/login`.
+    // A browser holding only the session cookie \u2014 which is every open console at the
+    // moment this deploys \u2014 must not be locked out of its next write.
+    const instance = build();
+    const bare = sessionCookie(await login(instance, { email: ADA, password: PASSWORD }));
+
+    const me = await instance.inject({
+      method: 'GET',
+      url: `${API_BASE_PATH}/auth/me`,
+      headers: { cookie: bare },
+    });
+    expect(me.statusCode).toBe(200);
+
+    const issued = csrfCookieOf(me);
+    const token = issued.slice(issued.indexOf('=') + 1);
+
+    const response = await instance.inject({
+      method: 'POST',
+      url: `${API_BASE_PATH}/auth/logout`,
+      headers: {
+        origin: CONSOLE_ORIGIN,
+        'sec-fetch-site': 'same-origin',
+        cookie: `${bare}; ${issued}`,
+        'x-csrf-token': token,
+      },
+    });
+
+    expect(response.statusCode).toBe(204);
+  });
+
+  it('still lets a signed-out browser sign in, with a dead session cookie and no token', async () => {
+    // The lockout `TOKEN_EXEMPT_PATHS` exists to prevent. The cookie is real, the session
+    // behind it is gone, and there is no token because tokens are minted for live
+    // sessions \u2014 which is exactly the state somebody is in when they need to sign in.
+    const instance = build();
+    const held = consoleSession(await login(instance, { email: ADA, password: PASSWORD }));
+
+    await instance.inject({
+      method: 'POST',
+      url: `${API_BASE_PATH}/auth/logout`,
+      headers: consoleHeaders(held),
+    });
+
+    const again = await login(
+      instance,
+      { email: ADA, password: PASSWORD },
+      { cookie: held.cookie },
+    );
+    expect(again.statusCode).toBe(200);
   });
 });
 
@@ -607,16 +779,21 @@ describe('GET /auth/me', () => {
 describe('POST /auth/logout', () => {
   it('ends the session and clears the cookie', async () => {
     const instance = build();
-    const cookie = sessionCookie(await login(instance, { email: ADA, password: PASSWORD }));
+    const held = consoleSession(await login(instance, { email: ADA, password: PASSWORD }));
+    const cookie = held.cookie;
 
     const response = await instance.inject({
       method: 'POST',
       url: `${API_BASE_PATH}/auth/logout`,
-      headers: { origin: CONSOLE_ORIGIN, cookie },
+      headers: consoleHeaders(held),
     });
 
     expect(response.statusCode).toBe(204);
     expect(setCookies(response).some((c) => c.includes('session_token=;'))).toBe(true);
+    // And the token with it: a token bound to a dead session is a cookie with no use.
+    expect(setCookies(response).some((c) => c.startsWith('__Host-assaybank.csrf_token=;'))).toBe(
+      true,
+    );
 
     // Server-side, not only in the browser: a copy of the cookie taken before the logout
     // is dead too (docs/14 H-149).
@@ -812,6 +989,22 @@ describe('the two credential domains on one request (docs/03 §1)', () => {
     }
   });
 
+  it('keeps every staff cookie inside one host-prefixed namespace (H-149)', async () => {
+    // The disjointness half of `H-149`. A candidate presents `Authorization: Bearer`, never
+    // a cookie, so the two domains cannot collide by accident today — but "there is no
+    // candidate cookie" is a fact about code somebody could change, whereas "every staff
+    // cookie is named `__Host-assaybank.*`" is a fact this test holds in place. Anything
+    // added to either domain has to pass through one of the two, and a cookie that meant to
+    // be a staff credential and is not named like one will not be read as one.
+    const response = await login(build(), { email: ADA, password: PASSWORD });
+    const names = setCookies(response).map((cookie) => cookie.split('=', 1)[0] ?? '');
+
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) {
+      expect(name.startsWith('__Host-assaybank.')).toBe(true);
+    }
+  });
+
   it('is not tripped by a cookie that is not a session', async () => {
     // The check is "a staff session resolved", not "a cookie header exists". A candidate
     // whose browser happens to hold any other cookie must still be served.
@@ -820,7 +1013,7 @@ describe('the two credential domains on one request (docs/03 §1)', () => {
       const response = await bare.inject({
         method: 'GET',
         url: '/probe',
-        headers: { cookie: '__Secure-assaybank.session_token=never.issued; other=1' },
+        headers: { cookie: '__Host-assaybank.session_token=never.issued; other=1' },
       });
 
       expect(response.statusCode).toBe(200);

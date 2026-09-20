@@ -57,7 +57,14 @@ import { currentPrincipal } from '../principal.js';
 import { rateLimitFor } from '../rate-limit.js';
 import { resolvePermissions } from './permission-set.js';
 import { OIDC_PROVIDER_ID, AUTH_BASE_PATH, type StaffAuth } from './better-auth.js';
-import { clearOidcOrgCookie, oidcOrgCookie, verifyOidcOrgCookie } from './oidc-org-cookie.js';
+import { sessionCookieName } from './cookie-names.js';
+import { clearCsrfCookie, csrfCookie } from './csrf-token.js';
+import {
+  clearOidcOrgCookie,
+  oidcOrgCookie,
+  readCookie,
+  verifyOidcOrgCookie,
+} from './oidc-org-cookie.js';
 import { resolveLoginOrg, resolveOrgBySlug, resolveSoleOrg } from './org-lookup.js';
 import { resolveStaffSession, toWebHeaders } from './staff-session.js';
 import { inTenantContext } from './tenant-db.js';
@@ -195,6 +202,43 @@ function cookieHeader(request: FastifyRequest): string | undefined {
 }
 
 /**
+ * Attaches a CSRF token for whichever session `sessionToken` names (`H-153`).
+ *
+ * Called from the two places a session's existence is established: `POST /auth/login`, where
+ * the session is brand new and the cookie to read is the one *being set*, and `GET /auth/me`,
+ * which the console asks before it renders anything at all (`H-177`) and where the cookie
+ * arrives on the request. Hence a `Cookie`-header string rather than a request: the two
+ * callers have the same value in different places.
+ *
+ * The second caller is what makes this deployable rather than a flag day — a browser holding
+ * a session minted before this change had no token, and gets one on the next page load
+ * rather than being refused on its next write.
+ *
+ * Re-minting on every `/auth/me` costs one HMAC and 16 random bytes, and buys the property
+ * that a token is never older than the last time the console started. Nothing happens when
+ * there is no session cookie to bind to, which for `/auth/me` cannot occur — the
+ * authorisation layer refused the request long before — and is written as a branch rather
+ * than an assertion because an unreachable `!` outlives the reason it was safe.
+ */
+function issueCsrfCookie(
+  cookies: string | undefined,
+  reply: FastifyReply,
+  services: StaffIdentityServices,
+): void {
+  const sessionToken = readCookie(cookies, sessionCookieName(services.secureCookies));
+  if (sessionToken === undefined) return;
+
+  void reply.header(
+    'set-cookie',
+    csrfCookie({
+      secret: services.sessionSecret,
+      sessionToken,
+      secure: services.secureCookies,
+    }),
+  );
+}
+
+/**
  * Registers the five routes.
  *
  * Called from `server.ts` inside `app.after()`, so the rate limiter's `onRoute` hook and
@@ -260,6 +304,15 @@ export function registerStaffAuthRoutes(
 
       relayCookies(reply, outcome.response);
 
+      // Bound to the session this response is setting, not to whatever cookie arrived: a
+      // sign-in that replaced an existing session would otherwise mint a token for a
+      // session the browser is about to stop holding.
+      issueCsrfCookie(
+        sessionHeadersFrom(outcome.response).get('cookie') ?? undefined,
+        reply,
+        services,
+      );
+
       if (outcome.profile === undefined) {
         request.log.warn(
           { event: 'auth.login_failed', reason: 'credentials', status: outcome.response.status },
@@ -277,7 +330,7 @@ export function registerStaffAuthRoutes(
   );
 
   // --- GET /auth/me ------------------------------------------------------------
-  app.get(`${API_BASE_PATH}/auth/me`, async (request): Promise<StaffProfile> => {
+  app.get(`${API_BASE_PATH}/auth/me`, async (request, reply): Promise<StaffProfile> => {
     const principal = currentPrincipal(request);
     if (principal.kind !== 'staff') {
       // A candidate's attempt token reaches no staff route. The refusal is
@@ -286,6 +339,10 @@ export function registerStaffAuthRoutes(
       // permission, they are not a staff member at all.
       throw ApiError.unauthenticated();
     }
+
+    // The console's first call on every page load, so it is where a live session picks up
+    // a token it may not have — including one minted before this control existed.
+    issueCsrfCookie(cookieHeader(request), reply, services);
 
     return withOrg(db, principal.orgId, (tx) => readProfile(tx, principal, now()));
   });
@@ -305,6 +362,9 @@ export function registerStaffAuthRoutes(
     // and attributes match the ones it issued — a `Set-Cookie` that differs by a single
     // attribute clears nothing and the session cookie survives the logout.
     relayCookies(reply, response);
+    // The token is bound to a session that no longer exists, so it is a cookie with no
+    // further use — and a cookie with no further use is a cookie to delete.
+    void reply.header('set-cookie', clearCsrfCookie(services.secureCookies));
     return reply.code(204).send();
   });
 

@@ -39,6 +39,41 @@ never draws chrome around a session it has not established. `unauthenticated` fr
 means the same thing, which is why it is a code rather than a status: docs/03 distinguishes it from
 `forbidden`, and an expired session is not a staff member lacking a permission.
 
+**The session cookie, 2026-09-20** (`H-149`). `__Host-assaybank.session_token`: `HttpOnly`,
+`Secure`, `SameSite=Lax`, `Path=/`, no `Domain`, eight hours. The `__Host-` prefix rather than
+`__Secure-` is the load-bearing part — `__Secure-` promises only that the cookie was set over
+https, which any sibling subdomain of the deployment's site can also do, while `__Host-` confines
+the cookie to exactly the host that set it. A browser enforces the prefix by refusing the cookie
+outright unless `Secure` is set, `Path` is exactly `/` and `Domain` is absent, so the promise
+cannot be half kept.
+
+**Every state-changing staff request carries a CSRF token, 2026-09-20** (`H-153`, docs/14 T-017).
+
+```
+X-Csrf-Token: <nonce>.<hmac>        on POST, PUT, PATCH and DELETE
+__Host-assaybank.csrf_token=…       the cookie it is copied from
+```
+
+The token is minted alongside the session — by `POST /auth/login`, and again by `GET /auth/me` on
+every page load — and travels in the one cookie in this system that is deliberately **not**
+`HttpOnly`, because the client has to read it to echo it. A request that presents the session
+cookie without a matching header is refused with `forbidden`: the credential was fine, the context
+was not, and signing in again would not help.
+
+The HMAC covers the session the token was issued for, so a token is not transferable between
+sessions. That is what a plain random double-submit value does not give you: it proves only that
+the sender could read *a* cookie, which is no longer true the moment anything can write one.
+
+`POST /auth/login` and `POST /auth/oidc/start` are exempt, and nothing else is. They establish a
+credential rather than spend one, and somebody whose session has expired holds a dead cookie and no
+token — which is exactly the state you are in when you need to sign in. Both remain covered by the
+`Origin` and `Sec-Fetch-Site` check, which applies to every route.
+
+The names are constants in `packages/contracts` (`CSRF_HEADER`, `CSRF_COOKIE_NAME`) because both
+sides have to agree on them and a package may never import an app. Clients must send the header
+from a cookie read at request time rather than from one cached at start-up: the token changes
+whenever the session does.
+
 ### Candidates
 No account. A candidate presents an invitation token; the API exchanges it for a scoped, short-lived attempt token.
 

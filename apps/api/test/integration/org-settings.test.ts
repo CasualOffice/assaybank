@@ -72,6 +72,7 @@ import {
 import { withOrg, type Database } from '@assaybank/db';
 
 import { createStaffAuth } from '../../src/auth/better-auth.js';
+import { readCookie } from '../../src/auth/oidc-org-cookie.js';
 import { memorySessionStore } from '../../src/auth/session-store.js';
 import { ORG_SETTINGS_UPDATE_ACTION } from '../../src/org/routes.js';
 import { setPrincipal } from '../../src/principal.js';
@@ -350,7 +351,14 @@ function ghostPrincipal(): StaffPrincipal {
 
 // --- driving the API ---------------------------------------------------------
 
-/** The session cookie a successful login set, as a browser would send it back. */
+/**
+ * The cookie jar a successful login left in the browser, as the browser would send it back.
+ *
+ * Both cookies, not only the session: a state-changing request also has to echo the CSRF
+ * token (`H-153`), and `patchSettings` reads it back out of this string rather than taking a
+ * second argument at every call site. Read-only helpers simply carry a jar with one more
+ * cookie in it than they need, which is what a browser does anyway.
+ */
 function sessionCookie(response: { headers: Record<string, unknown> }): string {
   const raw: unknown = response.headers['set-cookie'];
   const entries = Array.isArray(raw)
@@ -358,11 +366,20 @@ function sessionCookie(response: { headers: Record<string, unknown> }): string {
     : typeof raw === 'string'
       ? [raw]
       : [];
-  const entry = entries.find(
-    (cookie) => cookie.startsWith('__Secure-assaybank.session_token=') && !cookie.includes('=;'),
-  );
-  if (entry === undefined) throw new Error('the response set no session cookie');
-  return entry.split(';', 1)[0] ?? '';
+
+  const named = (prefix: string): string => {
+    const entry = entries.find((cookie) => cookie.startsWith(prefix) && !cookie.includes('=;'));
+    if (entry === undefined) throw new Error(`the response set no ${prefix} cookie`);
+    return entry.split(';', 1)[0] ?? '';
+  };
+
+  return `${named('__Host-assaybank.session_token=')}; ${named('__Host-assaybank.csrf_token=')}`;
+}
+
+/** The token half of that jar, for the header a state change has to carry. */
+function csrfHeaderFrom(cookie: string | undefined): Record<string, string> {
+  const token = readCookie(cookie, '__Host-assaybank.csrf_token');
+  return token === undefined ? {} : { 'x-csrf-token': token };
 }
 
 async function readSettings(instance: FastifyInstance, cookie?: string) {
@@ -382,7 +399,11 @@ async function patchSettings(
   return instance.inject({
     method: 'PATCH',
     url: SETTINGS_URL,
-    headers: { origin, ...(cookie === undefined ? {} : { cookie }) },
+    headers: {
+      origin,
+      ...(cookie === undefined ? {} : { cookie }),
+      ...csrfHeaderFrom(cookie),
+    },
     payload: payload as Record<string, unknown>,
   });
 }
@@ -549,7 +570,7 @@ describe('a request carrying a session', () => {
   it('is refused identically when the cookie is a forgery rather than a session', async () => {
     const response = await readSettings(
       build(),
-      '__Secure-assaybank.session_token=not-a-token-this-server-ever-issued',
+      '__Host-assaybank.session_token=not-a-token-this-server-ever-issued',
     );
 
     // Byte-identical to the previous case by design: a distinguishable answer here is an

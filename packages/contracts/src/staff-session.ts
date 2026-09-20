@@ -74,3 +74,42 @@ export const StaffProfileSchema = z
   .openapi('StaffProfile');
 
 export type StaffProfile = z.infer<typeof StaffProfileSchema>;
+
+/**
+ * The double-submit CSRF token: the header it travels in, and the cookie it is read from
+ * (docs/14 T-017, `H-153`).
+ *
+ * ## Why a token at all, when the origin is already checked
+ *
+ * `apps/api/src/csrf.ts` refuses a state-changing request whose `Origin` is not ours. That
+ * stops the attack, and it stops it without the client's cooperation — but it rests entirely
+ * on headers the *browser* attaches. A browser that omits `Origin`, a proxy that strips it,
+ * or a future Fetch Metadata change would remove the whole control at once with nothing
+ * behind it. The token is the half that does not depend on the browser volunteering
+ * anything: it is a value only same-origin script can read, echoed in a header only
+ * same-origin script can set.
+ *
+ * ## Why the names are here and not in the API
+ *
+ * Because both sides have to agree on them and a package may never import an app (docs/17
+ * §3a). The console reads the cookie and sets the header; the API mints the cookie and
+ * checks the header. Two spellings of one string is a control that silently stops working.
+ *
+ * The cookie is deliberately **not** `HttpOnly` — script has to read it, which is the whole
+ * mechanism. It carries no authority on its own: it is `<nonce>.<hmac>` over the session it
+ * was minted for, so a token read from one session proves nothing about another.
+ */
+export const CSRF_HEADER = 'x-csrf-token';
+
+/**
+ * The cookie's name where the deployment speaks https, which is every deployed tier.
+ *
+ * `__Host-` rather than `__Secure-`: the prefix a browser only accepts with `Secure`, `Path=/`
+ * and **no `Domain`**, which means no other host — including a sibling subdomain of the API's
+ * own site — can write it. A double-submit token an attacker can set is not a control, so the
+ * prefix is load-bearing here rather than decorative.
+ */
+export const CSRF_COOKIE_NAME = '__Host-assaybank.csrf_token';
+
+/** The same cookie where there is no https to prefix for — a test harness, and nothing else. */
+export const CSRF_COOKIE_NAME_INSECURE = 'assaybank.csrf_token';

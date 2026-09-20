@@ -32,7 +32,7 @@ import Fastify, {
 } from 'fastify';
 
 import type { CoreConfig, HttpConfig, TelemetryConfig } from '@assaybank/config';
-import { buildOpenApiDocument, type OpenApiDocument } from '@assaybank/contracts';
+import { buildOpenApiDocument, CSRF_HEADER, type OpenApiDocument } from '@assaybank/contracts';
 import type { Database } from '@assaybank/db';
 import { logger as defaultLogger, metrics, metricsHandler } from '@assaybank/observability';
 
@@ -246,7 +246,15 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
     origin: [...config.http.corsAllowedOrigins],
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Authorization', 'Content-Type', 'Idempotency-Key', 'Accept-Language'],
+    allowedHeaders: [
+      'Authorization',
+      'Content-Type',
+      'Idempotency-Key',
+      'Accept-Language',
+      // The double-submit CSRF token (`H-153`). A header the browser blocks is a
+      // header the console cannot send, and every staff mutation would be refused.
+      CSRF_HEADER,
+    ],
     // Without this the browser hides the header, and the candidate app cannot show the
     // request id on its error screen — which docs/12 §5.3 requires it to do.
     exposedHeaders: ['X-Request-Id', 'Retry-After'],
@@ -259,7 +267,18 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   // state-changing request should not reach a handler, a rate-limit bucket or an
   // allocator. It covers every route on the instance, not only the authentication ones —
   // `POST /user-roles` and `PATCH /attempts/{id}` are the examples the threat model gives.
-  registerCsrfProtection(app, { allowedOrigins: config.http.corsAllowedOrigins });
+  //
+  // The double-submit half is configured only when this instance issues staff sessions,
+  // because the session cookie is the only ambient credential there is to forge with. See
+  // `CsrfOptions.token`.
+  const staffIdentity = options.staffIdentity;
+  registerCsrfProtection(app, {
+    allowedOrigins: config.http.corsAllowedOrigins,
+    token:
+      staffIdentity === undefined
+        ? undefined
+        : { secret: staffIdentity.sessionSecret, secure: staffIdentity.secureCookies },
+  });
 
   // The bearer-token hook goes in before authorisation, so `request.principal` is
   // established by the time a route's declaration is enforced. It refuses nothing on its
@@ -274,7 +293,6 @@ export function buildServer(options: BuildServerOptions): FastifyInstance {
   // `request.principal` exists by the time a route's declaration is enforced — Fastify
   // runs same-phase hooks in registration order, which is what makes "before" mean
   // something here. Like the bearer hook, it refuses nothing on its own.
-  const staffIdentity = options.staffIdentity;
   if (staffIdentity !== undefined) {
     registerStaffAuthentication(app, { auth: staffIdentity.auth, db: staffIdentity.db });
   }

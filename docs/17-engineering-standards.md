@@ -471,6 +471,33 @@ contract already owns, which is the drift this package exists to prevent. A clie
 *casts* an interface has no check at all: a server change arrives as `undefined` two components
 away from its cause, and the stack trace names the component rather than the response.
 
+## 7a. A library's option is not the requirement, and the gap is where the control goes
+
+Better Auth has `useSecureCookies`. `H-149` asks for host-prefixed session cookies. The option is
+one flag away from the requirement and it is not the requirement: it produces `__Secure-`, which
+promises the cookie was set over https, and the requirement wants `__Host-`, which additionally
+forbids `Domain` and pins `Path` to `/` so that no sibling subdomain can write the cookie at all.
+Setting the flag and moving on would have left a control that reads as satisfied in review, passes
+a test asserting the prefix, and does not stop the attack it is named for — a subdomain planting a
+session, which is how a victim ends up signed into the attacker's account.
+
+The rule is not "distrust libraries". It is this: **when a dependency offers an option that is
+nearly your requirement, write down the difference before you accept it.** Most of the time the
+difference is nothing and the sentence is cheap. When it is not nothing, the sentence is the
+difference between a control and the appearance of one, and it is much cheaper here than in the
+incident review.
+
+Turning the library's own prefixing off and supplying the names in full costs three lines and one
+thing to remember, which is why the names live in `apps/api/src/auth/cookie-names.ts` rather than
+inline: two modules read them back off the wire, and a prefix spelled twice is a control that stops
+working the day one spelling is edited.
+
+The same asymmetry runs through the rest of `H-153`. Origin checking and a double-submit token both
+stop CSRF, and neither covers the other's failure mode — origin checking disappears entirely if a
+browser stops volunteering `Origin`, and a double-submit token disappears if anything can write the
+victim's cookies. That second failure is exactly the one `__Host-` removes, which is why the two
+halves were built together rather than one being judged sufficient.
+
 ## 9a. A citation in a comment is code, and it rots like code
 
 A task id written into a comment to explain *why* code behaves a certain way is a reference the
