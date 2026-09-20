@@ -39,7 +39,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 |---|---|---|---|---|---|---|
 | [`README.md`](../README.md) | Repository entry point: what this is, how to bring the stack up, where to start reading | engineering lead | on-change | 180 | `docker-compose.yml`, `Makefile`, `.env.example` | 2026-09-20 |
 | [`CLAUDE.md`](../CLAUDE.md) | The operating contract every contributor, human or agent, works under | engineering lead | quarterly | 120 | `apps/*/package.json`, `packages/*/package.json` | 2026-09-20 |
-| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | How a change is proposed, reviewed and merged | delivery lead | quarterly | 120 | `.github/workflows/**`, `Makefile` | 2026-09-18 |
+| [`CONTRIBUTING.md`](../CONTRIBUTING.md) | How a change is proposed, reviewed and merged | delivery lead | quarterly | 120 | `.github/workflows/**`, `Makefile` | 2026-09-21 |
 | [`CODE-GRAPH.md`](../CODE-GRAPH.md) | Generated module map: every app and package, what it owns, which way dependencies point | engineering lead | on-change | 180 | `code-graph.json`, `apps/*/package.json`, `packages/*/package.json`, `pnpm-workspace.yaml`, `turbo.json` | 2026-09-15 |
 | [`docs/README.md`](README.md) | Index of the design record and the reading order for each audience | engineering lead | monthly | 45 | — | 2026-09-20 |
 | [`docs/01-PRD.md`](01-PRD.md) | What we are building and why: users, scope by milestone, requirements, success metrics | product lead | quarterly | 120 | — | 2026-09-14 |
@@ -47,7 +47,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`docs/03-API-spec.md`](03-API-spec.md) | Endpoints, auth model, attempt state machine, webhooks, error format | backend lead | on-change | 90 | `apps/api/src/routes/**`, `packages/contracts/**` | 2026-09-20 |
 | [`docs/04-ADRs.md`](04-ADRs.md) | The decisions that are expensive to reverse, each with its reversal conditions | engineering lead | annually | 400 | — | 2026-09-20 |
 | [`docs/05-licensing-and-compliance.md`](05-licensing-and-compliance.md) | Dependency licence policy, question content licensing, employment-assessment regulation | legal counsel | on-change | 180 | `pnpm-lock.yaml`, `.licence-allowlist.json` | 2026-09-20 |
-| [`docs/06-testing-strategy.md`](06-testing-strategy.md) | What is tested at which layer, the test data strategy, what a milestone must prove | QA lead | on-change | 180 | `.github/workflows/ci.yml`, `.github/workflows/e2e.yml`, `packages/grading/**` | 2026-09-17 |
+| [`docs/06-testing-strategy.md`](06-testing-strategy.md) | What is tested at which layer, the test data strategy, what a milestone must prove | QA lead | on-change | 180 | `.github/workflows/ci.yml`, `.github/workflows/e2e.yml`, `packages/grading/**` | 2026-09-21 |
 | [`docs/07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md) | k6 scenarios, the deadline stampede, and the thresholds each concurrency claim is measured against | QA lead | quarterly | 120 | `tests/load/**`, `.github/workflows/load.yml` | 2026-09-15 |
 | [`docs/08-i18n-and-localisation.md`](08-i18n-and-localisation.md) | Interface localisation, the English-only content position, and the translation seams | frontend lead | on-change | 180 | `packages/ui/src/locales/**`, `apps/candidate/src/locales/**`, `apps/web/src/locales/**` | 2026-09-15 |
 | [`docs/09-ats-integration.md`](09-ats-integration.md) | Outbound event catalogue, signature scheme, retry and replay, the connector adapter interface | backend lead | on-change | 180 | `apps/api/src/webhooks/**`, `packages/contracts/src/webhooks/**` | 2026-09-15 |
@@ -58,7 +58,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`docs/14-threat-model.md`](14-threat-model.md) | Assets, adversaries and attack surfaces, from sandbox escape to tenant isolation, with mitigations | security lead | quarterly | 120 | `packages/auth/**`, `packages/exec-adapter/**`, `infra/piston/**`, `infra/postgres/init/03-rls.sql` | 2026-09-20 |
 | [`docs/15-accessibility-conformance.md`](15-accessibility-conformance.md) | The WCAG 2.1 AA commitment made concrete, and the accommodation model timers must respect | frontend lead | quarterly | 120 | `packages/ui/src/**` | 2026-09-20 |
 | [`docs/16-ai-usage-policy.md`](16-ai-usage-policy.md) | The per-round AI assistance policy, the candidate declaration, and why the signals stay advisory | engineering lead | quarterly | 120 | `packages/grading/**`, `packages/core-domain/src/scoring/**` | 2026-09-17 |
-| [`docs/17-engineering-standards.md`](17-engineering-standards.md) | The code-quality and system-design bar, and the invariants enforced in code rather than in review | engineering lead | quarterly | 120 | `packages/**`, `apps/**`, `tsconfig.base.json`, `eslint.config.js` | 2026-09-20 |
+| [`docs/17-engineering-standards.md`](17-engineering-standards.md) | The code-quality and system-design bar, and the invariants enforced in code rather than in review | engineering lead | quarterly | 120 | `packages/**`, `apps/**`, `tsconfig.base.json`, `eslint.config.js` | 2026-09-21 |
 | [`docs/18-hiring-workflows.md`](18-hiring-workflows.md) | The end-to-end journeys a hiring team runs, and where automation is and is not allowed in them | product lead | monthly | 60 | — | 2026-09-20 |
 | [`docs/DOC-OWNERSHIP.md`](DOC-OWNERSHIP.md) | This registry: who owns each document, its cadence, and what makes it stale | delivery lead | monthly | 45 | — | 2026-09-16 |
 | [`docs/hiring_platform_schema.sql`](hiring_platform_schema.sql) | The full PostgreSQL schema, runnable, and the canonical statement of the domain model | backend lead | on-change | 180 | `packages/db/schema/**`, `infra/postgres/init/02-schema.sql` | — |
@@ -77,7 +77,7 @@ Non-markdown entries — currently only the schema — are registered for their 
 | [`infra/piston/README.md`](../infra/piston/README.md) | Piston runtime installation, the pinned language versions, and the sandbox limits | infrastructure lead | on-change | 180 | `infra/piston/**` | 2026-09-15 |
 | [`brand/README.md`](../brand/README.md) | The name, the mark, and the rules for using them | design lead | annually | 400 | `brand/*.svg` | 2026-09-16 |
 | [`.claude/rules/doc-maintenance.md`](../.claude/rules/doc-maintenance.md) | The maintenance contract in full, with a compliant and a non-compliant worked example | delivery lead | quarterly | 120 | `scripts/check-doc-freshness.mjs` | 2026-09-17 |
-| [`.claude/rules/invariants.md`](../.claude/rules/invariants.md) | The domain invariants, the ADR each comes from, and the test that guards it | engineering lead | quarterly | 120 | `docs/04-ADRs.md` | 2026-09-20 |
+| [`.claude/rules/invariants.md`](../.claude/rules/invariants.md) | The domain invariants, the ADR each comes from, and the test that guards it | engineering lead | quarterly | 120 | `docs/04-ADRs.md` | 2026-09-21 |
 | [`.claude/rules/review-checklist.md`](../.claude/rules/review-checklist.md) | What a human reviewer checks, ordered by how expensive the mistake is | engineering lead | quarterly | 120 | `project/DEFINITION-OF-DONE.md` | 2026-09-15 |
 
 ## Owner roles and their team handles

@@ -90,6 +90,16 @@ jobs:
       - if: needs.detect.outputs.workspace == 'true'
         run: pnpm run lint
 
+      # Formatting, in the same job rather than its own: it needs the same checkout and the
+      # same install, and a job of its own would double the setup cost to run one command.
+      #
+      # It runs *after* lint because lint failures are the interesting ones. Prettier had
+      # drifted on four files by 2026-09-21 with nothing watching — `format:check` existed in
+      # package.json and no workflow called it, which is the same shape of gap as a test
+      # nobody runs.
+      - if: needs.detect.outputs.workspace == 'true'
+        run: pnpm run format:check
+
   typecheck:
     name: Typecheck
     needs: detect

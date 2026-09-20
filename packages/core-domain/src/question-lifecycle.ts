@@ -199,7 +199,9 @@ export function transitionQuestion(
     // in circulation, and the status is unchanged — see the module comment. A draft has
     // not been reviewed, and a retired question has been withdrawn; neither may publish.
     case 'publish':
-      return from === 'review' || from === 'published' ? ok('published') : illegal(from, event.type);
+      return from === 'review' || from === 'published'
+        ? ok('published')
+        : illegal(from, event.type);
 
     // Only from `published`. Withdrawing something that was never in circulation is not
     // retirement — an unfinished draft is archived (`DELETE /questions/{id}`), which is a

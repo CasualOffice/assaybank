@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-21
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`15-accessibility-conformance.md`](15-accessibility-conformance.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md), [`../project/MILESTONES.md`](../project/MILESTONES.md)
 
 ---
@@ -596,6 +596,13 @@ A single repository-wide coverage percentage optimises for the easiest lines and
 | **Nightly** | Sandbox security against real Piston, mutation run on tier 1, full determinism corpus, soak of the queue for one hour, accessibility across the full route list, dependency and licence audit, `EXPLAIN` baseline diff | < 90 min | A tracker task by the next morning; sandbox failures open an incident |
 | **Pre-release** | Everything nightly, plus the load scenarios that gate the release ([`07-load-and-capacity-testing.md`](07-load-and-capacity-testing.md) §5), plus the manual accessibility pass, plus a restore-from-backup rehearsal | Half a day | Release blocked |
 | **Pre-exam-window** (before a campus drive or certification sitting) | Smoke on staging and production, the deadline-stampede scenario at the expected cohort size, queue depth and DLQ verified empty, `simulate` run against every assessment in the window | < 2 h | The window does not open. A cohort discovering an infeasible assessment mid-exam is unrecoverable |
+
+**The pull-request row said "everything above repository-wide" and did not mean it, until
+2026-09-21.** `format:check` existed in `package.json` and no workflow called it, so Prettier
+drifted on four files with nothing watching — a gate that is written down and not wired up, which
+is the same shape as a test nobody runs and is worse, because the document makes it look covered.
+`ci.yml`'s lint job now runs it. The lesson generalises past formatting: a row in this table is a
+claim about what CI does, and a claim nobody checks is a claim that rots.
 
 The pre-exam-window row is not ceremony. Every other row protects the codebase; that one protects a specific set of named people on a specific date.
 

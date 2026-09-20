@@ -38,13 +38,46 @@ const SECOND_RUN = new Date('2026-10-21T02:30:00.000Z');
 // Fixture A from packages/grading/src/psychometrics.test.ts: [item, itemMax, total, seconds].
 // Independently computed: p 0.75, corrected discrimination 0.2531, mean 49.5 s.
 const A: ReadonlyArray<readonly [number, number, number, number]> = [
-  [1, 1, 12, 30], [0, 1, 5, 31], [1, 1, 17, 32], [1, 1, 2, 33], [1, 1, 2, 34], [1, 1, 12, 35],
-  [1, 1, 18, 36], [1, 1, 12, 37], [1, 1, 17, 38], [0, 1, 2, 39], [1, 1, 17, 40], [1, 1, 20, 41],
-  [1, 1, 19, 42], [0, 1, 8, 43], [1, 1, 3, 44], [1, 1, 4, 45], [1, 1, 12, 46], [1, 1, 8, 47],
-  [1, 1, 11, 48], [1, 1, 14, 49], [1, 1, 20, 50], [0, 1, 15, 51], [1, 1, 4, 52], [1, 1, 9, 53],
-  [1, 1, 19, 54], [0, 1, 7, 55], [1, 1, 6, 56], [0, 1, 7, 57], [1, 1, 12, 58], [1, 1, 8, 59],
-  [0, 1, 4, 60], [1, 1, 8, 61], [1, 1, 20, 62], [1, 1, 19, 63], [1, 1, 13, 64], [1, 1, 13, 65],
-  [0, 1, 11, 66], [0, 1, 3, 67], [0, 1, 16, 68], [1, 1, 11, 69],
+  [1, 1, 12, 30],
+  [0, 1, 5, 31],
+  [1, 1, 17, 32],
+  [1, 1, 2, 33],
+  [1, 1, 2, 34],
+  [1, 1, 12, 35],
+  [1, 1, 18, 36],
+  [1, 1, 12, 37],
+  [1, 1, 17, 38],
+  [0, 1, 2, 39],
+  [1, 1, 17, 40],
+  [1, 1, 20, 41],
+  [1, 1, 19, 42],
+  [0, 1, 8, 43],
+  [1, 1, 3, 44],
+  [1, 1, 4, 45],
+  [1, 1, 12, 46],
+  [1, 1, 8, 47],
+  [1, 1, 11, 48],
+  [1, 1, 14, 49],
+  [1, 1, 20, 50],
+  [0, 1, 15, 51],
+  [1, 1, 4, 52],
+  [1, 1, 9, 53],
+  [1, 1, 19, 54],
+  [0, 1, 7, 55],
+  [1, 1, 6, 56],
+  [0, 1, 7, 57],
+  [1, 1, 12, 58],
+  [1, 1, 8, 59],
+  [0, 1, 4, 60],
+  [1, 1, 8, 61],
+  [1, 1, 20, 62],
+  [1, 1, 19, 63],
+  [1, 1, 13, 64],
+  [1, 1, 13, 65],
+  [0, 1, 11, 66],
+  [0, 1, 3, 67],
+  [0, 1, 16, 68],
+  [1, 1, 11, 69],
 ];
 
 const runtime = await (async () => {
@@ -71,23 +104,48 @@ describe.skipIf(!runtime.available)('question-stats sweep', () => {
 
   /** An organisation with an author, an assessment and a candidate to hang attempts on. */
   async function seedOrg(slug: string) {
-    const org = required((await owner<{ id: string }[]>`
-      INSERT INTO organizations (name, slug) VALUES (${slug}, ${slug}) RETURNING id`)[0], 'org');
-    const assessment = required((await owner<{ id: string }[]>`
+    const org = required(
+      (
+        await owner<{ id: string }[]>`
+      INSERT INTO organizations (name, slug) VALUES (${slug}, ${slug}) RETURNING id`
+      )[0],
+      'org',
+    );
+    const assessment = required(
+      (
+        await owner<{ id: string }[]>`
       INSERT INTO assessments (org_id, name, duration_seconds)
-      VALUES (${org.id}, 'Screen', 3600) RETURNING id`)[0], 'assessment');
-    const candidate = required((await owner<{ id: string }[]>`
-      INSERT INTO candidates (org_id, email) VALUES (${org.id}, ${`c@${slug}.example`}) RETURNING id`)[0], 'candidate');
+      VALUES (${org.id}, 'Screen', 3600) RETURNING id`
+      )[0],
+      'assessment',
+    );
+    const candidate = required(
+      (
+        await owner<{ id: string }[]>`
+      INSERT INTO candidates (org_id, email) VALUES (${org.id}, ${`c@${slug}.example`}) RETURNING id`
+      )[0],
+      'candidate',
+    );
     return { orgId: org.id, assessmentId: assessment.id, candidateId: candidate.id };
   }
 
   async function seedVersion(orgId: string, label: string): Promise<string> {
-    const q = required((await owner<{ id: string }[]>`
+    const q = required(
+      (
+        await owner<{ id: string }[]>`
       INSERT INTO questions (org_id, kind, status) VALUES (${orgId}, 'mcq_single', 'published')
-      RETURNING id`)[0], 'question');
-    const v = required((await owner<{ id: string }[]>`
+      RETURNING id`
+      )[0],
+      'question',
+    );
+    const v = required(
+      (
+        await owner<{ id: string }[]>`
       INSERT INTO question_versions (question_id, version_no, prompt_md, difficulty, published_at)
-      VALUES (${q.id}, 1, ${label}, 2, now()) RETURNING id`)[0], 'version');
+      VALUES (${q.id}, 1, ${label}, 2, now()) RETURNING id`
+      )[0],
+      'version',
+    );
     return v.id;
   }
 
@@ -99,15 +157,30 @@ describe.skipIf(!runtime.available)('question-stats sweep', () => {
     [item, itemMax, total, seconds]: readonly [number, number, number, number],
     status: 'finalised' | 'under_review' | 'voided' = 'finalised',
   ): Promise<void> {
-    const attempt = required((await owner<{ id: string }[]>`
+    const attempt = required(
+      (
+        await owner<{ id: string }[]>`
       INSERT INTO attempts (org_id, candidate_id, assessment_id, assessment_version, status)
-      VALUES (${org.orgId}, ${org.candidateId}, ${org.assessmentId}, 1, ${status}) RETURNING id`)[0], 'attempt');
-    const aqItem = required((await owner<{ id: string }[]>`
+      VALUES (${org.orgId}, ${org.candidateId}, ${org.assessmentId}, 1, ${status}) RETURNING id`
+      )[0],
+      'attempt',
+    );
+    const aqItem = required(
+      (
+        await owner<{ id: string }[]>`
       INSERT INTO attempt_questions (attempt_id, question_version_id, ordinal, max_score)
-      VALUES (${attempt.id}, ${itemVersion}, 1, ${itemMax}) RETURNING id`)[0], 'aq item');
-    const aqRest = required((await owner<{ id: string }[]>`
+      VALUES (${attempt.id}, ${itemVersion}, 1, ${itemMax}) RETURNING id`
+      )[0],
+      'aq item',
+    );
+    const aqRest = required(
+      (
+        await owner<{ id: string }[]>`
       INSERT INTO attempt_questions (attempt_id, question_version_id, ordinal, max_score)
-      VALUES (${attempt.id}, ${restVersion}, 2, 19) RETURNING id`)[0], 'aq rest');
+      VALUES (${attempt.id}, ${restVersion}, 2, 19) RETURNING id`
+      )[0],
+      'aq rest',
+    );
     await owner`
       INSERT INTO answers (attempt_question_id, final_score, seconds_spent)
       VALUES (${aqItem.id}, ${item}, ${seconds}), (${aqRest.id}, ${total - item}, 300)`;
@@ -115,7 +188,10 @@ describe.skipIf(!runtime.available)('question-stats sweep', () => {
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer(IMAGE)
-      .withDatabase(DB).withUsername(OWNER).withPassword(OWNER_PASSWORD).start();
+      .withDatabase(DB)
+      .withUsername(OWNER)
+      .withPassword(OWNER_PASSWORD)
+      .start();
     const host = container.getHost();
     const port = container.getPort();
     const ownerUrl = `postgres://${OWNER}:${OWNER_PASSWORD}@${host}:${port}/${DB}`;
@@ -158,11 +234,18 @@ describe.skipIf(!runtime.available)('question-stats sweep', () => {
   });
 
   async function statsFor(versionId: string) {
-    return (await owner<{
-      n_attempts: number; p_value: string | null; discrimination: string | null;
-      mean_seconds: string | null; computed_at: Date | null;
-    }[]>`SELECT n_attempts, p_value, discrimination, mean_seconds, computed_at
-           FROM question_stats WHERE question_version_id = ${versionId}`)[0];
+    return (
+      await owner<
+        {
+          n_attempts: number;
+          p_value: string | null;
+          discrimination: string | null;
+          mean_seconds: string | null;
+          computed_at: Date | null;
+        }[]
+      >`SELECT n_attempts, p_value, discrimination, mean_seconds, computed_at
+           FROM question_stats WHERE question_version_id = ${versionId}`
+    )[0];
   }
 
   it('reproduces the independently computed statistics from rows in the database', async () => {

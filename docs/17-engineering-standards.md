@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-20
+**Last updated:** 2026-09-21
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`14-threat-model.md`](14-threat-model.md), [`../CLAUDE.md`](../CLAUDE.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md)
 
 ---
@@ -499,6 +499,13 @@ victim's cookies. That second failure is exactly the one `__Host-` removes, whic
 halves were built together rather than one being judged sufficient.
 
 ## 7b. A path CI does not take is a path only your colleagues test
+
+*Added to on 2026-09-21.* The same shape turned up one level out. `package.json` has
+`format:check` and no workflow called it, so Prettier drifted on four files while
+[`06-testing-strategy.md`](06-testing-strategy.md) described the pull-request stage as running
+"everything above repository-wide" — a gate written down, believed, and not wired up. It is worse
+than an absent gate, because the document makes the absence invisible. `ci.yml` runs it now.
+
 
 `make up && make migrate` is the documented way to get a working database, and on 2026-09-20 it had been broken on a clean machine in three separate ways — a missing policy, an unguarded `ADD COLUMN`, an unguarded `DROP CONSTRAINT` — while every test in the repository was green. Nothing in CI runs container init: the integration suites use testcontainers and apply migrations to an empty database, which exercises the half that was fine and never the half that was not.
 

@@ -4,7 +4,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { computeItemStatistics, MIN_RESPONSES_FOR_STATS, type ItemResponse } from './psychometrics.js';
+import {
+  computeItemStatistics,
+  MIN_RESPONSES_FOR_STATS,
+  type ItemResponse,
+} from './psychometrics.js';
 
 // Expected values below were computed independently, in Python, with a hand-written Pearson
 // correlation over the same rows — not by running this module and pasting its output.
@@ -17,26 +21,90 @@ import { computeItemStatistics, MIN_RESPONSES_FOR_STATS, type ItemResponse } fro
 type Row = readonly [itemScore: number, itemMax: number, totalScore: number, seconds: number];
 
 const A: readonly Row[] = [
-  [1, 1, 12, 30], [0, 1, 5, 31], [1, 1, 17, 32], [1, 1, 2, 33], [1, 1, 2, 34], [1, 1, 12, 35],
-  [1, 1, 18, 36], [1, 1, 12, 37], [1, 1, 17, 38], [0, 1, 2, 39], [1, 1, 17, 40], [1, 1, 20, 41],
-  [1, 1, 19, 42], [0, 1, 8, 43], [1, 1, 3, 44], [1, 1, 4, 45], [1, 1, 12, 46], [1, 1, 8, 47],
-  [1, 1, 11, 48], [1, 1, 14, 49], [1, 1, 20, 50], [0, 1, 15, 51], [1, 1, 4, 52], [1, 1, 9, 53],
-  [1, 1, 19, 54], [0, 1, 7, 55], [1, 1, 6, 56], [0, 1, 7, 57], [1, 1, 12, 58], [1, 1, 8, 59],
-  [0, 1, 4, 60], [1, 1, 8, 61], [1, 1, 20, 62], [1, 1, 19, 63], [1, 1, 13, 64], [1, 1, 13, 65],
-  [0, 1, 11, 66], [0, 1, 3, 67], [0, 1, 16, 68], [1, 1, 11, 69],
+  [1, 1, 12, 30],
+  [0, 1, 5, 31],
+  [1, 1, 17, 32],
+  [1, 1, 2, 33],
+  [1, 1, 2, 34],
+  [1, 1, 12, 35],
+  [1, 1, 18, 36],
+  [1, 1, 12, 37],
+  [1, 1, 17, 38],
+  [0, 1, 2, 39],
+  [1, 1, 17, 40],
+  [1, 1, 20, 41],
+  [1, 1, 19, 42],
+  [0, 1, 8, 43],
+  [1, 1, 3, 44],
+  [1, 1, 4, 45],
+  [1, 1, 12, 46],
+  [1, 1, 8, 47],
+  [1, 1, 11, 48],
+  [1, 1, 14, 49],
+  [1, 1, 20, 50],
+  [0, 1, 15, 51],
+  [1, 1, 4, 52],
+  [1, 1, 9, 53],
+  [1, 1, 19, 54],
+  [0, 1, 7, 55],
+  [1, 1, 6, 56],
+  [0, 1, 7, 57],
+  [1, 1, 12, 58],
+  [1, 1, 8, 59],
+  [0, 1, 4, 60],
+  [1, 1, 8, 61],
+  [1, 1, 20, 62],
+  [1, 1, 19, 63],
+  [1, 1, 13, 64],
+  [1, 1, 13, 65],
+  [0, 1, 11, 66],
+  [0, 1, 3, 67],
+  [0, 1, 16, 68],
+  [1, 1, 11, 69],
 ];
 
 const B: readonly Row[] = [
-  [3, 4, 17, 60], [1, 4, 8, 60], [1, 4, 4, 60], [3, 4, 13, 60], [4, 4, 15, 60], [1, 4, 11, 60],
-  [2, 4, 14, 60], [2, 4, 14, 60], [1, 4, 8, 60], [2, 4, 12, 60], [4, 4, 19, 60], [1, 4, 7, 60],
-  [2, 4, 5, 60], [0, 4, 5, 60], [2, 4, 9, 60], [0, 4, 2, 60], [0, 4, 7, 60], [2, 4, 13, 60],
-  [3, 4, 13, 60], [2, 4, 9, 60], [3, 4, 19, 60], [0, 4, 0, 60], [3, 4, 14, 60], [2, 4, 7, 60],
-  [2, 4, 6, 60], [4, 4, 14, 60], [4, 4, 20, 60], [4, 4, 16, 60], [1, 4, 8, 60], [0, 4, 5, 60],
-  [2, 4, 6, 60], [3, 4, 14, 60],
+  [3, 4, 17, 60],
+  [1, 4, 8, 60],
+  [1, 4, 4, 60],
+  [3, 4, 13, 60],
+  [4, 4, 15, 60],
+  [1, 4, 11, 60],
+  [2, 4, 14, 60],
+  [2, 4, 14, 60],
+  [1, 4, 8, 60],
+  [2, 4, 12, 60],
+  [4, 4, 19, 60],
+  [1, 4, 7, 60],
+  [2, 4, 5, 60],
+  [0, 4, 5, 60],
+  [2, 4, 9, 60],
+  [0, 4, 2, 60],
+  [0, 4, 7, 60],
+  [2, 4, 13, 60],
+  [3, 4, 13, 60],
+  [2, 4, 9, 60],
+  [3, 4, 19, 60],
+  [0, 4, 0, 60],
+  [3, 4, 14, 60],
+  [2, 4, 7, 60],
+  [2, 4, 6, 60],
+  [4, 4, 14, 60],
+  [4, 4, 20, 60],
+  [4, 4, 16, 60],
+  [1, 4, 8, 60],
+  [0, 4, 5, 60],
+  [2, 4, 6, 60],
+  [3, 4, 14, 60],
 ];
 
 const responses = (rows: readonly Row[]): ItemResponse[] =>
-  rows.map(([itemScore, itemMax, totalScore, seconds]) => ({ itemScore, itemMax, totalScore, seconds }));
+  rows.map(([itemScore, itemMax, totalScore, seconds]) => ({
+    itemScore,
+    itemMax,
+    totalScore,
+    seconds,
+  }));
 
 describe('computeItemStatistics', () => {
   it('matches the independently computed values for a dichotomous item', () => {
@@ -64,7 +132,7 @@ describe('computeItemStatistics', () => {
     const forward = computeItemStatistics(responses(A));
     const reversed = computeItemStatistics(responses([...A].reverse()));
     const shuffled = computeItemStatistics(
-      responses([...A].sort((x, y) => (x[3] * 7919) % 97 - (y[3] * 7919) % 97)),
+      responses([...A].sort((x, y) => ((x[3] * 7919) % 97) - ((y[3] * 7919) % 97))),
     );
     expect(reversed).toStrictEqual(forward);
     expect(shuffled).toStrictEqual(forward);

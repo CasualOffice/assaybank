@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-21
 **Companion docs:** [`CLAUDE.md`](CLAUDE.md), [`README.md`](README.md), [`project/DEFINITION-OF-DONE.md`](project/DEFINITION-OF-DONE.md), [`docs/04-ADRs.md`](docs/04-ADRs.md), [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md)
 
 ---
@@ -126,7 +126,7 @@ Unchecking a box is fine when it does not apply; deleting it is not. A reviewer 
 
 **As a reviewer.** First pass is correctness against the specification: does this match [`docs/03-API-spec.md`](docs/03-API-spec.md), the schema, and the relevant ADR. Second pass is the leak surface: could any of this reach a candidate response. Third pass is style, and style comments are suggestions unless they are in the conventions section of [`CLAUDE.md`](CLAUDE.md).
 
-Block on: a hard-rule violation, a missing RLS policy, a destructive migration, a prohibited licence, an untested state transition, or a contract change without a contracts update. Do not block on formatting — `make fmt` settles it.
+Block on: a hard-rule violation, a missing RLS policy, a destructive migration, a prohibited licence, an untested state transition, or a contract change without a contracts update. Do not block on formatting — `make fmt` settles it, and since 2026-09-21 CI runs `format:check` so a reviewer never has to notice.
 
 Target a first response within one working day. A pull request open longer than three working days is an escalation, not a queue.
 

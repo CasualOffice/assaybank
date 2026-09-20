@@ -143,9 +143,7 @@ describe.skipIf(!containerRuntime.available)(suiteName('the audit log (P1 step 5
         const [before] = await tx.execute<{ status: string }>(
           sql`SELECT status FROM attempts WHERE id = ${target}::uuid`,
         );
-        await tx.execute(
-          sql`UPDATE attempts SET status = 'voided' WHERE id = ${target}::uuid`,
-        );
+        await tx.execute(sql`UPDATE attempts SET status = 'voided' WHERE id = ${target}::uuid`);
         return writeAudit(tx, {
           orgId: seeded.orgId,
           actor: { kind: 'staff', userId: actor },
@@ -337,9 +335,9 @@ describe.skipIf(!containerRuntime.available)(suiteName('the audit log (P1 step 5
       // fires for none. The statement-level trigger refuses the attempt itself, which is
       // the answer worth giving to somebody who is about to try a wider predicate.
       const client = required(fixture, 'fixture').owner;
-      await expect(client`DELETE FROM audit_log WHERE action = 'nothing.matches_this'`).rejects.toSatisfy(
-        isInsufficientPrivilege,
-      );
+      await expect(
+        client`DELETE FROM audit_log WHERE action = 'nothing.matches_this'`,
+      ).rejects.toSatisfy(isInsufficientPrivilege);
     });
 
     it('refuses TRUNCATE, which is not a DELETE and is not covered by the DELETE grant', async () => {
@@ -528,7 +526,9 @@ describe.skipIf(!containerRuntime.available)(suiteName('the audit log (P1 step 5
 
       const quoted = /'([a-z0-9_.]+)'::text/g;
       const inSql = new Set(
-        [...definition.matchAll(quoted)].map((match) => match[1]).filter((value) => value?.includes('.')),
+        [...definition.matchAll(quoted)]
+          .map((match) => match[1])
+          .filter((value) => value?.includes('.')),
       );
 
       for (const action of REASON_REQUIRED_ACTIONS) {
@@ -550,9 +550,13 @@ describe.skipIf(!containerRuntime.available)(suiteName('the audit log (P1 step 5
       const handle = required(db, 'db');
       const seeded = required(org, 'org');
 
-      await withElevated(handle, { reason: 'job.grade', orgId: seeded.orgId, entityType: 'attempt' }, async (tx) => {
-        await tx.execute(sql`SELECT 1`);
-      });
+      await withElevated(
+        handle,
+        { reason: 'job.grade', orgId: seeded.orgId, entityType: 'attempt' },
+        async (tx) => {
+          await tx.execute(sql`SELECT 1`);
+        },
+      );
 
       const [row] = await rowsForAction('job.grade');
       const audit = required(row, 'the elevation audit row');

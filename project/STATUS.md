@@ -25,7 +25,7 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## Shipped this period (2026-09-15 → 2026-09-17)
 
-**Application code now exists.** 70 of 193 backlog tasks are done, counted from the tracker rows. The jump from 177 rows is the guided flow — `H-178` to `H-189`, from reading the console back as a product rather than as a set of screens ([`../docs/18-hiring-workflows.md`](../docs/18-hiring-workflows.md)).
+**Application code now exists.** 71 of 194 backlog tasks are done, counted from the tracker rows. The jump from 177 rows is the guided flow — `H-178` to `H-189`, from reading the console back as a product rather than as a set of screens ([`../docs/18-hiring-workflows.md`](../docs/18-hiring-workflows.md)).
 
 - **P0 foundation** — fifteen workspaces, strict TypeScript, lint-enforced layering, CI enforcing, MPL-2.0 with a header gate, the licence gate proven to fail on a planted AGPL dependency
 - **P1 tenancy, identity and audit** — per-checkout org context proven by an interleaved test, RLS proven per table against real Postgres, OIDC and password login, per-action permissions with a route-enumeration test, append-only audit at the database
