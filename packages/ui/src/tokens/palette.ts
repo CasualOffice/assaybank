@@ -249,6 +249,14 @@ export const TEXT_CONTRAST_PAIRS: readonly (readonly [SemanticToken, SemanticTok
     ['info', 'surface-raised'],
     ['info', 'info-surface'],
     ['text', 'info-surface'],
+    // Secondary prose on a status-tinted panel, added 2026-09-21 when the staff console's
+    // guidance band began putting an explanatory line under its title on one. `text` on
+    // these four was already asserted and `text-muted` was not, which left the quieter half
+    // of the same panel resting on one person having looked at it.
+    ['text-muted', 'danger-surface'],
+    ['text-muted', 'success-surface'],
+    ['text-muted', 'warning-surface'],
+    ['text-muted', 'info-surface'],
   ] as const);
 
 /**

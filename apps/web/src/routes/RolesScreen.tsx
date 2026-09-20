@@ -41,6 +41,7 @@ import {
   roleCoverageQuery,
   rolesQuery,
   verdictFor,
+  type CoverageVerdict,
   type JobRoleView,
   type SkillCoverage,
 } from '../api/roles.js';
@@ -71,14 +72,11 @@ function SkillRow({ skill }: { skill: SkillCoverage }): ReactNode {
           <code className="ab-roles__key">{skill.skill_key}</code> · {bandLabel(skill)}
         </span>
       </th>
-      <td>
-        {skill.is_required ? (
-          <Badge tone="neutral" label="Requirement">
-            Required
-          </Badge>
-        ) : (
-          <span className="ab-roles__optional">Optional</span>
-        )}
+      <td className="ab-roles__requirement">
+        {/* Quiet on both. A badge on every required row is a column of identical chips that
+            the eye has to read past to reach the numbers, and "required" is the norm for a
+            role's skills rather than the exception. The word carries it. */}
+        {skill.is_required ? 'Required' : <span className="ab-roles__optional">Optional</span>}
       </td>
       <td className="ab-table__numeric">{skill.weight}</td>
       <td className="ab-table__numeric">
@@ -105,6 +103,48 @@ function SkillRow({ skill }: { skill: SkillCoverage }): ReactNode {
         );
       })}
     </tr>
+  );
+}
+
+/** The verdict as one line, tone as a rule down the edge. Shared shape with the dashboard. */
+function RoleVerdictBand({ verdict }: { verdict: CoverageVerdict }): ReactNode {
+  const blocked = verdict.blocked.length;
+  const thin = verdict.thin.length;
+
+  const [tone, label, title, text] =
+    blocked > 0
+      ? ([
+          'danger',
+          'Blocked',
+          `${String(blocked)} required skill${blocked === 1 ? ' has' : 's have'} nothing published in band`,
+          `No assessment can be composed until each has at least one: ${verdict.blocked
+            .map((skill) => skill.skill_name)
+            .join(', ')}.`,
+        ] as const)
+      : thin > 0
+        ? ([
+            'warning',
+            'Thin',
+            `${String(thin)} required skill${thin === 1 ? ' is' : 's are'} thin`,
+            `Composable, but two candidates would see largely the same paper: ${verdict.thin
+              .map((skill) => skill.skill_name)
+              .join(', ')}.`,
+          ] as const)
+        : ([
+            'success',
+            'Ready',
+            'The bank can measure every required skill',
+            'Each one has published questions inside the difficulty band this role asks for.',
+          ] as const);
+
+  return (
+    <section className={`ab-guide ab-guide--${tone}`} role="status">
+      <p className="ab-guide__label">{label}</p>
+      <div className="ab-guide__body">
+        <h3 className="ab-guide__title">{title}</h3>
+        <p className="ab-guide__text">{text}</p>
+      </div>
+    </section>
   );
 }
 
@@ -174,39 +214,13 @@ function RoleCoverage({ role }: { role: JobRoleView }): ReactNode {
         </div>
       </header>
 
-      {verdict.blocked.length > 0 ? (
-        <Alert
-          tone="danger"
-          title={`${String(verdict.blocked.length)} required skill${
-            verdict.blocked.length === 1 ? ' has' : 's have'
-          } no published question in band`}
-        >
-          <p>
-            An assessment for this role cannot be composed until each has at least one.{' '}
-            {verdict.blocked.map((skill) => skill.skill_name).join(', ')}.
-          </p>
-        </Alert>
-      ) : verdict.thin.length > 0 ? (
-        <Alert
-          tone="warning"
-          title={`${String(verdict.thin.length)} required skill${
-            verdict.thin.length === 1 ? ' is' : 's are'
-          } thin`}
-        >
-          <p>
-            An assessment can be composed, but with this few questions two candidates will see
-            largely the same ones — which makes comparing them weaker than it looks.{' '}
-            {verdict.thin.map((skill) => skill.skill_name).join(', ')}.
-          </p>
-        </Alert>
-      ) : (
-        <Alert tone="success" title="The bank can measure every required skill">
-          <p>
-            Every required skill has published questions inside the difficulty band this role asks
-            for.
-          </p>
-        </Alert>
-      )}
+      {/* The same band the dashboard uses, not an `Alert`.
+       *
+       * Three roles meant three slabs — an amber one and a red one labelled "WARNING" and
+       * "ERROR" — around 330px of shouting before any data. None of these is an error: they
+       * are the system reporting, correctly, what the bank can measure. The table underneath
+       * is the evidence and it is what the screen is for, so the verdict gets one line. */}
+      <RoleVerdictBand verdict={verdict} />
 
       <Table caption={`Skill coverage for ${role.title}`} captionHidden className="ab-roles__table">
         <thead>

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead, with People lead for the accommodation process)
-**Last updated:** 2026-09-20
+**Last updated:** 2026-09-21
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`08-i18n-and-localisation.md`](08-i18n-and-localisation.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`../project/MILESTONES.md`](../project/MILESTONES.md), [`../project/RISKS.md`](../project/RISKS.md)
 
 ---
@@ -329,6 +329,8 @@ SC 1.4.1 Use of Color. The places this product will want to break it:
 | Staff console integrity flag | A red dot on `integrity_flag = 'suspicious'` | Text label. And per [ADR-007](04-ADRs.md), it is a signal for a human to review, so it must be readable rather than glanceable |
 | Staff console pass/fail | Red/green cell | Text plus the score |
 | Test-case results table | Row tinted green or red | A "Passed"/"Failed" cell with a text value; the tint is supplementary |
+| Role coverage bar | A bar whose length and colour carry the number | The count is printed beside every bar, the bar is `aria-hidden`, and the accessible text says what the count is *of* ("3 in band, difficulty 2–4"). A length is an approximation on a fixed scale; the figure is the fact, and it is the figure that is read out |
+| Question status column | A coloured chip on every row | The word in every case. The badge is spent on the exception — a question awaiting review — and the norm is plain text, so the distinction that carries meaning is weight and hue *together with* a word that stands alone (docs/17 §11b) |
 
 The rule is simple enough to review against: **no information is available to a sighted user that is not available in text to a screen-reader user, and no distinction depends on hue.** Colour is redundant reinforcement, never the carrier.
 

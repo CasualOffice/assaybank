@@ -287,6 +287,6 @@ describe('what the screen must never become', () => {
     // sentence on it is cheaper to keep than the ADR is to re-argue (ADR-011, invariant 4).
     const markup = await render({ coverage: { [ROLE_ID]: [skill('api.rest', 20)] } });
 
-    expect(text(markup)).toContain('no candidate is scored, ordered or recommended');
+    expect(text(markup)).toContain('No candidate is scored, ordered or recommended');
   });
 });

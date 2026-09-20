@@ -154,10 +154,24 @@ function QuestionRow({ question }: { question: AuthorQuestionSummaryView }): Rea
         )}
       </th>
       <td className="ab-questions__nowrap">{KIND_LABELS[question.kind]}</td>
-      <td>
-        <Badge tone={STATUS_TONES[question.status]} label="Status">
-          {STATUS_LABELS[question.status]}
-        </Badge>
+      <td className="ab-questions__nowrap">
+        {/* A badge on the exception, plain text on the norm.
+         *
+         * Every row used to carry one, and twenty-four green "Published" badges in a column
+         * is not twenty-four pieces of information — it is a wall the one "In review" has to
+         * compete with. Emphasis spent everywhere is emphasis nowhere. `published` is what a
+         * question in a working bank *is*, so it reads as quiet text; anything else is a
+         * state somebody has to do something about, so it keeps the badge.
+         *
+         * The word is there in both cases, which is what the accessible version of this rule
+         * requires: the distinction is weight and colour, and neither is load-bearing. */}
+        {question.status === 'published' ? (
+          <span className="ab-questions__quiet">{STATUS_LABELS[question.status]}</span>
+        ) : (
+          <Badge tone={STATUS_TONES[question.status]} label="Status">
+            {STATUS_LABELS[question.status]}
+          </Badge>
+        )}
       </td>
       <td className="ab-questions__nowrap">
         {difficulty === null ? (

@@ -52,9 +52,16 @@ import { type ReactNode } from 'react';
 
 import { useApi } from '../api/api.js';
 import { questionsQuery } from '../api/questions.js';
-import { roleCoverageQuery, rolesQuery, verdictFor, type JobRoleView } from '../api/roles.js';
+import {
+  roleCoverageQuery,
+  rolesQuery,
+  verdictFor,
+  type JobRoleView,
+  type SkillCoverage,
+} from '../api/roles.js';
 import { PageBar } from '../app/PageBar.js';
 import { toDisplayEnvelope } from '../app/ErrorBoundary.js';
+import { CoverageStrip } from './CoverageStrip.js';
 import { guidanceFor, type RoleReadiness } from './dashboard-guidance.js';
 import { DIFFICULTY_LABELS, KIND_LABELS } from './question-labels.js';
 
@@ -93,26 +100,36 @@ function VerdictBadge({ entry }: { entry: RoleReadiness }): ReactNode {
   );
 }
 
-/** The sentence under a role: what is wrong, or that nothing is. */
+/**
+ * The one line under a role: the consequence, not the data.
+ *
+ * It used to name the skills and their state, and the strip beneath now shows both with a
+ * number against each — so the sentence was restating a table in prose and wrapping to two
+ * lines to do it. What a bar cannot say is what the situation *means*, so that is all this
+ * says now, in under a line.
+ */
 function verdictLine(entry: RoleReadiness): string {
   const verdict = entry.verdict;
   if (verdict === undefined) return 'Reading the bank…';
 
   if (!verdict.ready) {
-    const names = verdict.blocked.map((skill) => skill.skill_name).join(', ');
-    return verdict.blocked.length === 1
-      ? `Nothing published in band for ${names}.`
-      : `Nothing published in band for ${String(verdict.blocked.length)} required skills: ${names}.`;
+    const n = verdict.blocked.length;
+    return `No assessment can be composed: ${String(n)} required skill${n === 1 ? ' has' : 's have'} nothing in band.`;
   }
   if (verdict.thin.length > 0) {
-    const names = verdict.thin.map((skill) => skill.skill_name).join(', ');
-    return `Composable, but thin on ${names} — two candidates would see much the same paper.`;
+    return 'Composable, but two candidates would see much the same paper.';
   }
-  return 'Every required skill has published questions inside its band.';
+  return 'Enough in every band to draw a different set per candidate.';
 }
 
-/** One row of the roles panel. */
-function RoleRow({ entry }: { entry: RoleReadiness }): ReactNode {
+/** One row of the roles panel: the verdict, then the numbers it was reached from. */
+function RoleRow({
+  entry,
+  skills,
+}: {
+  entry: RoleReadiness;
+  skills: readonly SkillCoverage[];
+}): ReactNode {
   return (
     <li className="ab-dash__role">
       <div className="ab-dash__role-head">
@@ -120,6 +137,7 @@ function RoleRow({ entry }: { entry: RoleReadiness }): ReactNode {
         <VerdictBadge entry={entry} />
       </div>
       <p className="ab-dash__role-line">{verdictLine(entry)}</p>
+      <CoverageStrip skills={skills} />
     </li>
   );
 }
@@ -149,6 +167,12 @@ export function DashboardScreen(): ReactNode {
     };
   });
 
+  // The skills behind each verdict, for the strip. Kept beside `readiness` rather than
+  // inside it because the guidance rules take a verdict and have no use for a distribution.
+  const skillsByRole = new Map(
+    roleList.map((role, index) => [role.id, coverages[index]?.data?.skills ?? []] as const),
+  );
+
   const reviewRows = review.data?.data ?? [];
   const reviewHasMore = (review.data?.next_cursor ?? null) !== null;
 
@@ -174,10 +198,12 @@ export function DashboardScreen(): ReactNode {
         <h1 className="ab-screen__title" id="page-heading" tabIndex={-1}>
           Dashboard
         </h1>
+        {/* The opening clause used to be "what needs attention, and what to do about it",
+            which the band directly below now says — with the actual answer in it. What is
+            left is the part nothing else on the screen carries. */}
         <p className="ab-screen__lede">
-          What needs attention, and what to do about it. Everything here describes the question bank
-          against the roles you hire for — no candidate is scored, ordered or recommended on this
-          screen or anywhere else in this product.
+          The question bank measured against the roles you hire for. No candidate is scored, ordered
+          or recommended here or anywhere else in this product.
         </p>
       </header>
 
@@ -207,16 +233,26 @@ export function DashboardScreen(): ReactNode {
           <Skeleton height="1rem" width="70%" />
         </div>
       ) : (
-        <Alert tone={guidance.tone} toneLabel={guidance.label} title={guidance.title}>
-          <p>{guidance.body}</p>
+        /* Not an `Alert`.
+         *
+         * It was one, and it read as an error page: a saturated slab taking a fifth of the
+         * viewport to say that a role needs more questions. `Alert` is shared with the
+         * candidate app, where loud is correct — somebody is under a timer and must not miss
+         * it — so the component is right and the usage was wrong. This is a recommendation,
+         * which is a different thing: a rule of colour down the edge, a line of text, and the
+         * action. It carries `role="status"` rather than `alert`, for the same reason. */
+        <section className={`ab-guide ab-guide--${guidance.tone}`} role="status">
+          <p className="ab-guide__label">{guidance.label}</p>
+          <div className="ab-guide__body">
+            <h2 className="ab-guide__title">{guidance.title}</h2>
+            <p className="ab-guide__text">{guidance.body}</p>
+          </div>
           {guidance.action === undefined ? null : (
-            <p className="ab-dash__guidance-action">
-              <Link className="ab-button ab-button--primary" to={guidance.action.to}>
-                {guidance.action.label}
-              </Link>
-            </p>
+            <Link className="ab-button ab-button--primary ab-guide__action" to={guidance.action.to}>
+              {guidance.action.label}
+            </Link>
           )}
-        </Alert>
+        </section>
       )}
 
       <div className="ab-dash__panels">
@@ -251,7 +287,11 @@ export function DashboardScreen(): ReactNode {
           ) : (
             <ul className="ab-dash__roles">
               {readiness.map((entry) => (
-                <RoleRow key={entry.role.id} entry={entry} />
+                <RoleRow
+                  key={entry.role.id}
+                  entry={entry}
+                  skills={skillsByRole.get(entry.role.id) ?? []}
+                />
               ))}
             </ul>
           )}

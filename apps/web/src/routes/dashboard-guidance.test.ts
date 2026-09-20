@@ -77,7 +77,6 @@ describe('the one thing to do next', () => {
     });
 
     expect(guidance.title).toBe('Backend and 1 other cannot be assessed yet');
-    expect(guidance.body).toContain('A required skill has');
     expect(guidance.body.match(/SQL tuning/gu)).toHaveLength(1);
   });
 

@@ -134,7 +134,7 @@ describe('the verdict', () => {
       skill({ key: 'api.rest-design', skill_name: 'REST API design', in_band: 9, published: 9 }),
     ]);
 
-    expect(text(markup)).toContain('1 required skill has no published question in band');
+    expect(text(markup)).toContain('1 required skill has nothing published in band');
     expect(text(markup)).toContain('SQL window functions');
     // The whole point. A button that produces a 422 is worse than no button.
     expect(text(markup)).not.toContain('Compose an assessment');
@@ -150,7 +150,7 @@ describe('the verdict', () => {
     // Composable, and weaker than it looks: two candidates drawing from three questions
     // see mostly the same ones (docs/18 §3.2).
     expect(text(markup)).toContain('1 required skill is thin');
-    expect(text(markup)).toContain('largely the same ones');
+    expect(text(markup)).toContain('largely the same paper');
     expect(text(markup)).not.toContain('cannot be composed');
   });
 

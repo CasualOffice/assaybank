@@ -455,7 +455,7 @@
 /* Title and lede only: the actions moved into the page bar, where they stay reachable
    from row 200 of a long table. */
 .ab-screen__header {
-  padding-top: var(--ab-space-5);
+  padding-top: var(--ab-space-4);
 }
 
 /* 22px, not the 28px a marketing page would use. A page title in a console is a label for
@@ -479,14 +479,16 @@
 }
 
 /* Bounded, because a line of prose that runs the width of a 1,600px console is a line
-   nobody reads to the end of. */
+   nobody reads to the end of — and bounded tightly, because this is orientation read once
+   while the table under it is read for an hour. `balance` rather than `pretty`: at this size
+   `pretty` leaves a one-word last line that reads as a rendering fault. */
 .ab-screen__lede {
-  max-width: 78ch;
+  max-width: 92ch;
   margin: 0;
   color: var(--ab-text-muted);
   font-size: var(--ab-text-xs);
-  line-height: 1.5;
-  text-wrap: pretty;
+  line-height: 1.45;
+  text-wrap: balance;
 }
 
 /* Columns that are a word or a date stay on one line; the prompt is the only one that
@@ -1128,10 +1130,6 @@
   gap: var(--ab-space-2);
 }
 
-.ab-dash__guidance-action {
-  margin: var(--ab-space-3) 0 0;
-}
-
 /* --- the roles panel --- */
 
 .ab-dash__roles,
@@ -1208,5 +1206,196 @@
 
 .ab-dash__queue-rest {
   margin: 0;
+  font-size: var(--ab-text-xs);
+}
+
+/* ------------------------------------------------------- the guidance band */
+
+/* One line of advice, not an error page.
+ *
+ * Three columns on a wide screen — label, text, action — so the whole recommendation is one
+ * band about 64px tall instead of the 145px slab an Alert produced. The tone lives in a 3px
+ * rule down the leading edge and a barely-there tint, which is enough to distinguish four
+ * states and not enough to shout. A console that shouts once teaches people to skim, and the
+ * thing it shouts about here is "this role needs more questions", which is a Tuesday. */
+.ab-guide {
+  display: grid;
+  align-items: baseline;
+  gap: var(--ab-space-1) var(--ab-space-4);
+  /* Label, message, action — three columns on one row. The label had a row of its own,
+     which cost 24px per band on a screen that shows one per role. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: var(--ab-space-3) var(--ab-space-4);
+  border: 1px solid var(--ab-border);
+  border-inline-start: 3px solid var(--ab-accent);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface-raised);
+}
+
+/* Fixed width so the message starts at the same x in every band down the page: a ragged
+   left edge on stacked bands reads as three unrelated boxes rather than one column. */
+.ab-guide__label {
+  inline-size: 4.5rem;
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.ab-guide__body {
+  min-width: 0;
+}
+
+.ab-guide__title {
+  margin: 0;
+  font-size: var(--ab-text-sm);
+  font-weight: 650;
+  line-height: var(--ab-leading-tight);
+}
+
+/* Bounded and quiet: the title is the message and this is the reason behind it. */
+.ab-guide__text {
+  max-width: 88ch;
+  margin: 2px 0 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.ab-guide__action {
+  white-space: nowrap;
+}
+
+/* Tone as a rule and a tint. The tint is deliberately near-invisible in both themes — it
+   separates the band from the panels under it and does not colour the text sitting on it. */
+.ab-guide--info {
+  border-inline-start-color: var(--ab-info);
+}
+
+.ab-guide--success {
+  border-inline-start-color: var(--ab-success);
+}
+
+.ab-guide--warning {
+  border-inline-start-color: var(--ab-warning);
+  background: color-mix(in oklab, var(--ab-warning-surface) 45%, var(--ab-surface-raised));
+}
+
+.ab-guide--danger {
+  border-inline-start-color: var(--ab-danger);
+  background: color-mix(in oklab, var(--ab-danger-surface) 45%, var(--ab-surface-raised));
+}
+
+@media (max-width: 52rem) {
+  .ab-guide {
+    grid-template-columns: 1fr;
+  }
+
+  .ab-guide__label {
+    inline-size: auto;
+  }
+
+  .ab-guide__action {
+    justify-self: start;
+  }
+}
+
+/* ------------------------------------------------------- the coverage strip */
+
+/* Per required skill: the name, a bar on a fixed scale, and the count.
+ *
+ * The grid is three columns rather than a flex row so every bar in the panel starts at the
+ * same x — bars that begin at different offsets cannot be compared down a column, which is
+ * the only reason to draw them. */
+.ab-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: var(--ab-space-2);
+}
+
+/* Left-packed, not stretched.
+ *
+ * The bar was `1fr` and grew to whatever the panel was wide — 440px to express a value
+ * between 0 and 10, which wastes the space and destroys the comparison it exists to make:
+ * at that length 12 and 18 are both simply "full" and look identical. A fixed 7rem track
+ * keeps the resolution where the differences are, and the trailing `1fr` absorbs the panel's
+ * width instead of the data doing it. */
+.ab-strip__row {
+  display: grid;
+  align-items: center;
+  gap: var(--ab-space-2);
+  grid-template-columns: minmax(0, 10rem) 7rem 2rem 1fr;
+}
+
+.ab-strip__name {
+  overflow: hidden;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ab-strip__track {
+  position: relative;
+  display: block;
+  block-size: 6px;
+  border-radius: 3px;
+  /* The unfilled remainder, which is what makes a short bar read as short rather than as a
+     bar that happens to be that length. */
+  background: var(--ab-surface-sunken);
+  overflow: hidden;
+}
+
+.ab-strip__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 3px;
+  background: currentColor;
+  /* A skill with nothing still shows the track, so an empty bar is visibly empty rather
+     than visibly absent. */
+  min-inline-size: 0;
+}
+
+.ab-strip__track--danger {
+  color: var(--ab-danger);
+}
+
+.ab-strip__track--warning {
+  color: var(--ab-warning);
+}
+
+.ab-strip__track--success {
+  color: var(--ab-success);
+}
+
+/* Tabular, so a column of counts lines up on the digit rather than on the glyph width —
+   which is the whole reason a column of numbers is readable at a glance. */
+.ab-strip__count {
+  color: var(--ab-text);
+  font-size: var(--ab-text-xs);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  text-align: end;
+}
+
+.ab-strip__rest {
+  margin: 2px 0 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+/* The norm, stated quietly. See the note in `QuestionsScreen`'s status cell: a badge on
+   every row is a badge on none. */
+.ab-questions__quiet {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+.ab-roles__requirement {
+  color: var(--ab-text-muted);
   font-size: var(--ab-text-xs);
 }

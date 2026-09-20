@@ -107,9 +107,8 @@ export function guidanceFor(input: GuidanceInput): Guidance {
       tone: 'info',
       title: 'Start by saying what you are hiring for',
       body:
-        'A role is a set of skills, each with a weight and a difficulty band. It is what an ' +
-        'assessment is composed from and what the question bank is measured against — so ' +
-        'until one exists, there is nothing for the bank to be good or bad at.',
+        'A role is the set of skills an assessment is composed from, and what the bank is ' +
+        'measured against. Until one exists there is nothing for the bank to be good or bad at.',
       action: { label: 'Go to roles', to: '/roles' },
     };
   }
@@ -126,10 +125,9 @@ export function guidanceFor(input: GuidanceInput): Guidance {
       label: 'Blocked',
       tone: 'danger',
       title: `${naming(blocked)} cannot be assessed yet`,
-      body:
-        `${skills.size === 1 ? 'A required skill has' : `${String(skills.size)} required skills have`}` +
-        ' no published question inside the difficulty band the role asks for, so no assessment ' +
-        `can be composed: ${[...skills].sort((a, b) => a.localeCompare(b)).join(', ')}.`,
+      // The skills are named because they are the actionable part — the panel below shows
+      // the counts, and this says which ones to go and write.
+      body: `Nothing published in band for ${[...skills].sort((a, b) => a.localeCompare(b)).join(', ')}.`,
       action: { label: 'Add questions', to: '/questions' },
     };
   }
@@ -141,9 +139,8 @@ export function guidanceFor(input: GuidanceInput): Guidance {
       tone: 'info',
       title: `${reviewPhrase(reviewCount, reviewHasMore)} waiting for review`,
       body:
-        'A question stays out of every assessment until it is published, so a review queue ' +
-        'is the bank not growing. This is the only thing here with somebody else waiting on ' +
-        'the other end of it.',
+        'A question stays out of every assessment until somebody publishes it — and this is ' +
+        'the only thing here with a colleague waiting at the other end.',
       action: { label: 'Review them', to: '/questions' },
     };
   }
@@ -156,9 +153,8 @@ export function guidanceFor(input: GuidanceInput): Guidance {
       tone: 'warning',
       title: `${naming(thin)} can be assessed, but thinly`,
       body:
-        'There are enough questions to compose an assessment and not enough to give two ' +
-        'candidates meaningfully different ones. They will see largely the same paper, which ' +
-        'makes comparing them weaker than the scores make it look.',
+        'Enough to compose an assessment, not enough to give two candidates different ones — ' +
+        'which makes comparing them weaker than the scores make it look.',
       action: { label: 'Add questions', to: '/questions' },
     };
   }
@@ -169,9 +165,8 @@ export function guidanceFor(input: GuidanceInput): Guidance {
     tone: 'success',
     title: 'Every role you hire for can be measured',
     body:
-      'Each required skill has published questions inside its band, with enough of them to ' +
-      'draw a different set per candidate. Composing an assessment from a role arrives with ' +
-      'the assessment engine in P3.',
+      'Every required skill has enough in band to draw a different set per candidate. ' +
+      'Composing an assessment from a role arrives with the assessment engine in P3.',
     action: undefined,
   };
 }

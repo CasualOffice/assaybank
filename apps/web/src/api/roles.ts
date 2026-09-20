@@ -64,6 +64,32 @@ export function roleCoverageQuery(client: ApiClient, id: string) {
  */
 export const THIN_BAND_THRESHOLD = 5;
 
+/**
+ * The number of in-band questions a coverage bar treats as a full one.
+ *
+ * Not a rule and not a target anybody is asked to hit — a scale, so that "14" and "3" are
+ * distinguishable at a glance rather than being two numbers of similar width. Ten is roughly
+ * where drawing a different set per candidate stops being the constraint, which makes it the
+ * honest place for the bar to stop growing; beyond it, more questions help the bank and no
+ * longer change this particular judgement.
+ *
+ * A bar is capped here and the count beside it is not, so a skill with forty is shown as full
+ * and still says forty. A bar that kept growing would make the scale meaningless for
+ * everything else on the screen.
+ */
+export const COMFORTABLE_BAND_TARGET = 10;
+
+/** Where one skill sits against that scale, as a fraction between 0 and 1. */
+export function bandFill(skill: SkillCoverage): number {
+  return Math.min(skill.in_band / COMFORTABLE_BAND_TARGET, 1);
+}
+
+/** The tone a skill's coverage reads as, by the same thresholds the verdict uses. */
+export function bandTone(skill: SkillCoverage): 'danger' | 'warning' | 'success' {
+  if (skill.in_band === 0) return 'danger';
+  return skill.in_band < THIN_BAND_THRESHOLD ? 'warning' : 'success';
+}
+
 export interface CoverageVerdict {
   readonly blocked: readonly SkillCoverage[];
   readonly thin: readonly SkillCoverage[];

@@ -573,6 +573,31 @@ turns "absent" back into "resolving" for a moment. The session query sets `retry
 because a 401 will not answer differently a moment later and the flash is exactly what the
 three-state split exists to prevent.
 
+## 11b. Emphasis is a budget, and figures beat adjectives
+
+Two habits made the console read as a prototype while every screen was technically correct.
+
+**A badge on every row is a badge on none.** The question table drew a green *Published* chip
+on twenty-four rows out of twenty-five, so the one *In review* — the only row anybody needed
+to act on — had to compete with a wall of colour to be seen. The rule: **the norm is plain
+text and the exception carries the badge.** Same for *Required* on a role's skills, and same
+for the `Alert` slabs that put "ERROR" above a role needing more questions. A console that
+shouts about the ordinary teaches people to skim, and then the one thing that mattered is
+skimmed too.
+
+**A product about measurement has to show the measurements.** Coverage was rendered as
+sentences — *"thin on Dynamic programming"* — and a sentence cannot answer the question the
+reader actually has, which is *how* thin. Three and nine produce the same adjective and are a
+morning and a quarter of work respectively. Where a screen has a number, show the number;
+where a comparison down a column matters, give it a bar on a **fixed** scale, because a bar
+scaled to the largest value present redraws itself whenever the data changes and makes two
+screens incomparable. The number is the fact and the bar is the approximation — never ship
+the bar alone.
+
+Both are cheap to get wrong again, because each mistake is locally reasonable: every badge
+was added by somebody making one row clearer, and every sentence was written by somebody
+explaining one situation well.
+
 ## 11a. Console layout
 
 Two rules, because both were learned by looking at a screenshot rather than at markup.
