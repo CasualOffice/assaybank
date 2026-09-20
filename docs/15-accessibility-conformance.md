@@ -64,7 +64,8 @@ Everything outside this subset is tracked in the known-limitations register (§1
 **Verified on the console's first real screen, 2026-09-20.** The question bank list — with its
 filter toolbar, data table, loading, error and two empty states — was audited with axe-core 4.13
 against the built bundle over `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa`: **0
-violations** on `/`, `/questions`, and `/questions` with filters applied. The audit is not yet a
+violations** on `/`, `/questions`, `/questions` with filters applied, and the authoring editor in
+both its editable and its frozen state. The audit is not yet a
 CI gate — that is the `@axe-core/playwright` job of §15.1, which activates at M1 — so this is a
 point-in-time result, recorded because an unverified claim of conformance is worth less than none.
 

@@ -47,56 +47,14 @@ import {
   Table,
   Toolbar,
   useAnnounce,
-  type BadgeTone,
 } from '@assaybank/ui';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
 import { useApi } from '../api/api.js';
+import { DIFFICULTY_LABELS, KIND_LABELS, STATUS_LABELS, STATUS_TONES } from './question-labels.js';
 import { hasActiveFilters, questionsQuery, type QuestionFilters } from '../api/questions.js';
 import { toDisplayEnvelope } from '../app/ErrorBoundary.js';
-
-/** Human wording for a kind. The enum value is a database label, not a word for a screen. */
-export const KIND_LABELS: Readonly<Record<QuestionKind, string>> = {
-  mcq_single: 'Multiple choice',
-  mcq_multi: 'Multiple answer',
-  true_false: 'True / false',
-  short_answer: 'Short answer',
-  coding: 'Coding',
-  sql: 'SQL',
-  subjective: 'Written',
-  system_design: 'System design',
-};
-
-export const STATUS_LABELS: Readonly<Record<QuestionStatus, string>> = {
-  draft: 'Draft',
-  review: 'In review',
-  published: 'Published',
-  retired: 'Retired',
-};
-
-/**
- * Colour repeats the word; it never replaces it (SC 1.4.1).
- *
- * `published` is the only success: a published question is the only one a candidate can be
- * served. `retired` is a warning rather than a danger — withdrawing a question is a normal
- * act of bank maintenance (FR-4), not a failure.
- */
-export const STATUS_TONES: Readonly<Record<QuestionStatus, BadgeTone>> = {
-  draft: 'neutral',
-  review: 'info',
-  published: 'success',
-  retired: 'warning',
-};
-
-/** The difficulty band, as a word. A bare "4" means nothing without the scale beside it. */
-const DIFFICULTY_LABELS: Readonly<Record<number, string>> = {
-  1: 'Introductory',
-  2: 'Easy',
-  3: 'Moderate',
-  4: 'Hard',
-  5: 'Expert',
-};
 
 const DIFFICULTIES = Array.from(
   { length: MAX_DIFFICULTY - MIN_DIFFICULTY + 1 },

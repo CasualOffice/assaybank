@@ -141,8 +141,8 @@ and picking it up anyway is how two people end up editing the same file.
 | H-034 | P2 | JSON bank export in an open, documented shape, with CC-BY attribution preserved in the payload | worker | M0 | H-032 | FR-29, G6 | M | done | _unassigned_ |
 | H-035 | P1 | Nightly `question_stats` job computing p-value and point-biserial discrimination per question version once n ≥ 30 | worker | M0 | H-015 | FR-5 | M | done | _unassigned_ |
 | H-036 | P0 | `exposure_count` increment on attempt materialisation plus a retirement flag above a configurable threshold | api | M0 | H-030 | FR-4 | S | todo | _unassigned_ |
-| H-037 | P0 | Staff console shell: TanStack Router, auth guard, layout, shared design tokens in `packages/ui` — _partial 2026-09-20: sidebar shell with grouped navigation, router, layout and design tokens done, and the first real screen behind it; the auth guard remains_ | web | M0 | H-021 | — | M | todo | _unassigned_ |
-| H-038 | P1 | Question authoring UI: markdown prompt editor, option editor, test-case editor, explicit publish action that reads as irreversible — _partial 2026-09-20: the bank list screen is built (filters in the URL, four states, axe-clean) with the list-screen primitives in `packages/ui`; the authoring editor itself remains_ | web | M0 | H-037 | ADR-003 | L | todo | _unassigned_ |
+| H-037 | P0 | Staff console shell: TanStack Router, layout, shared design tokens in `packages/ui` — _done 2026-09-20: sidebar shell with grouped navigation from the route manifest, router with focus and title management, tokens, and the list-screen primitives. **Split:** the auth guard this row also named is now `H-177`, because it was holding `H-038` behind work that has nothing to do with the shell_ | web | M0 | H-021 | — | M | done | _unassigned_ |
+| H-038 | P1 | Question authoring UI: markdown prompt editor, option editor, test-case editor, explicit publish action that reads as irreversible — _partial 2026-09-20: the list screen and the authoring editor are built — prompt and explanation, kind-aware options, test cases and accepted answers, send-for-review and an irreversible publish, a published version read-only with the new-version path in its place. axe-clean in every state. The markdown **preview** is not built, and the sanitiser it needs is `H-173`_ | web | M0 | H-037 | ADR-003 | L | todo | _unassigned_ |
 | H-039 | P0 | Wire the licence gate against the real `pnpm-lock.yaml`, plant an AGPL fixture to prove it fails, generate the first CycloneDX SBOM | compliance | M0 | H-007, H-011 | ADR-001 | S | done | _unassigned_ |
 | H-040 | P2 | M0 exit evidence: load 200 questions tagged to at least 3 job roles and prove a lossless export/re-import round trip | docs | M0 | H-033 | M0 exit | M | todo | _unassigned_ |
 
@@ -296,59 +296,69 @@ planned.
 | H-174 | P1 | One CSV writer used by every export path, prefixing fields beginning `=`, `+`, `-`, `@`, tab or carriage return, quoting all fields and writing UTF-8 with a BOM | core-domain | M2 | — | T-039 | S | todo | _unassigned_ |
 | H-175 | P0 | `audit_log` append-only at the database level, asserted by a test attempting `UPDATE` and `DELETE` as both application roles — _built 2026-09-17: migration 0002 revokes both and `packages/db/tests/rls.test.ts` asserts it; the seven-year retention half remains_ | db | M0 | — | T-040 | S | todo | _unassigned_ |
 | H-176 | P0 | A failed staff login is byte-identical whether or not the address exists — one envelope, one message, and a dummy verify so the timing does not answer either; the same for password reset — _built 2026-09-20: `packages/auth/src/password.ts` and `apps/api/src/auth/routes.ts`, asserted in `staff-identity.test.ts`; the reset path arrives with it_ | auth | M0 | — | T-042 | S | todo | _unassigned_ |
+| H-177 | P0 | Staff console auth guard: an unresolved principal never reaches a screen — the console redirects to login rather than rendering a shell around an empty session, and a 401 from any query returns it there | web | M0 | H-037 | docs/03 §1 | S | todo | _unassigned_ |
 
 ---
 
 ## Start here — what is actually startable
 
-Priority says what may be cut. This says what to pick up **next**, in order, and it is the only
-section that changes weekly. Everything below is startable today: its dependencies are met.
+Priority says what may be cut. This says what to pick up **next**, and it is the only section that
+changes weekly. Everything below has its dependencies met today.
 
-### The critical path, in order
+**Rewritten 2026-09-20.** The version this replaces still listed the P0 foundation — `H-136`
+workspace, `H-137` ESLint layering, `H-138` workspace stubs — as the critical path. All of it
+shipped weeks earlier. A "what to do next" section that has gone stale is worse than none, because
+it is the one section a new person reads first and the only one they cannot check against the code.
 
-Each of these blocks everything after it. One person, in this sequence — this stretch does not
-parallelise, because concurrent edits to the workspace root corrupt each other.
+### The one thing that closes M0
 
-| # | Task | Why it is first |
-|---|---|---|
-| 1 | `H-110` workspace and strict `tsconfig` | Every strict flag is a one-way door. Turning them on with no code to fix costs nothing; turning them on later is a week of fixes |
-| 2 | `H-111` layering rule in ESLint | Encoded now, the first violation fails a PR. Encoded later, it fails a review six weeks of drift too late |
-| 3 | `H-112` all fourteen workspaces stubbed | Makes the dependency graph real before anything depends on it |
+`H-040` — 200 questions loaded, tagged to at least three job roles, exported and re-imported
+without loss. Every mechanism it needs now exists: the bank, the taxonomy, the two interchange
+formats, and import and export as queued jobs. What remains is the dataset work in front of it:
 
-### Then fan out — these are independent
+`H-032` dataset importers (HumanEval, MBPP, LBPP, Exercism) → `H-040` exit evidence.
 
-Once the spine exists, these have no dependency on one another and can run fully in parallel:
+`H-032` is the long pole. The formats are done and tested; what it adds is one adapter per dataset,
+each rejecting a row with no `source_license` (docs/05 §2) and preserving `external_ref`.
 
-| Track | Tasks | Owner |
-|---|---|---|
-| Config and telemetry | `H-113`, `H-114` | — |
-| Contracts and the pure domain | `H-115` → `H-116`, `H-117` | — |
-| Data and tenancy | `H-118` → `H-119` → `H-120` | — |
-| Security boundary | `H-121` | — |
-| Design system | `H-125` | — |
+### The console, now that it has a real screen
 
-### Then the services — one each
+`H-038` question authoring — the editor, the kind-specific content, and the publish action that
+makes a version immutable. It is the half of the bank that still cannot be reached from a screen.
 
-`H-122` api · `H-123` worker · `H-124` collab · `H-126` web · `H-127` + `H-128` candidate.
+`H-177` the auth guard, split out of `H-037` on 2026-09-20 because it was holding `H-038` behind
+work unrelated to the shell.
 
-### Close the phase
+`H-173` the sanitising markdown pipeline belongs with the authoring editor rather than after it: a
+prompt is author-supplied markdown that a candidate's browser renders (T-038), and retrofitting the
+sanitiser once prompts exist means auditing the ones already written.
 
-`H-129` harness → `H-130` leak suite → `H-132` CI enforcing → `H-133` prove the licence gate fails
-→ `H-134` RLS plan cost → `H-135` the clean-clone test.
+### Independent, and each worth a day
 
-`H-135` is the one that is easiest to fake and the only one that tests the actual claim. Everything
-works on the machine that built it; that is not what P0 promises.
+| Task | Why now |
+|---|---|
+| `H-019` | The expand-contract lint. Eleven migrations exist and the rule they follow is enforced by review alone |
+| `H-175` | `audit_log` append-only is already true at the database and asserted; the row remains for the seven-year retention half |
+| `H-176` | Login enumeration is already uniform; the row covers extending it to password reset when that ships |
+| `H-172` | The CI vulnerability audit. No dependency scanning runs today |
+| `H-036` | `exposure_count`, which is what makes the bank's over-exposure visible before it matters |
+
+### The security subset, once the console has a login
+
+`H-149` session cookies → `H-153` CSRF → `H-150` OIDC validation → `H-177` the guard. These are one
+track and they belong together: each is a claim about the same credential, and splitting them across
+weeks is how three of the four end up half-done.
 
 ### The three that will be skipped under pressure, and must not be
 
-- **`H-120` the generated RLS suite.** Hand-written coverage misses the one table someone forgets,
-  and that table is the leak. Generating the cases is what makes "no table was missed" true rather
-  than believed.
-- **`H-133` proving the licence gate fails.** An untested gate is decoration.
-- **`H-130` the leak suite.** It looks pointless at P0 because there is barely an API. Its value is
-  that it makes "add the leak assertion" part of how a candidate-facing endpoint gets built, rather
-  than a retrofit after a near miss.
-
+- **`H-032`'s licence rejection.** An importer that accepts a row with no `source_license` puts
+  content in the bank that nobody can prove the right to use, and it is invisible until a lawyer
+  asks. The refusal is the feature.
+- **`H-173` the markdown sanitiser.** It looks like polish until the first prompt containing a
+  `javascript:` URL is served to a candidate.
+- **`H-040` the honest round trip.** Exporting 200 questions and re-importing them into an empty
+  organisation is the only check that the bank is portable. Everything else is a unit test of a
+  part of it.
 
 ## Counts
 

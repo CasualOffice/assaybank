@@ -21,6 +21,14 @@ import { describe, expect, it } from 'vitest';
 import { ROUTE_MANIFEST, documentTitleFor, routeAnnouncementFor, routeFor } from './routes.js';
 import { routeTree } from './router.js';
 
+/**
+ * Routes reached from a screen rather than from the navigation.
+ *
+ * Written out rather than derived, so adding one is a deliberate edit here: the point of the
+ * assertion below is that a route cannot appear without somebody deciding it should.
+ */
+const DETAIL_ROUTES: readonly string[] = ['/questions/$questionId'];
+
 /** A router positioned at `initialPath`, isolated from any real history. */
 function routerAt(initialPath: string) {
   return createRouter({
@@ -30,12 +38,28 @@ function routerAt(initialPath: string) {
 }
 
 describe('the route tree', () => {
-  it('registers exactly the paths the manifest declares', () => {
+  it('registers every manifest path, and nothing outside the manifest or the detail routes', () => {
     const ids = Object.keys(routerAt('/').routesById).filter((id) => id !== '__root__');
 
-    // Both directions: a route with no manifest entry would render a screen nothing
-    // describes, and a manifest entry with no route would render a nav link to nowhere.
-    expect(ids.sort()).toEqual(ROUTE_MANIFEST.map((route) => route.path).sort());
+    // Both directions still matter: a navigation route with no manifest entry would render a
+    // screen nothing describes, and a manifest entry with no route would render a nav link to
+    // nowhere.
+    //
+    // Detail routes are the deliberate exception. `/questions/$questionId` is reached from a
+    // row, not from the sidebar, and a manifest entry for it would be a navigation link to
+    // somebody's question — so it is listed here instead, which keeps the assertion closed.
+    const expected = [...ROUTE_MANIFEST.map((route) => route.path), DETAIL_ROUTES].flat();
+
+    expect(ids.sort()).toEqual(expected.sort());
+  });
+
+  it('keeps every detail route under the section it belongs to', () => {
+    // A detail route that is not a child path of its section would leave the sidebar with
+    // nothing current while it is open, and Back would not return to the list.
+    for (const path of DETAIL_ROUTES) {
+      const section = path.slice(0, path.indexOf('/', 1));
+      expect(ROUTE_MANIFEST.map((r) => r.path)).toContain(section);
+    }
   });
 
   it('has a root route that every screen renders inside', () => {

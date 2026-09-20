@@ -15,10 +15,21 @@
  */
 
 import {
+  AuthorQuestionSchema,
+  AuthorQuestionVersionSchema,
   QUESTIONS_PATH,
+  QUESTION_PATH,
+  QUESTION_VERSIONS_PATH,
+  QUESTION_VERSION_PATH,
+  QUESTION_VERSION_PUBLISH_PATH,
   QuestionListResponseSchema,
+  QuestionVersionListResponseSchema,
+  type AuthorQuestionVersionView,
+  type AuthorQuestionView,
   type ListQuestionsQuery,
+  type PatchQuestion,
   type QuestionListResponse,
+  type QuestionVersionListResponse,
 } from '@assaybank/contracts';
 import { queryOptions } from '@tanstack/react-query';
 
@@ -89,4 +100,96 @@ export function hasActiveFilters(filters: QuestionFilters): boolean {
     filters.status !== undefined ||
     filters.difficulty !== undefined
   );
+}
+
+/**
+ * A version body: the fields the author changed, and nothing else.
+ *
+ * Deliberately not `QuestionVersionInput`. That type has every field optional — it describes the
+ * patch the *server* accepts — so as a client-side type it would accept a misspelled key as an
+ * absent one. The server parses the real schema and rejects an unknown key (docs/17 §3), which is
+ * where that check belongs.
+ */
+export type VersionPatch = Record<string, unknown>;
+
+/** One question with its current version expanded — `GET /questions/{id}`. */
+export function questionQuery(client: ApiClient, id: string) {
+  return queryOptions<AuthorQuestionView>({
+    queryKey: ['question', id],
+    queryFn: ({ signal }) =>
+      client.request(QUESTION_PATH.replace('{id}', id), {
+        schema: AuthorQuestionSchema,
+        signal,
+      }),
+  });
+}
+
+/** Every version of a question, newest first — the history panel. */
+export function questionVersionsQuery(client: ApiClient, id: string) {
+  return queryOptions<QuestionVersionListResponse>({
+    queryKey: ['question', id, 'versions'],
+    queryFn: ({ signal }) =>
+      client.request(QUESTION_VERSIONS_PATH.replace('{id}', id), {
+        schema: QuestionVersionListResponseSchema,
+        signal,
+      }),
+  });
+}
+
+/**
+ * Writes a new version of a question — `POST /questions/{id}/versions`.
+ *
+ * The body is a patch over the previous version (docs/03 §4), so a field the author did not
+ * touch is not sent and is copied forward byte for byte. Sending the whole form back would
+ * introduce differences nobody asked for into a history whose point is answering "what
+ * changed between version 3 and version 4".
+ */
+export function createVersionRequest(
+  client: ApiClient,
+  id: string,
+  body: VersionPatch,
+): Promise<AuthorQuestionVersionView> {
+  return client.request(QUESTION_VERSIONS_PATH.replace('{id}', id), {
+    schema: AuthorQuestionVersionSchema,
+    method: 'POST',
+    body,
+  });
+}
+
+/** Edits an unpublished version in place — `PATCH /questions/{id}/versions/{v}`. */
+export function updateVersionRequest(
+  client: ApiClient,
+  id: string,
+  versionNo: number,
+  body: VersionPatch,
+): Promise<AuthorQuestionVersionView> {
+  return client.request(
+    QUESTION_VERSION_PATH.replace('{id}', id).replace('{v}', String(versionNo)),
+    { schema: AuthorQuestionVersionSchema, method: 'PATCH', body },
+  );
+}
+
+/** Freezes a version and makes it the one candidates are served. Irreversible (ADR-003). */
+export function publishVersionRequest(
+  client: ApiClient,
+  id: string,
+  versionNo: number,
+): Promise<AuthorQuestionVersionView> {
+  return client.request(
+    QUESTION_VERSION_PUBLISH_PATH.replace('{id}', id).replace('{v}', String(versionNo)),
+    { schema: AuthorQuestionVersionSchema, method: 'POST' },
+  );
+}
+
+/** Moves a question through its lifecycle — `PATCH /questions/{id}`. */
+export function patchQuestionRequest(
+  client: ApiClient,
+  id: string,
+  body: PatchQuestion,
+): Promise<AuthorQuestionView> {
+  return client.request(QUESTION_PATH.replace('{id}', id), {
+    schema: AuthorQuestionSchema,
+    method: 'PATCH',
+    body,
+  });
 }

@@ -93,6 +93,15 @@
   box-shadow: inset 0 0 0 1px var(--ab-danger);
 }
 
+/* Read-only is not disabled: the control stays focusable and its text stays selectable and
+   copyable, which is what an author wants on a frozen version. It reads as inert because the
+   ground changes, and the screen says why above it. */
+.ab-input[readonly],
+.ab-input[readonly]:focus {
+  background: var(--ab-surface-sunken);
+  cursor: default;
+}
+
 .ab-input:disabled {
   background-color: var(--ab-surface-sunken);
   color: var(--ab-text-muted);

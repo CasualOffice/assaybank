@@ -245,7 +245,14 @@ enforce it, and each must have a named test.
   strands the job, one sent before a rollback runs a job with no request behind it. Write the job row
   in the request's transaction and let a relay claim committed rows (ADR-021). A job that writes
   many items advances its checkpoint in the transaction that writes each one, so a retry resumes.
-- **A list screen's filters, sort and page live in the URL, not in component state.** A filtered
+- **A screen never offers an action the API will refuse.** The state machine is the contract, so the
+controls follow it: a draft question offers "Send for review" and a question in review offers
+"Publish", because `POST …/publish` against a draft answers `409` and an author cannot act on that
+from the screen they are on. The same rule makes a published version read-only in the editor rather
+than letting the author type and meet `version_immutable` afterwards — the invariant is upheld
+either way, and only one of the two tells them in time.
+
+**A list screen's filters, sort and page live in the URL, not in component state.** A filtered
 view that cannot be sent to a colleague, survive a refresh, or be undone with the browser's Back
 button is three bugs, and they are all the same bug. Parse the query string at the route with the
 same suspicion as a request body (§1): a user can type `?difficulty=banana`, and that has to

@@ -15,7 +15,7 @@
 | **Current milestone** | M0 Question bank — P1 complete, P2 three of six tracks complete |
 | **Next milestone** | M1 Async MCQ assessment, phase P3 |
 | **Overall RAG** | amber |
-| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,381 tests**, 0 failing, 0 skipped |
+| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,395 tests**, 0 failing, 0 skipped |
 | **Schedule** | amber — ahead of the re-baselined plan (P0 and P1 are complete before their planned start of 2026-09-21), but the 25-week baseline is still unsigned (OQ-015) and build pace so far says little about the judgement-heavy phases ahead |
 | **Scope** | green — no changes to PRD §6 |
 | **Risk** | amber — eight high risks open, three of them the same question-bank problem (R-03, R-04, R-13) |
@@ -25,7 +25,7 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## Shipped this period (2026-09-15 → 2026-09-17)
 
-**Application code now exists.** 56 of 175 backlog tasks are done, reconciled against the code.
+**Application code now exists.** 57 of 177 backlog tasks are done, reconciled against the code.
 
 - **P0 foundation** — fourteen workspaces, strict TypeScript, lint-enforced layering, CI enforcing, MPL-2.0 with a header gate, the licence gate proven to fail on a planted AGPL dependency
 - **P1 tenancy, identity and audit** — per-checkout org context proven by an interleaved test, RLS proven per table against real Postgres, OIDC and password login, per-action permissions with a route-enumeration test, append-only audit at the database
@@ -35,6 +35,7 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 - **Two silent data defects found by the round trip** — short-answer keys were read back in heap order (no `ORDER BY`, invisible on fresh data), and scores took a third decimal place that PostgreSQL rounded away, while `max_score: 10000` overflowed its column and answered 500. Fixed with migration 0009 and column-exact bounds, each with a test proven to fail first
 - **`make migrate && make seed` now stands an installation up** — the permission catalogue, the five roles of the PRD's personas and a starter taxonomy, written as the owner and idempotent. Writing it found that `UNIQUE (org_id, key)` never constrained the global rows at all, because PostgreSQL treats NULLs as distinct: two copies of every shared skill and role were accepted. Migration 0011 closes it
 - **The console has its first real screen** — the question bank, against the live API: a sidebar shell with grouped navigation, filters that live in the URL, and four distinct states including two different empty ones. axe-core reports 0 WCAG 2.2 AA violations across the routes. Building it found two defects it would otherwise have shipped: the prompt excerpt stripped the `*` from `count(*)`, and focus was stolen on first page load
+- **Question authoring is on screen** — the editor, with content that follows the kind (options, test cases, accepted answers) and the two lifecycle actions the state machine actually allows. A published version is read-only and says why, with "Save as new version" where the disabled controls are: ADR-003 is told to the author before they type, not afterwards as a 409
 - **CI green for the first time** — it had been red since the first push without being checked
 
 ## In progress

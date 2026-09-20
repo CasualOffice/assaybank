@@ -19,6 +19,15 @@
 export type ConsolePath = '/' | '/questions' | '/assessments' | '/candidates';
 
 /**
+ * A route that is reached from another screen rather than from the navigation.
+ *
+ * It has no sidebar entry and no manifest row: the manifest is the navigation, and a detail
+ * screen in it would be a link to somebody's question. The shell's `aria-current` therefore
+ * stays on `/questions` while a question is open, which is what a user expects.
+ */
+export const QUESTION_DETAIL_PATH = '/questions/$questionId';
+
+/**
  * The sidebar sections, in the order they appear.
  *
  * A flat list of four items needs no grouping; a console's navigation is never four items

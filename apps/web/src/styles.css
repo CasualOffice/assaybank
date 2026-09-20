@@ -442,3 +442,209 @@
   justify-content: flex-end;
   gap: var(--ab-space-2);
 }
+
+/* ---------------------------------------------------------------------- editor */
+
+/* A wide column for the content and a narrow one for the settings. The prompt is what the
+   author is writing; difficulty and timing are what they set once. */
+.ab-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: var(--ab-space-6);
+  align-items: start;
+}
+
+@media (max-width: 64rem) {
+  .ab-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ab-editor__main,
+.ab-editor__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-4);
+  min-width: 0;
+}
+
+.ab-editor__side {
+  padding: var(--ab-space-4);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface-raised);
+}
+
+.ab-editor__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ab-space-2);
+  margin: var(--ab-space-2) 0 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+.ab-editor__prompt {
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-sm);
+}
+
+.ab-editor__block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ab-space-3);
+  padding: var(--ab-space-4);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface-raised);
+}
+
+.ab-editor__block-heading {
+  margin: 0;
+  font-size: var(--ab-text-base);
+  font-weight: 650;
+}
+
+.ab-editor__block-note,
+.ab-editor__note {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  text-wrap: pretty;
+}
+
+.ab-editor__count {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ab-editor__confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-space-2);
+  margin: var(--ab-space-3) 0 0;
+}
+
+.ab-editor__provenance h2 {
+  margin: 0 0 var(--ab-space-1);
+  font-size: var(--ab-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+.ab-editor__provenance p {
+  margin: 0 0 var(--ab-space-2);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+}
+
+/* A back link that is a button, because it goes back in history rather than to a URL. */
+.ab-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  margin-bottom: var(--ab-space-1);
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--ab-text-muted);
+  font: inherit;
+  font-size: var(--ab-text-xs);
+  cursor: pointer;
+}
+
+.ab-back:hover {
+  color: var(--ab-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.ab-back:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 2px;
+  border-radius: var(--ab-radius-sm);
+}
+
+/* ---------------------------------------------------------------------- editable rows */
+
+.ab-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ab-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-space-3);
+  padding: var(--ab-space-2);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  background: var(--ab-surface);
+}
+
+.ab-row--stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.ab-row__head {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-space-3);
+}
+
+.ab-row__pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--ab-space-3);
+}
+
+.ab-row__io {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-1);
+  font-size: var(--ab-text-xs);
+  color: var(--ab-text-muted);
+}
+
+/* The checkbox and its word are one target (SC 2.5.8), and the word is the label rather
+   than a tooltip on an icon. */
+.ab-row__mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ab-space-2);
+  min-height: var(--ab-target-min);
+  white-space: nowrap;
+  font-size: var(--ab-text-xs);
+  color: var(--ab-text-muted);
+}
+
+.ab-row__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ab-row__body .ab-input {
+  width: 100%;
+}
+
+.ab-row__match .ab-select {
+  min-width: 12rem;
+}
+
+.ab-mono {
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+}

@@ -25,6 +25,7 @@ import {
 } from '@assaybank/contracts';
 
 import { type QuestionFilters } from '../api/questions.js';
+import { QuestionEditor } from '../routes/QuestionEditor.js';
 import { QuestionsScreen } from '../routes/QuestionsScreen.js';
 import { AppShellLayout } from './AppShell.js';
 import { ErrorEnvelopeView, toDisplayEnvelope } from './ErrorBoundary.js';
@@ -292,10 +293,40 @@ const candidatesRoute = createRoute({
   component: screenFor('/candidates'),
 });
 
+/**
+ * One question, open for authoring.
+ *
+ * A child path of `/questions` rather than a sibling, so the sidebar keeps `/questions` current
+ * while a question is open and Back returns to the list with its filters intact — they are in
+ * the URL the browser is returning to.
+ */
+function QuestionDetailScreen(): ReactNode {
+  const { questionId } = questionDetailRoute.useParams();
+
+  return (
+    <QuestionEditor
+      questionId={questionId}
+      onBack={() => {
+        // `history.back()` rather than a link to `/questions`: the list's filters live in the
+        // URL, so going back restores them, and navigating forward to a bare `/questions`
+        // would silently clear them.
+        globalThis.history.back();
+      }}
+    />
+  );
+}
+
+const questionDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/questions/$questionId',
+  component: QuestionDetailScreen,
+});
+
 /** The route tree. Exported so a test can build a router with a memory history. */
 export const routeTree = rootRoute.addChildren([
   dashboardRoute,
   questionsRoute,
+  questionDetailRoute,
   assessmentsRoute,
   candidatesRoute,
 ]);

@@ -25,13 +25,8 @@ import { describe, expect, it } from 'vitest';
 import { ApiClient } from '../api/client.js';
 import { ApiProvider } from '../api/api.js';
 import { questionsQueryKey, type QuestionFilters } from '../api/questions.js';
-import {
-  excerpt,
-  KIND_LABELS,
-  QuestionsScreen,
-  STATUS_LABELS,
-  STATUS_TONES,
-} from './QuestionsScreen.js';
+import { KIND_LABELS, STATUS_LABELS, STATUS_TONES } from './question-labels.js';
+import { excerpt, QuestionsScreen } from './QuestionsScreen.js';
 
 /** One summary row, with the fields the screen actually reads. */
 function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
