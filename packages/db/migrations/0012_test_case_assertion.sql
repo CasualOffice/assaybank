@@ -46,8 +46,14 @@
 -- this field to be added to (invariant 7).
 -- ============================================================
 
+-- `IF NOT EXISTS`, like every other statement in this directory. The runner's
+-- contract is that a migration file can be replayed by hand against a database
+-- that already has the shape -- which is exactly what the local stack produces,
+-- because `infra/postgres/init` bootstraps the table shapes from the documented
+-- DDL and `make migrate` then runs over the top of them. Without the guard,
+-- `make up && make migrate` fails on a clean machine.
 ALTER TABLE test_cases
-    ADD COLUMN assertion_code text;
+    ADD COLUMN IF NOT EXISTS assertion_code text;
 
 COMMENT ON COLUMN test_cases.assertion_code IS
     'Unit-test source for this case, exercising the candidate submission. '

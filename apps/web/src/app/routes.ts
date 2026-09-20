@@ -75,10 +75,13 @@ export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
     section: 'Overview',
     title: 'Dashboard',
     summary: 'What needs attention: open reviews, running assessments, recent activity.',
-    phase: 'P2',
+    // Built 2026-09-20. The phase note describes what is still to come here rather than
+    // what is missing — the manifest's `phase`/`phaseNote` are only rendered by the
+    // placeholder, and this route no longer has one.
+    phase: 'P3',
     phaseNote:
-      'P2 fills this with the question bank’s counts; P3 adds attempt activity and the ' +
-      'review queue once there are attempts to have activity.',
+      'P2 built it: the one thing to do next, role readiness, and the review queue. P3 ' +
+      'adds attempt activity and the review queue for attempts, once there are attempts.',
   },
   {
     path: '/questions',

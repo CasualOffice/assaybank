@@ -1072,3 +1072,141 @@
 .ab-account__signout {
   align-self: flex-start;
 }
+
+/* ---------------------------------------------------------------- dashboard */
+
+/* Two panels side by side above 60rem and stacked below it. Not a grid of equal cards:
+   the roles panel is the one the flow hangs off, so it takes the wider column and keeps
+   its position — a layout whose columns reorder at a breakpoint is a layout somebody has
+   to re-read on a laptop. */
+.ab-dash__panels {
+  display: grid;
+  gap: var(--ab-space-4);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 60rem) {
+  .ab-dash__panels {
+    grid-template-columns: 3fr 2fr;
+  }
+}
+
+.ab-dash__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-3);
+  padding: var(--ab-space-4);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface-raised);
+}
+
+.ab-dash__panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ab-space-3);
+}
+
+/* 15px. A panel heading names a region; it is not a second page title competing with the
+   one above it. */
+.ab-dash__panel-title {
+  margin: 0;
+  font-size: var(--ab-text-sm);
+  font-weight: 650;
+  letter-spacing: -0.006em;
+}
+
+.ab-dash__more {
+  font-size: var(--ab-text-xs);
+  white-space: nowrap;
+}
+
+.ab-dash__guidance-loading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+}
+
+.ab-dash__guidance-action {
+  margin: var(--ab-space-3) 0 0;
+}
+
+/* --- the roles panel --- */
+
+.ab-dash__roles,
+.ab-dash__queue {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  gap: var(--ab-space-3);
+  list-style: none;
+}
+
+.ab-dash__role {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-1);
+  padding-bottom: var(--ab-space-3);
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.ab-dash__role:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.ab-dash__role-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ab-space-2);
+}
+
+.ab-dash__role-title {
+  font-size: var(--ab-text-sm);
+  font-weight: 600;
+}
+
+/* Two lines at most in practice, and bounded regardless: the verdict is a glance, and a
+   paragraph that wraps four times is not glanced at. */
+.ab-dash__role-line {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* --- the review queue --- */
+
+.ab-dash__queue {
+  gap: var(--ab-space-2);
+}
+
+.ab-dash__queue-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* One line, clipped. The full prompt is on the question; a queue whose rows wrap to three
+   lines shows two questions where it meant to show five. */
+.ab-dash__queue-link {
+  overflow: hidden;
+  font-size: var(--ab-text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ab-dash__queue-meta {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+.ab-dash__queue-rest {
+  margin: 0;
+  font-size: var(--ab-text-xs);
+}

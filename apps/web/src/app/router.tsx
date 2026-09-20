@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-router';
 import { useEffect, useRef, type ReactNode } from 'react';
 
+import { DashboardScreen } from '../routes/DashboardScreen.js';
 import { Placeholder } from '../routes/Placeholder.js';
 import {
   MAX_DIFFICULTY,
@@ -229,7 +230,9 @@ function screenFor(path: ConsolePath): () => ReactNode {
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: screenFor('/'),
+  // No adapter: the dashboard takes no parameters and holds no filter, so it reads its own
+  // server state and there is nothing about the URL for it to know.
+  component: DashboardScreen,
 });
 
 /**

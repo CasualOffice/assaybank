@@ -32,8 +32,11 @@
 -- without a table rewrite.
 -- ============================================================
 
+-- `IF EXISTS`, so the file replays against a database whose shape already
+-- matches -- the local stack bootstraps table shapes from the documented DDL
+-- before `make migrate` runs. See the note in 0012.
 ALTER TABLE bank_jobs
-    DROP CONSTRAINT bank_jobs_format_check;
+    DROP CONSTRAINT IF EXISTS bank_jobs_format_check;
 
 ALTER TABLE bank_jobs
     ADD CONSTRAINT bank_jobs_format_check
@@ -42,6 +45,9 @@ ALTER TABLE bank_jobs
 -- An export is still one of ours. The constraint above admits six values for the
 -- column; this one says which of them an export row may carry, so a dataset format
 -- cannot reach an export path through a route nobody re-checked.
+ALTER TABLE bank_jobs
+    DROP CONSTRAINT IF EXISTS bank_jobs_export_format_check;
+
 ALTER TABLE bank_jobs
     ADD CONSTRAINT bank_jobs_export_format_check
     CHECK (kind <> 'export' OR format IN ('json', 'qti'));

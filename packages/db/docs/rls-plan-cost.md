@@ -218,6 +218,19 @@ one thing worth watching is width rather than cost: an imported unit-test bank p
 bytes of Python on every case row, so a version with two hundred cases carries more heap than the
 same version did in `test_cases` mode. Nothing was re-measured.
 
+Migrations 0012 and 0013 were edited again on 2026-09-20 to guard their statements — `ADD COLUMN
+IF NOT EXISTS` and `DROP CONSTRAINT IF EXISTS` — so the files replay against a database the local
+bootstrap has already given that shape (docs/14 T-043). The resulting schema is byte-identical
+either way: a guard changes whether a statement runs, never what it produces. No policy, index or
+predicate changed and nothing was re-measured.
+
+Also on 2026-09-20, `infra/postgres/init/04-partitions.sql` began enabling row-level security on
+each partition of `session_events` and `proctor_events`, with no policy of its own. That is not a
+policy change to anything captured here, and it is worth one line because it looks like one: a
+partition's own policies apply **only** to a query that names the partition directly, and every
+query in this document reaches those tables through the parent, where the parent's policy governs
+exactly as it did before. Verified against the database rather than assumed.
+
 Migration 0009 (2026-09-17) adds a nullable `ordinal` column to `short_answer_keys` and changes no
 policy. The table is not on the gated list; its read now sorts by `ordinal NULLS LAST, id` over the
 handful of keys one version carries, which is not a plan whose cost scales.

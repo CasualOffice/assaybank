@@ -498,6 +498,18 @@ browser stops volunteering `Origin`, and a double-submit token disappears if any
 victim's cookies. That second failure is exactly the one `__Host-` removes, which is why the two
 halves were built together rather than one being judged sufficient.
 
+## 7b. A path CI does not take is a path only your colleagues test
+
+`make up && make migrate` is the documented way to get a working database, and on 2026-09-20 it had been broken on a clean machine in three separate ways — a missing policy, an unguarded `ADD COLUMN`, an unguarded `DROP CONSTRAINT` — while every test in the repository was green. Nothing in CI runs container init: the integration suites use testcontainers and apply migrations to an empty database, which exercises the half that was fine and never the half that was not.
+
+Two things follow, and the second is the one worth remembering.
+
+**Where two artefacts describe the same thing, something has to compare them.** `infra/postgres/init/` and `packages/db/migrations/` both create tables, deliberately, and the overlap is only safe while both sides stay guarded. `packages/db/src/bootstrap-drift.test.ts` reads both as text and asserts the properties that make the overlap safe — every bootstrap table has a policy, every `ADD COLUMN` is `IF NOT EXISTS`, every `ADD CONSTRAINT` has a guard. It needs no database and runs in the unit suite, which is the point: the guard for the path CI does not take has to live on a path CI does take.
+
+**When a check you did not write refuses your change, read it before you route around it.** The migration's RLS completeness check failed, and the tempting move was to add the table to its exemption list and get on with the day. The check was right twice over — it had found a table created without a policy, and then it had found that PostgreSQL counts a partition as a table and a partition does not inherit its parent's row-level security. Both were real cross-tenant reads. A gate that is inconvenient is usually a gate that is working.
+
+The residue of that second one is worth stating plainly, because it is a property of the database and not of this codebase: **a partition's own row-level security governs a direct query on it, and the parent's governs a query through the parent.** Enabling RLS on a partition with no policy denies direct access and changes nothing about access through the parent. That was established by running it, not by reading about it, and the transcript is in the T-043 entry of [`14-threat-model.md`](14-threat-model.md).
+
 ## 9a. A citation in a comment is code, and it rots like code
 
 A task id written into a comment to explain *why* code behaves a certain way is a reference the

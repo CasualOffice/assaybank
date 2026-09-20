@@ -154,6 +154,24 @@ BEGIN
         'CREATE TABLE %I PARTITION OF %I FOR VALUES FROM (%L) TO (%L)',
         v_name, p_parent, v_start, v_end);
 
+    -- Deny-all on the partition itself, and it has to be said here rather than
+    -- inherited, because a partition does not inherit its parent's row-level
+    -- security.
+    --
+    -- Postgres applies the *parent's* policies to rows reached through the
+    -- parent, and a partition's own policies when the partition is named
+    -- directly. A partition with RLS off is therefore a way round the parent's
+    -- policy for anyone who can write its name -- and the names here are
+    -- mechanical, `session_events_y2026m09`, so guessing one is not a feat.
+    -- Enabling RLS with no policy denies every direct read and write; access
+    -- through the parent is unaffected, because the parent's policy is what
+    -- runs there.
+    --
+    -- Invariant 8 and migration 0002's completeness check, which is what found
+    -- this: the check counts partitions, because Postgres counts them as
+    -- tables in `public`, and it was right to.
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', v_name);
+
     RETURN v_name;
 END
 $fn$;
@@ -169,6 +187,13 @@ COMMENT ON FUNCTION public.ensure_event_partition(text, date) IS
 -- has fallen behind.
 CREATE TABLE session_events_default PARTITION OF session_events DEFAULT;
 CREATE TABLE proctor_events_default PARTITION OF proctor_events DEFAULT;
+
+-- Deny-all on the two defaults, for the reason given in ensure_event_partition
+-- above: a partition does not inherit its parent's row-level security, and a
+-- partition without it is a way round the parent's policy for anyone who can
+-- name it. The default partition is the one whose name is easiest to guess.
+ALTER TABLE session_events_default ENABLE ROW LEVEL SECURITY;
+ALTER TABLE proctor_events_default ENABLE ROW LEVEL SECURITY;
 
 -- Twelve months, starting the month the project starts (2026-09-21) and
 -- running through 2027-08. Twelve is deliberate overshoot: the rotation job

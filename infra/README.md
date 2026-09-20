@@ -142,6 +142,22 @@ docker compose --profile observability up -d
 #    Mailpit: http://localhost:8025
 ```
 
+**Step 5 is where drift shows up, and that is what it is for.** The init chain and
+`packages/db/migrations` both create tables, so both sides are written guarded — `IF NOT
+EXISTS`, `DROP CONSTRAINT IF EXISTS`, a `pg_constraint` lookup — and whichever runs first
+wins. When `make migrate` refuses here it is usually because that guarding lapsed on one
+side, and the error names the table. Three such lapses were fixed on 2026-09-20 (docs/14
+T-043); `packages/db/src/bootstrap-drift.test.ts` now catches the two static shapes in the
+unit suite, before anyone gets this far.
+
+The one it cannot catch is the partitions of `session_events` and `proctor_events`: their
+names do not exist until `04-partitions.sql` runs. Each is created with row-level security
+enabled and no policy of its own, which denies a query naming the partition directly and
+leaves queries through the parent alone — a partition does **not** inherit its parent's
+policies, so without this a generated table name is a way round tenant isolation. The
+completeness check at the end of `03-rls.sql`, and again in migration 0002, is what enforces
+it.
+
 Verify by hand:
 
 ```sh

@@ -141,6 +141,22 @@ CREATE POLICY org_isolation ON audit_log
 -- counterweight to hiring_job's BYPASSRLS (see 01-roles.sql).
 REVOKE UPDATE, DELETE ON audit_log FROM :"app_role", :"job_role";
 
+-- bank_jobs — import and export requests and their outbox state (migration
+-- 0010, ADR-021). An ordinary Group A table: it carries org_id and the policy
+-- walks nothing.
+--
+-- It is the worker's queue as well as a tenant's record, and the worker reads
+-- it across every organisation. That crossing does not happen through this
+-- policy: it happens through public.claim_bank_jobs(), a SECURITY DEFINER
+-- function that returns two columns — the id and the org_id — and nothing of
+-- the job's content. Everything the worker then reads or writes happens inside
+-- withOrg(org_id), under the policy below. See migration 0010 for the full
+-- argument and for the function itself, which this bootstrap does not create.
+ALTER TABLE bank_jobs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY org_isolation ON bank_jobs
+    USING (org_id = public.app_current_org())
+    WITH CHECK (org_id = public.app_current_org());
+
 -- --- A.3 org_id NULLABLE -------------------------------------
 -- Two tables carry a nullable org_id, where NULL means "global, shared by
 -- every tenant": the system role definitions and the global skill taxonomy.
