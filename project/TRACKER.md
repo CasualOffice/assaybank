@@ -144,7 +144,7 @@ and picking it up anyway is how two people end up editing the same file.
 | H-037 | P0 | Staff console shell: TanStack Router, layout, shared design tokens in `packages/ui` — _done 2026-09-20: sidebar shell with grouped navigation from the route manifest, router with focus and title management, tokens, and the list-screen primitives. **Split:** the auth guard this row also named is now `H-177`, because it was holding `H-038` behind work that has nothing to do with the shell_ | web | M0 | H-021 | — | M | done | _unassigned_ |
 | H-038 | P1 | Question authoring UI: markdown prompt editor, option editor, test-case editor, explicit publish action that reads as irreversible — _done 2026-09-20: the list screen and the authoring editor — prompt and explanation with Write/Preview tabs, kind-aware options, test cases and accepted answers, send-for-review and an irreversible publish, a published version read-only with the new-version path in its place. The markdown preview landed with `H-173` on the same day and reports refused content to the author. axe-clean in every state, preview included_ | web | M0 | H-037 | ADR-003 | L | done | _unassigned_ |
 | H-039 | P0 | Wire the licence gate against the real `pnpm-lock.yaml`, plant an AGPL fixture to prove it fails, generate the first CycloneDX SBOM | compliance | M0 | H-007, H-011 | ADR-001 | S | done | _unassigned_ |
-| H-040 | P2 | M0 exit evidence: load 200 questions tagged to at least 3 job roles and prove a lossless export/re-import round trip | docs | M0 | H-033 | M0 exit | M | todo | _unassigned_ |
+| H-040 | P2 | M0 exit evidence: load 200 questions tagged to at least 3 job roles and prove a lossless export/re-import round trip — _done 2026-09-20 as a test rather than as a seeded staging database: `apps/worker/test/integration/m0-exit.integration.test.ts` runs the real dataset reader, the real import job and a real PostgreSQL on every build, so the criterion is either true now or red. Found while writing it: an export-to-export round trip is blind to a field the exporter drops, so a sixth assertion reads the importing organisation's database directly_ | docs | M0 | H-033 | M0 exit | M | done | _unassigned_ |
 
 ## M1 — Async MCQ assessment (phase P3)
 
@@ -362,12 +362,13 @@ tedious path through the product and the mechanism by which a bank fills with ne
 datasets, and `grading_mode = 'unit_tests'` had no semantics. `H-190` settled it (ADR-024) so the
 adapters have a shape to write into; the adapters themselves are next.
 
-`H-032` closed on 2026-09-20. **`H-040` is now the only thing between here and the M0 exit**: load
-200 questions tagged to at least three job roles, and prove a lossless export and re-import. Every
-mechanism it needs exists — the importers, both interchange formats, the taxonomy, the roles.
+**M0's exit criterion is met** (`H-040`, 2026-09-20) — 200 questions loaded, three roles covered, and
+the round trip proved, all as a test that runs on every build. What is left in M0 is scope rather
+than the exit bar: `H-177` the console's auth guard, `H-184` near-duplicate detection, `H-036`
+`exposure_count`, `H-019` the expand-contract lint, `H-172` the vulnerability audit.
 
-`H-184` near-duplicate detection is the other one startable today, and it matters more now that one
-upload can put a thousand rows in at once. Everything from `H-179`
+`H-177` is the one that decides whether the console can be shown to anyone outside the team, and
+`H-184` matters more now that one upload can put a thousand rows in at once. Everything from `H-179`
 onwards waits on the assessment engine in P3.
 
 ### The console, which can now read and write the bank
@@ -416,12 +417,12 @@ weeks is how three of the four end up half-done.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 45 | 23 | 24 | 21 |
+| M0 | P1–P2 | 45 | 23 | 25 | 20 |
 | M1 | P3 | 37 | 19 | 0 | 37 |
 | M2 | P4 | 32 | 15 | 0 | 32 |
 | M3 | P5 | 16 | 4 | 0 | 16 |
 | M4 | P6 | 21 | 5 | 0 | 21 |
-| **Total** | | **190** | **102** | **62** | **128** |
+| **Total** | | **190** | **102** | **63** | **127** |
 
 Counted from the rows above on 2026-09-20, not carried forward. The twelve rows added that
 afternoon are the guided flow: `H-178` to `H-189`, from reading the console back as a product

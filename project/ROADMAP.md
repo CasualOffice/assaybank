@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`MILESTONES.md`](MILESTONES.md), [`P0-FOUNDATION-PLAN.md`](P0-FOUNDATION-PLAN.md), [`TRACKER.md`](TRACKER.md), [`DEFINITION-OF-DONE.md`](DEFINITION-OF-DONE.md), [`../docs/17-engineering-standards.md`](../docs/17-engineering-standards.md), [`../docs/02-HLD.md`](../docs/02-HLD.md), [`../CODE-GRAPH.md`](../CODE-GRAPH.md)
 
 ---
@@ -272,6 +272,13 @@ Over-abstracting auth: one identity provider, one session store, no plugin archi
 
 **Goal.** The PRD's M0: 200 questions loaded, tagged to at least three job roles, exportable and
 re-importable without loss.
+
+**The goal is met, 2026-09-20** (`H-040`), and it is met as a test that runs on every build rather
+than as a number somebody once read off a staging database —
+`apps/worker/test/integration/m0-exit.integration.test.ts`, recorded with its evidence in
+[`MILESTONES.md`](MILESTONES.md). What remains in P2 is scope rather than the exit bar: the
+console's auth guard (`H-177`), near-duplicate detection (`H-184`), `exposure_count` maintenance
+(`H-036`), the expand-contract lint (`H-019`) and the CI vulnerability audit (`H-172`).
 
 **Entry gate.** P1 signed.
 
