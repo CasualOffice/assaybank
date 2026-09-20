@@ -398,6 +398,20 @@ Explicitly not allowed, each because it has a specific failure mode here:
 
 ---
 
+## 2a. A new workspace package lands in `tsconfig.base.json` too
+
+`pnpm-workspace.yaml` picks a new package up from a glob, which is what makes adding one cheap —
+and is also why the second step gets forgotten. Its entry in `tsconfig.base.json`'s `paths` map is
+what lets lint and typecheck resolve it **to source**. Without it they resolve through the package's
+`exports` to a `dist/` that a clean checkout has not built yet, and every type-aware rule in every
+file that imports it degrades to `any`: seventy-six `no-unsafe-*` errors, none of them about the
+code they are reported against.
+
+It passes locally, because a developer who has just built the package has a `dist/`. It fails in CI,
+which lints before it builds. That asymmetry is the whole reason this is written down: the one gate
+that catches it is the one that runs on a tree nobody has warmed up. To reproduce a CI lint locally,
+`rm -rf packages/*/dist` first.
+
 ## 3a. Read models are schemas when a client parses them
 
 `packages/contracts` publishes request schemas because the server validates against them. A read

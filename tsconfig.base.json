@@ -56,6 +56,7 @@
       "@assaybank/db": ["./packages/db/src/index.ts"],
       "@assaybank/core-domain": ["./packages/core-domain/src/index.ts"],
       "@assaybank/grading": ["./packages/grading/src/index.ts"],
+      "@assaybank/markdown": ["./packages/markdown/src/index.ts"],
       "@assaybank/exec-adapter": ["./packages/exec-adapter/src/index.ts"],
       "@assaybank/auth": ["./packages/auth/src/index.ts"],
       "@assaybank/ui": ["./packages/ui/src/index.ts"]
