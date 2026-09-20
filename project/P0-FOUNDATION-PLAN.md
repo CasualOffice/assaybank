@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-20
 **Companion docs:** [`ROADMAP.md`](ROADMAP.md), [`../docs/17-engineering-standards.md`](../docs/17-engineering-standards.md), [`../CODE-GRAPH.md`](../CODE-GRAPH.md), [`../docs/13-environments-and-release.md`](../docs/13-environments-and-release.md), [`DEFINITION-OF-DONE.md`](DEFINITION-OF-DONE.md)
 
 ---
@@ -53,6 +53,10 @@ them up front means the dependency graph and the layering lint rule are correct 
 than being discovered in P2.
 
 **Already decided, do not reopen.** pnpm + Turborepo, Node 22, TypeScript 5.x (ADR-012, ADR-013).
+
+**Fifteen since 2026-09-20.** `packages/markdown` was added with ADR-022. The count in this
+document is the one the foundation step created and is left as written; `pnpm-workspace.yaml` needs
+no change to pick a new one up, which was the point of the glob.
 
 **TypeScript configuration is a one-way door.** Turn the strict flags on now, when there is no code
 to fix:

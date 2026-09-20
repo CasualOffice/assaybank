@@ -53,6 +53,9 @@ export type { FieldControlProps, FieldProps } from './components/Field.js';
 export { Input } from './components/Input.js';
 export type { InputProps } from './components/Input.js';
 
+export { Markdown } from './components/Markdown.js';
+export type { MarkdownProps } from './components/Markdown.js';
+
 export { Select } from './components/Select.js';
 export type { SelectProps } from './components/Select.js';
 

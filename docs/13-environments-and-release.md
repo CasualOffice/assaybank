@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-20
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`14-threat-model.md`](14-threat-model.md), [`../CLAUDE.md`](../CLAUDE.md), [`../.env.example`](../.env.example), [`../docker-compose.yml`](../docker-compose.yml), [`../docker-compose.prod.yml`](../docker-compose.prod.yml), [`../project/MILESTONES.md`](../project/MILESTONES.md)
 
 ---
@@ -473,6 +473,13 @@ Deploy configuration: `parallelism 1, delay 60s, order start-first, failure_acti
 ### 7.4 Frontends
 
 Static bundles behind the proxy. Deploy by switching the served digest; rollback is switching it back. The only hazard is cache: a stale `index.html` referencing a hashed asset that no longer exists produces a blank page. Serve `index.html` with `no-cache` and hashed assets immutable, and keep the previous release's assets available for at least 24 hours so a client that loaded the old shell can still fetch what it references.
+
+**The Content-Security-Policy is baked into the bundle, not added by the proxy.** Each front end injects its own policy as a `<meta http-equiv="Content-Security-Policy">` at build time (`apps/web/src/csp.ts`, `apps/candidate/src/csp.ts`), so it applies in development, in `vite preview`, behind any static host and in production, and cannot be lost by a proxy nobody configured. Two consequences worth knowing before a deploy:
+
+- **`VITE_API_PUBLIC_URL` and `VITE_COLLAB_PUBLIC_URL` are build-time inputs to the policy**, not runtime ones. Changing which API a built bundle may talk to means rebuilding it. That is the trade for having the policy travel with the artefact; the alternative, a runtime header, is a value that can be right in staging and absent in production.
+- **`frame-ancestors 'none'` comes from Caddy** (`infra/caddy/Caddyfile`, the `frame_policy` snippet), because a browser ignores that directive in a meta tag and warns. It is set on the two front-end hostnames and nowhere else; the API sets its own policy through helmet. `tests/fixtures/csp.test.ts` asserts the header is in the Caddyfile, so removing it fails the build rather than quietly removing a clickjacking defence.
+
+The policy itself starts from `default-src 'none'` with no `'unsafe-inline'` and no `'unsafe-eval'` in production; development relaxes `script-src` and `style-src` for Vite's inline preamble and adds the HMR WebSocket to `connect-src`. Those three differences, and only those three, are pinned by the same test (ADR-022, docs/14 T-038).
 
 ---
 

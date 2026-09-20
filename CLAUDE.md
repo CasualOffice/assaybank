@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-20
 **Companion docs:** [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE-GRAPH.md`](CODE-GRAPH.md), [`project/DEFINITION-OF-DONE.md`](project/DEFINITION-OF-DONE.md), [`docs/DOC-OWNERSHIP.md`](docs/DOC-OWNERSHIP.md)
 
 ---
@@ -27,10 +27,11 @@ Assaybank is a self-hosted technical hiring platform covering async assessments,
 | `packages/core-domain` | Attempt state machine, section-rule resolution, scoring, skill roll-up | Perform I/O |
 | `packages/exec-adapter` | Piston behind `execute(language, version, files, stdin, limits)` | Receive a question ID, a test-case expectation or any database handle |
 | `packages/grading` | Test-case comparison and weighted scoring — pure functions | Perform I/O or read configuration |
+| `packages/markdown` | Parsing author-supplied markdown — prompts, explanations, scorecard notes — into a closed union of node types, with raw HTML reported as text and link destinations gated by `safeUrl` | Emit HTML, perform I/O, or gain a dependency |
 | `packages/auth` | Staff sessions and OIDC, candidate attempt tokens, WebSocket tickets, per-action permission checks | Encode role names in call sites — permissions are checked per action |
 | `packages/config` | Env parsing and validation, failing fast at boot | Read `process.env` anywhere else in the codebase |
 | `packages/observability` | Logger, OTel tracing, metrics | Log candidate answers, tokens or proctor media |
-| `packages/ui` | Shared React components and design tokens for `web` and `candidate` | Contain staff-only strings, routes or data shapes |
+| `packages/ui` | Shared React components and design tokens for `web` and `candidate` | Contain staff-only strings, routes or data shapes, or render any content with `dangerouslySetInnerHTML` |
 
 **`apps/api` is the only writer of domain tables.** Workers and the collab service read what they need and go through the API — or, where a worker genuinely owns a table (grading results, session events, `question_stats`), that ownership is recorded explicitly in `code-graph.json` and the table is listed there. Anything else writing domain state means two clocks, two validation paths and a state machine that can be driven from outside itself.
 
@@ -47,6 +48,7 @@ The design decisions below are load-bearing. If your change touches the left col
 | Proctoring, integrity signals, the review queue | [ADR-007](docs/04-ADRs.md) (signals, never decisions) |
 | Adding or upgrading any dependency | [`docs/05-licensing-and-compliance.md`](docs/05-licensing-and-compliance.md) §1 (dependency licence policy) |
 | Scoring, ranking, recommendations, candidate comparison | [ADR-011](docs/04-ADRs.md) (no AI in the scoring path) and [`docs/16-ai-usage-policy.md`](docs/16-ai-usage-policy.md) |
+| Rendering anything an author wrote — prompts, explanations, scorecard notes | [ADR-022](docs/04-ADRs.md) (markdown is parsed to nodes, never sanitised as HTML) and [`docs/17-engineering-standards.md`](docs/17-engineering-standards.md) §12a (the supported subset) |
 | Writing any code at all — types, layering, errors, migrations, tests | [`docs/17-engineering-standards.md`](docs/17-engineering-standards.md) (the production-grade bar and the invariants enforced in code) |
 | Starting a phase, or wondering what to build next | [`project/ROADMAP.md`](project/ROADMAP.md), and [`project/P0-FOUNDATION-PLAN.md`](project/P0-FOUNDATION-PLAN.md) while the foundation is being built |
 
@@ -64,6 +66,7 @@ Each is an imperative with its reason attached. None of them is a preference.
 8. **Every tenant table carries `org_id` and an RLS policy.** A new table without both is an isolation bug waiting for a reporting query to find it. `app.current_org` is set per connection; application code never filters by `org_id` as its only defence.
 9. **Migrations are expand-contract only.** Add nullable, backfill, switch reads, drop old — across separate deploys. A single destructive migration breaks whatever exam window is running when it lands, and exam windows do not pause for deploys.
 10. **Secrets never enter the repository.** They are injected at runtime. `.env` is ignored; `.env.example` carries obvious placeholders only.
+11. **Never turn author-supplied content into a string of HTML.** Markdown is parsed to nodes by `packages/markdown` and rendered as React elements by `packages/ui`'s `Markdown`. No `dangerouslySetInnerHTML`, no `innerHTML`, and no markdown or HTML-sanitising library anywhere in the tree — a sanitiser in the dependency list means somebody is generating markup again, which is the design ADR-022 replaced. A prompt is written by one person and rendered in another's browser, sometimes with a staff session attached and sometimes with an attempt token (docs/14 T-038).
 
 ## Keeping the docs true
 

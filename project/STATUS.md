@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`MILESTONES.md`](MILESTONES.md), [`TRACKER.md`](TRACKER.md), [`RISKS.md`](RISKS.md), [`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md)
 
 ---
@@ -15,7 +15,7 @@
 | **Current milestone** | M0 Question bank — P1 complete, P2 three of six tracks complete |
 | **Next milestone** | M1 Async MCQ assessment, phase P3 |
 | **Overall RAG** | amber |
-| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,395 tests**, 0 failing, 0 skipped |
+| **Build** | green — CI, Security, Docs and Licences all passing on `main` since 2026-09-17, the first green run; **2,699 tests**, 0 failing, 0 skipped |
 | **Schedule** | amber — ahead of the re-baselined plan (P0 and P1 are complete before their planned start of 2026-09-21), but the 25-week baseline is still unsigned (OQ-015) and build pace so far says little about the judgement-heavy phases ahead |
 | **Scope** | green — no changes to PRD §6 |
 | **Risk** | amber — eight high risks open, three of them the same question-bank problem (R-03, R-04, R-13) |
@@ -25,9 +25,9 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## Shipped this period (2026-09-15 → 2026-09-17)
 
-**Application code now exists.** 57 of 177 backlog tasks are done, reconciled against the code.
+**Application code now exists.** 59 of 177 backlog tasks are done, counted from the tracker rows.
 
-- **P0 foundation** — fourteen workspaces, strict TypeScript, lint-enforced layering, CI enforcing, MPL-2.0 with a header gate, the licence gate proven to fail on a planted AGPL dependency
+- **P0 foundation** — fifteen workspaces, strict TypeScript, lint-enforced layering, CI enforcing, MPL-2.0 with a header gate, the licence gate proven to fail on a planted AGPL dependency
 - **P1 tenancy, identity and audit** — per-checkout org context proven by an interleaved test, RLS proven per table against real Postgres, OIDC and password login, per-action permissions with a route-enumeration test, append-only audit at the database
 - **P2 question bank, five tracks** — immutable versions with a database trigger (ADR-003); an audience-typed serialisation boundary where a candidate view that could carry an answer key fails to compile; skills, merging and role coverage that reports a required skill with no questions rather than dropping it; and the kind rule — content a kind can never use is refused on every write, content it still lacks is refused at publish, so an ungradeable question cannot become immutable; and nightly question statistics — difficulty and discrimination against the rest score, not the total, null below 30 responses, computed per tenant under RLS and matched to values computed independently in Python; and job roles with their skill requirements, plus question tagging — every skill id resolved under RLS before it is written
 - **Security** — an external scanner flagged realistic-looking fixture passwords on the public repository. None was a real credential. All renamed to look fake on sight, and a new gate enforces it. `docs/14` had claimed history secret scanning was in place; it was not, and now says so
@@ -40,7 +40,7 @@ Amber overall, not green, despite the build: the baseline is unsigned, the secon
 
 ## In progress
 
-P2 question bank: import/export (the M0 exit criterion) and the authoring console. The two file formats are built and round-trip every kind exactly — the JSON bank document with full history and attribution, the QTI 2.1 package for the served version — and a bank now goes out of one organisation and into an empty one through PostgreSQL with nothing lost, export → import → export byte-identical. Import and export are reachable over HTTP as jobs — the request commits a row and its audit record together, a relay in the worker claims committed rows, and an import resumes at a per-item checkpoint if retried (ADR-021). The dataset importers and the 200-question load are next.
+P2 question bank: import/export (the M0 exit criterion) and the authoring console. The console now reads and writes the bank end to end — list, filter, edit, preview, send for review, publish — and author markdown is parsed to nodes rather than sanitised as HTML (ADR-022), which is the T-038 mitigation and the reason a prompt containing `<script>` renders as text. Both front ends carry a `default-src 'none'` Content-Security-Policy with no `unsafe-inline` and no `unsafe-eval`. What the console still lacks is its auth guard (`H-177`). The two file formats are built and round-trip every kind exactly — the JSON bank document with full history and attribution, the QTI 2.1 package for the served version — and a bank now goes out of one organisation and into an empty one through PostgreSQL with nothing lost, export → import → export byte-identical. Import and export are reachable over HTTP as jobs — the request commits a row and its audit record together, a relay in the worker claims committed rows, and an import resumes at a per-item checkpoint if retried (ADR-021). The dataset importers and the 200-question load are next.
 
 ## Next
 

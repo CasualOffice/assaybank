@@ -47,6 +47,28 @@
 	}
 }
 
+# ---------------------------------------------------------------------------
+# The one Content-Security-Policy directive that cannot live in the page.
+#
+# Both front ends carry their full policy as a <meta http-equiv> injected at
+# build time (apps/web/src/csp.ts, apps/candidate/src/csp.ts), so it travels
+# with the bundle and applies in development, in preview, and behind any host
+# — it cannot be lost by a proxy nobody configured.
+#
+# `frame-ancestors` is the exception: a browser ignores it in a meta tag and
+# warns. It is set here, and only here, so there is one copy of it rather than
+# two that can drift. X-Frame-Options above says the same thing to browsers
+# that predate CSP; where both are present, modern browsers use this one.
+#
+# tests/fixtures/csp.test.ts asserts this header exists, so deleting it fails
+# the build rather than quietly removing a clickjacking defence.
+# ---------------------------------------------------------------------------
+(frame_policy) {
+	header {
+		Content-Security-Policy "frame-ancestors 'none'"
+	}
+}
+
 (compression) {
 	encode zstd gzip
 }
@@ -56,6 +78,7 @@
 # ---------------------------------------------------------------------------
 {$WEB_HOSTNAME} {
 	import security_headers
+	import frame_policy
 	import compression
 
 	reverse_proxy web:3000 {
@@ -84,6 +107,7 @@
 # ---------------------------------------------------------------------------
 {$CANDIDATE_HOSTNAME} {
 	import security_headers
+	import frame_policy
 	import compression
 
 	header {

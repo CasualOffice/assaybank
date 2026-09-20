@@ -398,6 +398,40 @@ Explicitly not allowed, each because it has a specific failure mode here:
 
 ---
 
+## 12a. Author-supplied markdown
+
+Question prompts, explanations and scorecard notes are markdown written by one person and rendered
+in another's browser. ADR-022 settles how: `packages/markdown` parses to a closed union of node
+types and `packages/ui`'s `Markdown` renders those nodes as React elements. Nothing produces a
+string of HTML, nothing calls `dangerouslySetInnerHTML`, and no markdown or HTML-sanitising library
+is a dependency of any workspace — `tests/fixtures/no-inner-html.test.ts` fails the build if any of
+those three stops being true.
+
+**The supported subset.** Narrower than CommonMark on purpose, and it is the whole of what an
+author may rely on:
+
+| Supported | Not supported, and why |
+|---|---|
+| ATX headings, `#` to `######` | Setext headings (`===` underlines) — two spellings of one thing |
+| Paragraphs, soft and hard line breaks | — |
+| `**strong**`, `*emphasis*`, `` `code` `` | Intraword `_`, so `max_score_delta` stays an identifier |
+| Fenced code blocks with a language | Indented code blocks — a mis-indented list silently becomes code |
+| Ordered and unordered lists, nested | Loose/tight distinction is decided by the renderer, not the source |
+| Blockquotes, thematic breaks | — |
+| Pipe tables with alignment | Cell spans — a table a screen reader can announce has none |
+| `[text](url)` links and `![alt](url)` images | Reference links and footnotes — a second way to say one thing |
+| `<https://example.com>` autolinks | Raw HTML — it is reported and rendered as text (T-038) |
+
+A link or image destination survives only if `safeUrl` accepts it: `http:`, `https:`, `mailto:`, or
+a relative reference. Anything else keeps its words and loses its link, and the author is told.
+
+**The rule this produces.** *A markdown field gets a preview.* The subset is narrower than an
+author's habits, so the only honest mitigation for "this did not render the way I meant" is showing
+them before they publish. The authoring editor's Write/Preview tabs are that, and they are also
+where refused content is reported.
+
+---
+
 ## 13. How this document is maintained
 
 It is a standard, so it changes rarely and deliberately. A new rule requires a reason traceable to

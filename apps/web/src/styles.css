@@ -485,9 +485,77 @@
   font-size: var(--ab-text-xs);
 }
 
-.ab-editor__prompt {
+/* --- the markdown field: write and preview ---------------------------------------
+
+   The tab strip and the panel share a border so the panel reads as the body of the
+   selected tab rather than as a box that happens to sit below one. */
+
+.ab-mdfield {
+  display: flex;
+  flex-direction: column;
+}
+
+.ab-mdfield__tabs {
+  display: flex;
+  gap: var(--ab-space-1);
+}
+
+.ab-mdfield__tab {
+  padding: var(--ab-space-2) var(--ab-space-3);
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--ab-radius-sm) var(--ab-radius-sm) 0 0;
+  background: none;
+  color: var(--ab-text-muted);
+  font: inherit;
+  font-size: var(--ab-text-sm);
+  cursor: pointer;
+}
+
+/* Selection is carried by the border and the weight as well as the colour. SC 1.4.1:
+   which tab is open must not be a thing only a colour says. */
+.ab-mdfield__tab[aria-selected='true'] {
+  border-color: var(--ab-border);
+  background: var(--ab-surface-raised);
+  color: var(--ab-text);
+  font-weight: 600;
+}
+
+.ab-mdfield__tab:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: -2px;
+}
+
+.ab-mdfield__input {
   font-family: var(--ab-font-mono);
   font-size: var(--ab-text-sm);
+  border-top-left-radius: 0;
+}
+
+/* Matched to the textarea's height so switching tabs does not move the page under the
+   author's cursor — a preview that makes the save button jump is a preview nobody uses. */
+.ab-mdfield__preview {
+  min-height: 8rem;
+  padding: var(--ab-space-3);
+  border: 1px solid var(--ab-border-strong);
+  border-radius: 0 var(--ab-radius-sm) var(--ab-radius-sm) var(--ab-radius-sm);
+  background: var(--ab-surface-raised);
+  overflow-x: auto;
+}
+
+.ab-mdfield__preview:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 1px;
+}
+
+.ab-mdfield__blank {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-sm);
+}
+
+.ab-mdfield__refused {
+  margin-block-start: var(--ab-space-3);
 }
 
 .ab-editor__block {

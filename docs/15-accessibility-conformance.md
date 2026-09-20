@@ -64,8 +64,9 @@ Everything outside this subset is tracked in the known-limitations register (§1
 **Verified on the console's first real screen, 2026-09-20.** The question bank list — with its
 filter toolbar, data table, loading, error and two empty states — was audited with axe-core 4.13
 against the built bundle over `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa`: **0
-violations** on `/`, `/questions`, `/questions` with filters applied, and the authoring editor in
-both its editable and its frozen state. The audit is not yet a
+violations** on `/`, `/questions`, `/questions` with filters applied, the authoring editor in both
+its editable and its frozen state, and the editor's markdown **preview** — a rendered prompt with
+headings, a data table, a code block, a blockquote and links. The audit is not yet a
 CI gate — that is the `@axe-core/playwright` job of §15.1, which activates at M1 — so this is a
 point-in-time result, recorded because an unverified claim of conformance is worth less than none.
 
@@ -82,6 +83,27 @@ than mistakes:
   the title is announced twice and a keyboard user's first Tab starts somewhere they did not
   choose. The guard is the *previous pathname*, not a "have we started" flag — a flag is defeated
   by React StrictMode's deliberate double-mount, which is how the bug survived its first fix.
+
+**Rendered question content, added 2026-09-20.** A prompt is author-written markdown displayed to
+someone under a timer, so the markup it becomes is a conformance surface of its own rather than a
+detail of a component. `packages/ui`'s `Markdown` (ADR-022) decides it once for both apps:
+
+- **Headings offset into the page, never `<h1>`.** A prompt's `#` becomes an `<h3>` by default. A
+  fragment that emits its own `<h1>` gives the page two, and a screen-reader user navigating by
+  heading concludes they have reached a different page (SC 1.3.1).
+- **A code block and a table scroll sideways, so both are focusable.** `tabindex="0"` with a group
+  role and a label, the same treatment the data table gets — a region a mouse can scroll and a
+  keyboard cannot is a region whose right-hand columns a keyboard user cannot read (SC 2.1.1).
+- **A link is underlined, not merely coloured** (SC 1.4.1), and one that opens a new tab says so in
+  visually-hidden text before it is followed (SC 3.2.5). The candidate runner opens external links
+  in a new tab for a reason that is not cosmetic: navigating away means leaving a timed attempt.
+- **An image always carries `alt`, empty when the author wrote none.** An empty `alt` is the
+  correct markup for a decorative image, so the node type makes the field required rather than
+  optional — the renderer must be able to tell "no alt text" from "no information" (SC 1.1.1).
+- **The Write/Preview control is a real tab list**, with the arrow-key, Home and End behaviour the
+  role promises. Claiming `role="tablist"` without implementing the keys tells a screen-reader user
+  to press keys that do nothing, which is the same reasoning `Toolbar` records for declining
+  `role="toolbar"`.
 
 ### 2.3 WCAG 2.2, and what we do about it
 

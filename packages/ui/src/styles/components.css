@@ -506,3 +506,183 @@
   align-items: center;
   gap: var(--ab-space-2);
 }
+
+/* ------------------------------------------------------------------ markdown
+
+   Rendered question content: prompts, explanations, scorecard notes.
+
+   Measure is capped at 68 characters. A prompt read at full window width on a wide
+   monitor loses the reader their place returning to the next line, and a candidate
+   re-reading the same sentence under a timer is the failure this prevents (docs/15).
+
+   Vertical rhythm is collapsed at the edges — `:first-child` and `:last-child` lose
+   their outer margin — so the block sits flush inside a card whatever it starts with.
+   Without it a prompt beginning with a heading appears to have been indented by hand. */
+
+.ab-md {
+  max-width: 68ch;
+  color: var(--ab-text);
+  font-size: var(--ab-text-base);
+  line-height: var(--ab-leading);
+  overflow-wrap: break-word;
+}
+
+.ab-md > :first-child {
+  margin-block-start: 0;
+}
+
+.ab-md > :last-child {
+  margin-block-end: 0;
+}
+
+.ab-md__paragraph {
+  margin-block: 0 var(--ab-space-4);
+}
+
+.ab-md__heading {
+  margin-block: var(--ab-space-6) var(--ab-space-2);
+  line-height: var(--ab-leading-tight);
+  font-weight: 600;
+}
+
+.ab-md__link {
+  color: var(--ab-accent-text);
+  /* Underlined, not merely coloured. SC 1.4.1: colour alone must not be the thing that
+     distinguishes a link from the sentence it sits in. */
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.ab-md__link:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 2px;
+  border-radius: var(--ab-radius-sm);
+}
+
+.ab-md__code {
+  font-family: var(--ab-font-mono);
+  font-size: 0.9em;
+}
+
+/* An inline code span, but not the one inside a <pre>, which already has the chrome. */
+.ab-md__paragraph .ab-md__code,
+.ab-md__item .ab-md__code,
+.ab-md__cell .ab-md__code,
+.ab-md__heading .ab-md__code {
+  padding: 0.1em 0.35em;
+  background-color: var(--ab-surface-sunken);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+}
+
+.ab-md__pre {
+  margin-block: 0 var(--ab-space-4);
+  padding: var(--ab-space-3);
+  overflow-x: auto;
+  background-color: var(--ab-surface-sunken);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  /* The browser default is eight, which pushes an indented Python or SQL sample far
+     enough right that it wraps in the preview pane and reads as broken code. */
+  tab-size: 4;
+}
+
+.ab-md__pre:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 2px;
+}
+
+/* The marker is restored explicitly. Tailwind's preflight strips list markers from every
+   `ul` and `ol`, which is right for a navigation list and wrong here: in a prompt the
+   bullet is what tells a reader these are three separate constraints and not a sentence
+   that wrapped. */
+ul.ab-md__list {
+  list-style: disc;
+}
+
+ul.ab-md__list ul.ab-md__list {
+  list-style: circle;
+}
+
+ol.ab-md__list {
+  list-style: decimal;
+}
+
+.ab-md__list {
+  margin-block: 0 var(--ab-space-4);
+  padding-inline-start: var(--ab-space-6);
+}
+
+.ab-md__item {
+  margin-block-end: var(--ab-space-1);
+}
+
+/* A tight list: one paragraph in the item, so the paragraph's own margin would double
+   the gap between bullets and make a three-item list look like three sections. */
+.ab-md__item > .ab-md__paragraph:only-child {
+  margin-block-end: 0;
+}
+
+.ab-md__item > .ab-md__list {
+  margin-block: var(--ab-space-1) 0;
+}
+
+.ab-md__quote {
+  margin-block: 0 var(--ab-space-4);
+  margin-inline: 0;
+  padding-inline-start: var(--ab-space-4);
+  border-inline-start: 3px solid var(--ab-border-strong);
+  color: var(--ab-text-muted);
+}
+
+.ab-md__rule {
+  margin-block: var(--ab-space-6);
+  border: 0;
+  border-top: 1px solid var(--ab-border);
+}
+
+.ab-md__image {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--ab-radius-sm);
+}
+
+/* The scroll container carries the keyboard affordance; see Markdown.tsx. */
+.ab-md__table-scroll {
+  margin-block: 0 var(--ab-space-4);
+  overflow-x: auto;
+}
+
+.ab-md__table-scroll:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 2px;
+}
+
+.ab-md__table {
+  border-collapse: collapse;
+  font-size: var(--ab-text-sm);
+}
+
+.ab-md__cell {
+  padding: var(--ab-space-2) var(--ab-space-3);
+  border: 1px solid var(--ab-border);
+  text-align: start;
+  vertical-align: top;
+}
+
+thead .ab-md__cell {
+  background-color: var(--ab-surface-sunken);
+  font-weight: 600;
+}
+
+.ab-md__cell--left {
+  text-align: start;
+}
+
+.ab-md__cell--center {
+  text-align: center;
+}
+
+.ab-md__cell--right {
+  text-align: end;
+}

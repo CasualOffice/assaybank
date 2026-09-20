@@ -248,3 +248,59 @@ describe('empty content states guide rather than sit blank', () => {
     expect(text(markup)).toContain('At least one must be hidden');
   });
 });
+
+describe('the prompt is previewed as the candidate will see it', () => {
+  const PROMPT = [
+    'Which index serves this query?',
+    '',
+    '```sql',
+    'SELECT count(*) FROM applicants;',
+    '```',
+    '',
+    '<img src=x onerror=alert(1)>',
+    '',
+    'See [the brief](javascript:alert(1)).',
+  ].join('\n');
+
+  const markup = render({
+    ...question({}),
+    current_version: { ...question({}).current_version, prompt_md: PROMPT },
+  } as unknown as AuthorQuestionView);
+
+  it('offers write and preview as tabs, with the panels they control', () => {
+    expect(markup).toContain('role="tab"');
+    expect(markup).toContain('role="tabpanel"');
+    expect(text(markup)).toContain('Write');
+    expect(text(markup)).toContain('Preview');
+  });
+
+  it('renders the markdown rather than showing its source twice', () => {
+    // The fence becomes a code block. Without the preview, the first person to find out
+    // that a prompt did not render the way its author expected is a candidate.
+    expect(markup).toContain('<pre');
+    expect(markup).toContain('SELECT count(*) FROM applicants;');
+  });
+
+  it('tells the author what will not render, while they can still fix it', () => {
+    // T-038: refused content is reported, never silently stripped. A prompt quietly
+    // missing its diagram is a prompt nobody can reconstruct the intent of.
+    expect(text(markup)).toContain('Some of this will not render');
+    expect(text(markup)).toContain('Raw HTML on line 7 is shown as text, never rendered');
+    expect(text(markup)).toContain('One link was removed because of its address');
+  });
+
+  it('says nothing about refusals when there is nothing to refuse', () => {
+    const clean = render(question({}));
+
+    expect(text(clean)).not.toContain('Some of this will not render');
+  });
+
+  it('invites the first sentence rather than showing an empty box', () => {
+    const empty = render({
+      ...question({}),
+      current_version: { ...question({}).current_version, prompt_md: '' },
+    } as unknown as AuthorQuestionView);
+
+    expect(text(empty)).toContain('What you type appears here as the candidate will see it');
+  });
+});

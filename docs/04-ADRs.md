@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`02-HLD.md`](02-HLD.md), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`../.claude/rules/invariants.md`](../.claude/rules/invariants.md)
 
 ---
@@ -380,3 +380,49 @@ Storing payloads in PostgreSQL bounds the product to 32 MiB per file and puts fi
 
 **Revisit when** the object store adapter lands (move `input` and `result` to `imports/` and `exports/` prefixes, keep the row as the record and the outbox), or when any export exceeds 32 MiB, or when a second kind of long-running job needs an outbox — at which point the claim function generalises to a `jobs` table rather than growing a sibling.
 
+
+---
+
+## ADR-022 — Author markdown is parsed to nodes, never sanitised as HTML
+
+**Status:** accepted
+**Depends on:** ADR-001
+**Addresses:** [`docs/14-threat-model.md`](14-threat-model.md) T-038
+
+**Context.** `question_versions.prompt_md` and `explanation_md` are markdown written by one person and rendered in another person's browser — in the staff console with a staff session attached, and in the candidate runner with an attempt token. `scorecards.notes_md` is the same shape. T-038 calls this the register's most underrated path, and the reason is worth restating: the trust we extend to an **author** does not transfer to the **content**, because `POST /questions/import` accepts thousands of prompts from public datasets, QTI files and customers' legacy banks that nobody has read. React escapes by default, and markdown rendering exists precisely to bypass that escaping.
+
+The conventional answer is a markdown library with `html: true` disabled, its output passed through DOMPurify or `sanitize-html`, rendered with `dangerouslySetInnerHTML`. It is conventional because it works most of the time. Its shape is a **filter**: markup is generated, then inspected, then trusted. A filter has to be right about every browser parsing quirk, for every browser, forever — and mutation XSS exists because sanitisers and parsers disagree about the same bytes. It also fails open: the day somebody adds a component that renders a *different* markdown field without the sanitiser, nothing breaks and nothing is reported.
+
+**Decision.** No stage of this pipeline produces a string of HTML.
+
+1. `packages/markdown` parses markdown into a closed TypeScript union of block and inline node types. Raw HTML in the source is **text**, not markup — `<script>alert(1)</script>` in a prompt is eight characters plus a payload rendered as characters on screen.
+2. `packages/ui`'s `Markdown` component is a total mapping from that union to React elements, with no `default` branch, so adding a node type without deciding how to render it does not compile. React escapes every text node it is handed.
+3. The one remaining channel from author text to browser behaviour is a link or image destination, and `safeUrl` is the single gate on it: an allow list of `http:`, `https:` and `mailto:`, applied after the normalisations a browser applies — character-reference decoding, stripping tab, newline and carriage return, trimming C0 controls. A refused destination keeps its words and loses its link.
+4. `findRawHtml` reports raw HTML with its line number. The authoring editor shows it while the author can still fix it and the import job refuses the row rather than stripping it silently, because a prompt quietly missing its diagram is a prompt whose intent nobody can reconstruct.
+5. The subset is deliberately narrower than CommonMark — no setext headings, no indented code blocks, no reference links, no footnotes — and is documented in [`docs/17-engineering-standards.md`](17-engineering-standards.md) §14.
+
+**Consequences.** The security argument is two structural facts rather than a claim about a filter's completeness: every node is one the renderer knows, and no destination carries a scheme outside the list. A payload not in the corpus meets the same two facts, which is why the corpus can be a set of examples rather than a block list. `tests/fixtures/no-inner-html.test.ts` asserts the facts the argument rests on — that no front-end source assigns HTML from a string, and that **no workspace depends on a markdown or HTML-sanitising library**. The second is the counter-intuitive one: a sanitiser in the dependency tree is not reassurance here, it is the signal that somebody is generating markup to sanitise.
+
+The cost is a parser we own. It is roughly five hundred lines, it has no dependency, and it will be wrong about a CommonMark edge case that a library would get right — so the authoring editor gained a **preview** in the same change, because the mitigation for "renders differently from what the author expected" is showing the author. A markdown feature we decline to support is a feature no author can use, however standard it is elsewhere.
+
+The image policy is the loosest part of this and is recorded as such. Prompts may reference images on any `https` origin, so the Content-Security-Policy carries `img-src 'self' https:`. That permits a remote image in an imported prompt to act as a beacon — telling whoever wrote it when a candidate reached that question — and makes an exam depend on a third party's uptime. The tighter rule, `img-src 'self'`, is the right one and is blocked on an upload path: today there is none, so `'self'` would mean no images in prompts at all, and a policy that forbids a feature the product has is a policy that gets relaxed in a hurry by whoever meets it first.
+
+**T-038's proposed import refusal is deliberately not implemented, and this is the reasoning.**
+The action recorded against T-038 asks the import job to reject rows whose prompt contains raw HTML.
+That action was written assuming a sanitising pipeline, where raw HTML in stored content is live
+ammunition. Under this decision it is not: a prompt containing `<img src=x onerror=…>` renders as
+that text and does nothing. What remains is a quality problem — the prompt will look wrong to a
+candidate — and refusing the row to solve it costs more than it buys, because `checkBankItem` runs
+on **read**, so a question that already holds raw HTML could be exported and then not re-imported.
+That breaks the property the M0 exit criterion turns on: an item parsed from an export is identical
+to the item exported. A rule that makes a bank unexportable in order to tidy it is the wrong rule.
+
+The catch therefore lives where somebody can act on it. `findRawHtml` reports the fragment and its
+line, the authoring editor shows it while the author is still writing, and the importer's per-row
+reporting (`H-032`) is where an imported prompt's raw HTML should be surfaced as a warning against
+the row rather than as a refusal of it. If raw HTML is ever to be refused outright, the gate belongs
+at **write** — both the API's version write and the import job — so that the bank cannot hold it at
+all and export and import stay symmetric. That is a larger change than this one and is not made
+here.
+
+**Revisit when** an upload path for question media exists — tighten `img-src` to `'self'` and reject absolute image destinations at import; or when a prompt genuinely needs a construct the subset cannot express, in which case the node type is added to the union and the renderer stops compiling until somebody decides how it looks; or if a mathematical notation requirement arrives, which is a rendering pipeline of its own and not an extension of this one.

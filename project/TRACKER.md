@@ -142,7 +142,7 @@ and picking it up anyway is how two people end up editing the same file.
 | H-035 | P1 | Nightly `question_stats` job computing p-value and point-biserial discrimination per question version once n ≥ 30 | worker | M0 | H-015 | FR-5 | M | done | _unassigned_ |
 | H-036 | P0 | `exposure_count` increment on attempt materialisation plus a retirement flag above a configurable threshold | api | M0 | H-030 | FR-4 | S | todo | _unassigned_ |
 | H-037 | P0 | Staff console shell: TanStack Router, layout, shared design tokens in `packages/ui` — _done 2026-09-20: sidebar shell with grouped navigation from the route manifest, router with focus and title management, tokens, and the list-screen primitives. **Split:** the auth guard this row also named is now `H-177`, because it was holding `H-038` behind work that has nothing to do with the shell_ | web | M0 | H-021 | — | M | done | _unassigned_ |
-| H-038 | P1 | Question authoring UI: markdown prompt editor, option editor, test-case editor, explicit publish action that reads as irreversible — _partial 2026-09-20: the list screen and the authoring editor are built — prompt and explanation, kind-aware options, test cases and accepted answers, send-for-review and an irreversible publish, a published version read-only with the new-version path in its place. axe-clean in every state. The markdown **preview** is not built, and the sanitiser it needs is `H-173`_ | web | M0 | H-037 | ADR-003 | L | todo | _unassigned_ |
+| H-038 | P1 | Question authoring UI: markdown prompt editor, option editor, test-case editor, explicit publish action that reads as irreversible — _done 2026-09-20: the list screen and the authoring editor — prompt and explanation with Write/Preview tabs, kind-aware options, test cases and accepted answers, send-for-review and an irreversible publish, a published version read-only with the new-version path in its place. The markdown preview landed with `H-173` on the same day and reports refused content to the author. axe-clean in every state, preview included_ | web | M0 | H-037 | ADR-003 | L | done | _unassigned_ |
 | H-039 | P0 | Wire the licence gate against the real `pnpm-lock.yaml`, plant an AGPL fixture to prove it fails, generate the first CycloneDX SBOM | compliance | M0 | H-007, H-011 | ADR-001 | S | done | _unassigned_ |
 | H-040 | P2 | M0 exit evidence: load 200 questions tagged to at least 3 job roles and prove a lossless export/re-import round trip | docs | M0 | H-033 | M0 exit | M | todo | _unassigned_ |
 
@@ -292,7 +292,7 @@ planned.
 | H-170 | P0 | Pre-signed URL TTLs of at most 300 s for media and 900 s for export artifacts, issued only against an audited authorised request, with signatures never logged | api | M4 | — | T-035 | M | todo | _unassigned_ |
 | H-171 | P0 | A distinct `proctor.review` permission gating media access, an `audit_log` row per media view, and a monitored retention sweep hard-deleting object and row at `delete_after` | api | M4 | — | T-036 | M | todo | _unassigned_ |
 | H-172 | P0 | CI vulnerability audit failing on high severity with a documented exception path; `--frozen-lockfile`, post-install scripts disabled except an allow list, and reviewed dependency bumps | infra | M0 | — | T-037 | M | todo | _unassigned_ |
-| H-173 | P0 | Sanitising markdown pipeline with an element and attribute allow list, raw HTML disabled, `javascript:`/`data:` URLs rejected, plus a strict CSP on both apps | ui | M0 | — | T-038 | M | todo | _unassigned_ |
+| H-173 | P0 | Sanitising markdown pipeline with an element and attribute allow list, raw HTML disabled, `javascript:`/`data:` URLs rejected, plus a strict CSP on both apps — _done 2026-09-20 as **ADR-022**, and not as the row describes it: there is no sanitiser and no allow list of elements, because nothing produces HTML to sanitise. `packages/markdown` parses to a closed union of node types and `packages/ui`'s `Markdown` maps it to React elements; `safeUrl` gates destinations; both apps carry a `default-src 'none'` CSP with no `unsafe-inline` or `unsafe-eval`. The import-time refusal T-038 also proposed was deliberately not built — the reason is in ADR-022_ | ui | M0 | — | T-038 | M | done | _unassigned_ |
 | H-174 | P1 | One CSV writer used by every export path, prefixing fields beginning `=`, `+`, `-`, `@`, tab or carriage return, quoting all fields and writing UTF-8 with a BOM | core-domain | M2 | — | T-039 | S | todo | _unassigned_ |
 | H-175 | P0 | `audit_log` append-only at the database level, asserted by a test attempting `UPDATE` and `DELETE` as both application roles — _built 2026-09-17: migration 0002 revokes both and `packages/db/tests/rls.test.ts` asserts it; the seven-year retention half remains_ | db | M0 | — | T-040 | S | todo | _unassigned_ |
 | H-176 | P0 | A failed staff login is byte-identical whether or not the address exists — one envelope, one message, and a dummy verify so the timing does not answer either; the same for password reset — _built 2026-09-20: `packages/auth/src/password.ts` and `apps/api/src/auth/routes.ts`, asserted in `staff-identity.test.ts`; the reset path arrives with it_ | auth | M0 | — | T-042 | S | todo | _unassigned_ |
@@ -321,17 +321,21 @@ formats, and import and export as queued jobs. What remains is the dataset work 
 `H-032` is the long pole. The formats are done and tested; what it adds is one adapter per dataset,
 each rejecting a row with no `source_license` (docs/05 §2) and preserving `external_ref`.
 
-### The console, now that it has a real screen
+### The console, which can now read and write the bank
 
-`H-038` question authoring — the editor, the kind-specific content, and the publish action that
-makes a version immutable. It is the half of the bank that still cannot be reached from a screen.
+`H-037` the shell, `H-038` the authoring editor and `H-173` the markdown pipeline all closed on
+2026-09-20. The bank is reachable end to end from a screen: list, filter, edit, preview, send for
+review, publish.
 
-`H-177` the auth guard, split out of `H-037` on 2026-09-20 because it was holding `H-038` behind
-work unrelated to the shell.
+`H-177` the auth guard is what the console still lacks and the only thing between it and being
+demonstrable to someone outside the team. Split out of `H-037` on 2026-09-20 because it was holding
+`H-038` behind work unrelated to the shell, and it belongs with the session track below rather than
+on its own.
 
-`H-173` the sanitising markdown pipeline belongs with the authoring editor rather than after it: a
-prompt is author-supplied markdown that a candidate's browser renders (T-038), and retrofitting the
-sanitiser once prompts exist means auditing the ones already written.
+`H-173` did **not** land as its row describes it, and the difference is worth reading before
+touching any rendering code: there is no sanitiser. ADR-022 replaced "generate markup, filter it,
+trust the filter" with "parse to nodes, render nodes", so the thing a sanitiser protects against
+has nowhere to exist. Adding a markdown library to the tree now fails a test, deliberately.
 
 ### Independent, and each worth a day
 
@@ -354,8 +358,6 @@ weeks is how three of the four end up half-done.
 - **`H-032`'s licence rejection.** An importer that accepts a row with no `source_license` puts
   content in the bank that nobody can prove the right to use, and it is invisible until a lawyer
   asks. The refusal is the feature.
-- **`H-173` the markdown sanitiser.** It looks like polish until the first prompt containing a
-  `javascript:` URL is served to a candidate.
 - **`H-040` the honest round trip.** Exporting 200 questions and re-importing them into an empty
   organisation is the only check that the bank is portable. Everything else is a unit test of a
   part of it.
@@ -365,12 +367,18 @@ weeks is how three of the four end up half-done.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 40 | 20 | 17 | 23 |
+| M0 | P1–P2 | 42 | 22 | 21 | 21 |
 | M1 | P3 | 33 | 18 | 0 | 33 |
 | M2 | P4 | 29 | 15 | 0 | 29 |
 | M3 | P5 | 16 | 4 | 0 | 16 |
 | M4 | P6 | 18 | 5 | 0 | 18 |
-| **Total** | | **175** | **98** | **55** | **120** |
+| **Total** | | **177** | **100** | **59** | **118** |
+
+Counted from the rows above on 2026-09-20, not carried forward. The previous table said 175 rows
+and 55 done, having been written by hand and then not updated when `H-176` and `H-177` were
+allocated — which is the same failure the "Start here" section had, in a smaller way. A count that
+is maintained separately from the thing it counts is a count that will be wrong; if this drifts
+again the answer is to generate it rather than to correct it once more.
 
 Reconciled against the code on 2026-09-17, not carried forward. The jump from 135 rows to 175 is the forty security actions above, which existed only as prose in the threat model until the same day. A row is `done` only where the behaviour
 exists and is tested; partial work stays `todo` with an annotation saying what is done and what

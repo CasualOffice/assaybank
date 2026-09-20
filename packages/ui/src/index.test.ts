@@ -52,9 +52,13 @@ describe('@assaybank/ui', () => {
       name.startsWith('@assaybank/'),
     );
 
-    // CODE-GRAPH L5: contracts (types only) and nothing else. The candidate bundle must
-    // be incapable of carrying bank access or correct-answer logic whatever a future
-    // refactor does, and that is a build-graph guarantee rather than a review habit.
-    expect(workspaceDeps).toEqual(['@assaybank/contracts']);
+    // CODE-GRAPH L5: contracts (types only) and markdown (pure, no I/O, no dependency of
+    // its own), and nothing else. The candidate bundle must be incapable of carrying bank
+    // access or correct-answer logic whatever a future refactor does, and that is a
+    // build-graph guarantee rather than a review habit.
+    //
+    // Adding a name to this list is a layering change: say why in CODE-GRAPH.md's L5 rule
+    // and in eslint.config.js, which enforces the same thing on imports, before here.
+    expect(workspaceDeps.sort()).toEqual(['@assaybank/contracts', '@assaybank/markdown']);
   });
 });

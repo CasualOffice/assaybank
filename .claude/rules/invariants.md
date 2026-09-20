@@ -2,14 +2,14 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`../../docs/04-ADRs.md`](../../docs/04-ADRs.md), [`../../docs/06-testing-strategy.md`](../../docs/06-testing-strategy.md), [`doc-maintenance.md`](doc-maintenance.md), [`review-checklist.md`](review-checklist.md)
 
 ---
 
-Seventeen statements that must be true of this system at every moment. Each comes from a decision that is expensive to reverse, and each is guarded by a test that is release-blocking rather than advisory. Nothing here is a preference, a style, or a thing we currently happen to do.
+Eighteen statements that must be true of this system at every moment. Each comes from a decision that is expensive to reverse, and each is guarded by a test that is release-blocking rather than advisory. Nothing here is a preference, a style, or a thing we currently happen to do.
 
-None of these is built yet — the guarding tests are specified in [`docs/06-testing-strategy.md`](../../docs/06-testing-strategy.md) and land with the milestone named in the last column. What the table records is the obligation, so that the test arrives with the code rather than after it.
+Most are not built yet — the guarding tests are specified in [`docs/06-testing-strategy.md`](../../docs/06-testing-strategy.md) and land with the milestone named in the last column. What the table records is the obligation, so that the test arrives with the code rather than after it. A row whose Lands column names a date is one whose guard exists today and is running.
 
 ## Content and scoring
 
@@ -20,6 +20,7 @@ None of these is built yet — the guarding tests are specified in [`docs/06-tes
 | 3 | A re-grade of an unchanged attempt against an unchanged version produces an identical score, to the bit. | ADR-003, HLD §1 | The golden corpus §8.2 and the re-grade test §8.3; every collection feeding a score is explicitly sorted, every grading query carries a total order | M2 |
 | 4 | No model, heuristic or inference produces or influences a score, a ranking, a recommendation or an advance/reject decision. | ADR-011, ADR-017 | `packages/grading` and `packages/core-domain` are pure and perform no I/O — a structural test asserts no network or filesystem import reaches them; reviewed against [`docs/16-ai-usage-policy.md`](../../docs/16-ai-usage-policy.md) | M1 |
 | 5 | The attempt state machine advances only along its declared edges. There is no path that sets a terminal status from outside the machine. | API spec §6 | Table-driven state-machine tests §4.2 covering every legal edge and rejecting every illegal one | M1 |
+| 18 | Author-supplied markdown becomes React elements through `packages/markdown` and `packages/ui`'s `Markdown`, and never a string of HTML. No source in `packages/ui`, `apps/web` or `apps/candidate` assigns HTML from a string, no workspace depends on a markdown or HTML-sanitising library, and a link or image destination is kept only when `safeUrl` accepts its scheme. | ADR-022, docs/14 T-038 | `packages/markdown/src/xss-corpus.test.ts` — the payload corpus, checked against the browser's own URL parser rather than a regex of ours — and `tests/fixtures/no-inner-html.test.ts`, which asserts the two structural facts the argument rests on | M0 — built 2026-09-20 |
 
 ## Integrity and isolation
 
@@ -47,4 +48,4 @@ None of these is built yet — the guarding tests are specified in [`docs/06-tes
 
 Invariants 6 and 4 — no automated rejection, and no AI in the scoring or decision path — are product constraints with legal exposure attached. They are not reviewer judgement calls. A change that needs either softened requires a new ADR that supersedes ADR-007 or ADR-011 and a conversation with counsel, recorded in [`project/RISKS.md`](../../project/RISKS.md) as R-17. A reviewer who is asked to approve one of these anyway should decline and escalate.
 
-For the remaining fifteen: the exception process is an ADR, not a comment. Write down the context, the decision, the consequences and what would make you revisit it, append it to [`docs/04-ADRs.md`](../../docs/04-ADRs.md), and update this file in the same change — the registry in [`docs/DOC-OWNERSHIP.md`](../../docs/DOC-OWNERSHIP.md) makes any ADR edit fire the trigger that brings you back here. If the invariant survives, say so in the ADR's consequences; the useful record is what we considered, not only what we chose.
+For the remaining sixteen: the exception process is an ADR, not a comment. Write down the context, the decision, the consequences and what would make you revisit it, append it to [`docs/04-ADRs.md`](../../docs/04-ADRs.md), and update this file in the same change — the registry in [`docs/DOC-OWNERSHIP.md`](../../docs/DOC-OWNERSHIP.md) makes any ADR edit fire the trigger that brings you back here. If the invariant survives, say so in the ADR's consequences; the useful record is what we considered, not only what we chose.

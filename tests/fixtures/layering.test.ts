@@ -32,13 +32,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const ESLINT_BIN = join(REPO_ROOT, 'node_modules', 'eslint', 'bin', 'eslint.js');
-const FIXTURE_PATH = join(
-  REPO_ROOT,
-  'packages',
-  'core-domain',
-  'src',
-  'layering-fixture.generated.ts',
-);
+/** Where a throwaway source file is written, per package under test. */
+const fixturePath = (workspace: string): string =>
+  join(REPO_ROOT, 'packages', workspace, 'src', 'layering-fixture.generated.ts');
+
+const FIXTURE_PATH = fixturePath('core-domain');
 
 const LICENCE_HEADER = [
   '/* This Source Code Form is subject to the terms of the Mozilla Public',
@@ -64,13 +62,14 @@ interface LintOutcome {
 }
 
 /** Writes the fixture, lints exactly that file, and removes it again. */
-function lintFixture(source: string): LintOutcome {
-  writeFileSync(FIXTURE_PATH, `${LICENCE_HEADER}\n\n${source}`);
+function lintFixture(source: string, workspace = 'core-domain'): LintOutcome {
+  const path = fixturePath(workspace);
+  writeFileSync(path, `${LICENCE_HEADER}\n\n${source}`);
 
   try {
     const run = spawnSync(
       process.execPath,
-      [ESLINT_BIN, '--no-warn-ignored', '--format', 'json', FIXTURE_PATH],
+      [ESLINT_BIN, '--no-warn-ignored', '--format', 'json', path],
       { cwd: REPO_ROOT, encoding: 'utf8' },
     );
 
@@ -83,7 +82,7 @@ function lintFixture(source: string): LintOutcome {
 
     return { status: run.status ?? -1, results, raw };
   } finally {
-    rmSync(FIXTURE_PATH, { force: true });
+    rmSync(path, { force: true });
   }
 }
 
@@ -120,7 +119,25 @@ describe('the layering rule', () => {
     expect(rulesFired(outcome)).toContain('no-restricted-imports');
 
     const messages = outcome.results.flatMap((file) => file.messages.map((m) => m.message));
-    expect(messages.join('\n')).toMatch(/core-domain and grading import no I\/O/);
+    expect(messages.join('\n')).toMatch(/core-domain, grading and markdown import no I\/O/);
+  });
+
+  it('rejects packages/markdown importing node:fs', () => {
+    // The parser runs inside a candidate bundle. A package there that can reach the
+    // filesystem or a database is a package that can leak one, which is why `markdown`
+    // joined the pure list in the same change that created it (ADR-022, CODE-GRAPH L2).
+    const outcome = lintFixture(
+      [
+        "import { readFileSync } from 'node:fs';",
+        '',
+        'export const fixtureValue = typeof readFileSync;',
+        '',
+      ].join('\n'),
+      'markdown',
+    );
+
+    expect(outcome.status, `eslint output:\n${outcome.raw}`).not.toBe(0);
+    expect(rulesFired(outcome)).toContain('no-restricted-imports');
   });
 
   it('rejects packages/core-domain importing node:fs', () => {

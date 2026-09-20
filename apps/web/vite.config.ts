@@ -4,7 +4,9 @@
 
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig, loadEnv, type Plugin } from 'vite';
+
+import { contentSecurityPolicy, type CspOptions } from './src/csp.js';
 
 // The staff console's build.
 //
@@ -12,6 +14,38 @@ import { defineConfig, loadEnv } from 'vite';
 // applications means staff-only code, correct-answer handling and question-bank access
 // cannot reach a candidate's browser through a bundler mistake. Nothing here may ever
 // merge the two outputs.
+
+/**
+ * Injects the Content-Security-Policy into the page as a `<meta http-equiv>`.
+ *
+ * In the page rather than only in a response header so that the policy travels with the
+ * bundle: it applies in `vite dev`, in `vite preview`, behind any static host, and in
+ * production, and cannot be lost by a proxy nobody configured. `infra/caddy/Caddyfile`
+ * adds the header form for `frame-ancestors`, which a meta tag cannot express.
+ */
+function contentSecurityPolicyTag(options: CspOptions): Plugin {
+  return {
+    name: 'assaybank:csp',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        return {
+          html,
+          tags: [
+            {
+              tag: 'meta',
+              attrs: {
+                'http-equiv': 'Content-Security-Policy',
+                content: contentSecurityPolicy(options),
+              },
+              injectTo: 'head-prepend',
+            },
+          ],
+        };
+      },
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   // Vite's own loader, not `process.env`: docs/17 §12 keeps environment reading inside
@@ -22,7 +56,16 @@ export default defineConfig(({ mode }) => {
     env['VITE_DEV_API_ORIGIN'] ?? `http://localhost:${env['API_PORT'] ?? '8080'}`;
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      // The console and the API are same-origin in every deployed tier, so the policy
+      // needs no extra origin there; in development the proxy above makes that true too.
+      contentSecurityPolicyTag({
+        dev: mode !== 'production',
+        apiOrigin: env['VITE_API_PUBLIC_URL'],
+      }),
+    ],
     server: {
       port: 5173,
       strictPort: true,

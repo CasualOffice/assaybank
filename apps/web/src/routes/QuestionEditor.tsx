@@ -40,6 +40,7 @@ import {
   type AuthorQuestionView,
   type QuestionKind,
 } from '@assaybank/contracts';
+import { parseMarkdown } from '@assaybank/markdown';
 import {
   Alert,
   Badge,
@@ -47,12 +48,13 @@ import {
   EmptyState,
   Field,
   Input,
+  Markdown,
   Select,
   Skeleton,
   useAnnounce,
 } from '@assaybank/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 
 import { useApi } from '../api/api.js';
 import {
@@ -452,44 +454,28 @@ export function QuestionEditor({ questionId, onBack }: QuestionEditorProps): Rea
 
       <div className="ab-editor">
         <div className="ab-editor__main">
-          <Field
+          <MarkdownField
             label="Prompt"
-            id={`${fieldId}-prompt`}
             description="Markdown. This is what the candidate reads."
+            value={draft.prompt_md}
+            rows={10}
+            readOnly={isPublished}
             required
-          >
-            {(control) => (
-              <textarea
-                {...control}
-                className="ab-input ab-textarea ab-editor__prompt"
-                rows={10}
-                readOnly={isPublished}
-                value={draft.prompt_md}
-                onChange={(e) => {
-                  setDraft({ ...draft, prompt_md: e.currentTarget.value });
-                }}
-              />
-            )}
-          </Field>
+            onChange={(prompt_md) => {
+              setDraft({ ...draft, prompt_md });
+            }}
+          />
 
-          <Field
+          <MarkdownField
             label="Explanation"
-            id={`${fieldId}-explanation`}
             description="Shown to staff, and to a candidate only after review is permitted. Never during an attempt."
-          >
-            {(control) => (
-              <textarea
-                {...control}
-                className="ab-input ab-textarea"
-                rows={4}
-                readOnly={isPublished}
-                value={draft.explanation_md}
-                onChange={(e) => {
-                  setDraft({ ...draft, explanation_md: e.currentTarget.value });
-                }}
-              />
-            )}
-          </Field>
+            value={draft.explanation_md}
+            rows={4}
+            readOnly={isPublished}
+            onChange={(explanation_md) => {
+              setDraft({ ...draft, explanation_md });
+            }}
+          />
 
           {isChoice ? (
             <OptionsEditor
@@ -581,6 +567,167 @@ export function QuestionEditor({ questionId, onBack }: QuestionEditorProps): Rea
 }
 
 /** The MCQ option editor. */
+/** The two faces of a markdown field. */
+type MarkdownTab = 'write' | 'preview';
+
+const TABS: readonly { readonly id: MarkdownTab; readonly label: string }[] = [
+  { id: 'write', label: 'Write' },
+  { id: 'preview', label: 'Preview' },
+];
+
+/**
+ * A markdown field with a preview of what the candidate will actually see.
+ *
+ * The preview is not a convenience. A prompt is markdown that renders in someone else's
+ * browser, under a timer, with no way to ask what was meant — and the subset this platform
+ * renders is deliberately narrower than the one an author's habits assume (`@assaybank/markdown`).
+ * Without a preview, the first person to discover that a table did not render is a candidate.
+ *
+ * It is also where T-038's "the author sees what was refused" is honoured. Raw HTML and
+ * unsafe link destinations are reported here, by fragment and line, while the author can
+ * still fix them — rather than stripped silently, which teaches nobody anything and leaves a
+ * prompt that is missing its diagram for reasons nobody can reconstruct.
+ *
+ * A real tab list, with the arrow-key behaviour `role="tablist"` promises. Claiming the role
+ * without implementing the keys would tell a screen-reader user to press keys that do
+ * nothing, which is the reasoning `Toolbar` records for declining the role it does not
+ * implement.
+ */
+function MarkdownField({
+  label,
+  description,
+  value,
+  rows,
+  readOnly,
+  required = false,
+  onChange,
+}: {
+  label: string;
+  description: ReactNode;
+  value: string;
+  rows: number;
+  readOnly: boolean;
+  required?: boolean;
+  onChange: (next: string) => void;
+}): ReactNode {
+  const base = useId();
+  const [tab, setTab] = useState<MarkdownTab>('write');
+  const refused = useMemo(() => parseMarkdown(value), [value]);
+
+  const tabId = (id: MarkdownTab): string => `${base}-${id}-tab`;
+  const panelId = (id: MarkdownTab): string => `${base}-${id}-panel`;
+
+  // Left and right wrap; Home and End jump to the ends. The APG pattern, and the reason
+  // the buttons carry a roving tabindex rather than each being their own tab stop.
+  const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>): void => {
+    const index = TABS.findIndex((candidate) => candidate.id === tab);
+    const move = (to: number): void => {
+      event.preventDefault();
+      const next = TABS[(to + TABS.length) % TABS.length];
+      if (next === undefined) return;
+      setTab(next.id);
+      document.getElementById(tabId(next.id))?.focus();
+    };
+    if (event.key === 'ArrowLeft') move(index - 1);
+    else if (event.key === 'ArrowRight') move(index + 1);
+    else if (event.key === 'Home') move(0);
+    else if (event.key === 'End') move(TABS.length - 1);
+  };
+
+  return (
+    <Field label={label} id={`${base}-control`} description={description} required={required}>
+      {(control) => (
+        <div className="ab-mdfield">
+          <div className="ab-mdfield__tabs" role="tablist" aria-label={`${label} editor`}>
+            {TABS.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                role="tab"
+                id={tabId(entry.id)}
+                className="ab-mdfield__tab"
+                aria-selected={tab === entry.id}
+                aria-controls={panelId(entry.id)}
+                tabIndex={tab === entry.id ? 0 : -1}
+                onClick={() => {
+                  setTab(entry.id);
+                }}
+                onKeyDown={onTabKeyDown}
+              >
+                {entry.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Both panels stay mounted. Unmounting the textarea to show the preview would
+              lose the author's cursor and scroll position every time they looked, and
+              would leave the visible label pointing at a control that does not exist. */}
+          <div
+            role="tabpanel"
+            id={panelId('write')}
+            aria-labelledby={tabId('write')}
+            hidden={tab !== 'write'}
+          >
+            <textarea
+              {...control}
+              className="ab-input ab-textarea ab-mdfield__input"
+              rows={rows}
+              readOnly={readOnly}
+              value={value}
+              onChange={(e) => {
+                onChange(e.currentTarget.value);
+              }}
+            />
+          </div>
+
+          <div
+            role="tabpanel"
+            id={panelId('preview')}
+            aria-labelledby={tabId('preview')}
+            hidden={tab !== 'preview'}
+            // A tab panel with nothing focusable inside it is given a tab stop of its own,
+            // so a keyboard user can reach the content it holds and scroll it.
+            tabIndex={0}
+            className="ab-mdfield__preview"
+          >
+            {value.trim() === '' ? (
+              <p className="ab-mdfield__blank">
+                Nothing written yet. What you type appears here as the candidate will see it.
+              </p>
+            ) : (
+              <Markdown source={value} headingLevel={3} />
+            )}
+          </div>
+
+          {refused.rawHtml.length > 0 || refused.rejectedUrls.length > 0 ? (
+            <div className="ab-mdfield__refused">
+              <Alert tone="warning" title="Some of this will not render">
+                {refused.rawHtml.length > 0 ? (
+                  <p>
+                    {refused.rawHtml.length === 1
+                      ? `Raw HTML on line ${String(refused.rawHtml[0]?.line ?? 0)} is shown as text, never rendered. `
+                      : `Raw HTML on lines ${refused.rawHtml.map((f) => String(f.line)).join(', ')} is shown as text, never rendered. `}
+                    A prompt is served to a candidate&rsquo;s browser, and markup in one is a way
+                    into their session.
+                  </p>
+                ) : null}
+                {refused.rejectedUrls.length > 0 ? (
+                  <p>
+                    {refused.rejectedUrls.length === 1
+                      ? 'One link was removed because of its address; its words are kept. '
+                      : `${String(refused.rejectedUrls.length)} links were removed because of their addresses; their words are kept. `}
+                    Only http, https and mailto addresses are allowed.
+                  </p>
+                ) : null}
+              </Alert>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </Field>
+  );
+}
+
 function OptionsEditor({
   options,
   readOnly,

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [../docs/02-HLD.md](../docs/02-HLD.md), [../docs/04-ADRs.md](../docs/04-ADRs.md), [../docs/05-licensing-and-compliance.md](../docs/05-licensing-and-compliance.md), [piston/README.md](piston/README.md)
 
 ---
@@ -18,7 +18,7 @@ Everything needed to run Assaybank on a laptop, and the shape of the same system
 | `docker/*.Dockerfile` | Multi-stage builds for the five application services. Specifications until their `apps/` directory exists. |
 | `postgres/init/` | Extensions, roles, schema loader, RLS policies, event partitions. Runs once on a fresh volume, in filename order. |
 | `piston/` | The execution matrix and its operational notes. See [piston/README.md](piston/README.md). |
-| `caddy/Caddyfile` | TLS termination and routing for production, including the sticky WebSocket route. |
+| `caddy/Caddyfile` | TLS termination and routing for production, including the sticky WebSocket route and the `frame_policy` snippet — the one Content-Security-Policy directive a browser will not honour from a `<meta>` tag (docs/13 §7.4). |
 | `otel/otel-collector.yaml` | Telemetry pipeline, including span redaction. |
 | `prometheus/prometheus.yml` | Scrape jobs for api, worker and collab. |
 | `grafana/provisioning/` | Datasource, provisioned as a file so a fresh stack works without clicking. |

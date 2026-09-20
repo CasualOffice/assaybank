@@ -309,6 +309,31 @@
       ]
     },
     {
+      "id": "markdown",
+      "name": "markdown",
+      "type": "package",
+      "milestone": "M0",
+      "status": "in-progress",
+      "owner": "_unassigned_",
+      "owner_role": "frontend lead",
+      "path": "packages/markdown",
+      "purpose": "Parses author-supplied markdown - question prompts, explanations, scorecard notes - into a closed union of node types. It is the only route by which author content becomes anything renderable (T-038, ADR-022).",
+      "public_surface": [
+        "Exported symbols: parseMarkdown(source) -> MarkdownDocument, findRawHtml(source), safeUrl(url), allowedSchemes, textOf(nodes), and the Block/Inline node types"
+      ],
+      "invariants": [
+        "Emits no HTML. There is no stage at which a string of markup exists, so there is nothing for a payload to survive in and no sanitiser to get wrong (ADR-022).",
+        "Raw HTML in the source is text. It is reported with its line number so an importer can refuse the row and an author can be told, never silently stripped.",
+        "A link or image destination is kept only when its scheme is http, https or mailto, or when it is a relative reference. safeUrl is the single gate.",
+        "Pure and total: no I/O, no configuration, and every input produces a document rather than an exception - a malformed prompt must not become an error screen in a timed attempt."
+      ],
+      "docs": [
+        "docs/14-threat-model.md",
+        "docs/17-engineering-standards.md",
+        "docs/04-ADRs.md"
+      ]
+    },
+    {
       "id": "auth",
       "name": "auth",
       "type": "package",
@@ -394,8 +419,9 @@
       ],
       "invariants": [
         "Presentation only: no data fetching, no route definitions, no permission logic.",
-        "Imports no workspace package other than contracts (types only), so it can never drag server code into a client bundle.",
-        "Every component meets the contrast and keyboard requirements in docs/15-accessibility-conformance.md."
+        "Imports no workspace package other than contracts (types only) and markdown (pure, no I/O), so it can never drag server code into a client bundle.",
+        "Every component meets the contrast and keyboard requirements in docs/15-accessibility-conformance.md.",
+        "Renders author-supplied content only through the Markdown component, which builds React elements from parsed nodes. No source in this package, apps/web or apps/candidate uses dangerouslySetInnerHTML, asserted by tests/fixtures/no-inner-html.test.ts (ADR-022)."
       ],
       "docs": [
         "docs/15-accessibility-conformance.md",
@@ -1826,6 +1852,26 @@
       "description": "LOG_LEVEL, OTEL_* settings and the service name."
     },
     {
+      "id": "i-ui-markdown",
+      "from": "ui",
+      "to": "markdown",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "The Markdown component renders the parser's nodes as React elements. It is the only consumer that renders them."
+    },
+    {
+      "id": "i-web-markdown",
+      "from": "web",
+      "to": "markdown",
+      "kind": "imports",
+      "protocol": "workspace dependency",
+      "sync": true,
+      "milestone": "M0",
+      "description": "The authoring editor parses a draft prompt to report raw HTML and refused destinations back to the author while they can still fix them."
+    },
+    {
       "id": "api-credentials",
       "from": "api",
       "to": "credentials",
@@ -2005,12 +2051,13 @@
     "order": [
       "apps (composition roots)",
       "impure packages (db, auth, exec-adapter, observability, config, ui)",
-      "pure packages (core-domain, grading)",
+      "pure packages (core-domain, grading, markdown)",
       "contracts (root)"
     ],
     "pure_packages": [
       "core-domain",
-      "grading"
+      "grading",
+      "markdown"
     ],
     "io_packages": [
       "db",
@@ -2028,8 +2075,8 @@
       },
       {
         "id": "L2",
-        "rule": "core-domain and grading must not import db, auth, exec-adapter, observability, or any I/O module.",
-        "rationale": "Scoring and the attempt state machine have to be reproducible from their inputs alone. If they can read a clock or a database they stop being testable and a re-grade stops being deterministic (ADR-008).",
+        "rule": "core-domain, grading and markdown must not import db, auth, exec-adapter, observability, or any I/O module.",
+        "rationale": "Scoring and the attempt state machine have to be reproducible from their inputs alone. If they can read a clock or a database they stop being testable and a re-grade stops being deterministic (ADR-008). The markdown parser is on the same list because it runs inside a candidate bundle, where a package that can reach a database is a package that can leak one.",
         "enforced_by": "scripts/gen-code-graph.mjs validation, plus a lint rule banning node:fs, node:net, database and HTTP clients in those packages"
       },
       {

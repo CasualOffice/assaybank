@@ -158,6 +158,16 @@ load-bearing part: every colour is defined once, in both themes, and a unit test
 contrast of each pair that appears in the product. A screen therefore cannot introduce a contrast
 failure by choosing a colour, because it has no colours to choose from.
 
+**Author content is parsed, not sanitised** (ADR-022). Question prompts, explanations and scorecard
+notes are markdown written by one person and rendered in another's browser — with a staff session
+attached in the console, and with an attempt token in the runner. `packages/markdown`, a pure
+package with no dependency, parses them into a closed union of node types; `packages/ui`'s
+`Markdown` maps that union to React elements. No stage of it produces a string of HTML, so the
+usual shape of this defence — generate markup, filter it, trust the filter — does not exist here
+and neither does its failure mode. A strict Content-Security-Policy with no `'unsafe-inline'` and
+no `'unsafe-eval'` is injected into each bundle's page at build time, with `frame-ancestors` set by
+the reverse proxy, which is the only place a browser honours it.
+
 **The console's shape is a fixed sidebar beside a scrolling work area**, and every list screen
 inside it is the same stack: page header, filter toolbar, result count, table, pager. The
 repetition is the point — the second list screen costs a fraction of the first, and a recruiter who

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (legal counsel)
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`04-ADRs.md`](04-ADRs.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`16-ai-usage-policy.md`](16-ai-usage-policy.md)
 
 ---
@@ -43,6 +43,20 @@ Permitted: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, PostgreSQL
 Prohibited: GPL (any version), LGPL where static linking applies, AGPL (any version), SSPL, BSL/BUSL, Commons Clause, "source available" licenses, and anything with a field-of-use restriction.
 
 Enforced in CI. The build fails on a prohibited license in the dependency tree, including transitive dependencies. An SBOM (CycloneDX or SPDX) is produced per release.
+
+### The dependency not taken
+
+Worth recording, because the licence gate only ever sees the dependencies that were added. Rendering
+markdown safely is conventionally `marked` or `markdown-it` plus DOMPurify or `sanitize-html` — all
+MIT, all of which would pass this policy without comment. None of them is in the tree.
+[ADR-022](04-ADRs.md) took a different shape: `packages/markdown` parses to nodes and never emits
+HTML, so there is no markup to sanitise and no sanitiser to depend on. The package has **no
+dependencies at all**, and `tests/fixtures/no-inner-html.test.ts` fails the build if one of those
+libraries is added later, which is a design gate rather than a licence one.
+
+The licensing consequence is the one worth stating: the smallest supply-chain surface is the
+dependency you did not add (T-037), and a library whose licence is fine can still be the thing that
+ships an exfiltration channel in a patch release.
 
 ### Approved stack
 

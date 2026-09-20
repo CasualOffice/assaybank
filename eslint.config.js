@@ -195,7 +195,7 @@ export default tseslint.config(
     },
   },
 
-  // --- L2: core-domain and grading stay pure -----------------------------------
+  // --- L2: core-domain, grading and markdown stay pure -------------------------
   // This block deliberately restates the app ban: no-restricted-imports is replaced
   // wholesale by a later matching config, never merged, so the stricter list has to
   // be a superset.
@@ -203,6 +203,7 @@ export default tseslint.config(
     files: [
       'packages/core-domain/**/*.ts',
       'packages/grading/**/*.ts',
+      'packages/markdown/**/*.ts',
       'packages/core-domain/**/*.tsx',
       'packages/grading/**/*.tsx',
     ],
@@ -218,15 +219,16 @@ export default tseslint.config(
             {
               group: withStar(IMPURE_PACKAGES),
               message:
-                'L2: core-domain and grading import no I/O. Scoring and the attempt state ' +
-                'machine must be reproducible from their inputs alone, which is what makes a ' +
-                're-grade deterministic (ADR-008). Pass the value in as an argument.',
+                'L2: core-domain, grading and markdown import no I/O. Scoring and the ' +
+                'attempt state machine must be reproducible from their inputs alone, which is ' +
+                'what makes a re-grade deterministic (ADR-008), and the markdown parser must ' +
+                'be safe to run in a candidate bundle. Pass the value in as an argument.',
             },
             {
               group: IO_MODULES,
               message:
-                'L2: core-domain and grading import no I/O — no filesystem, no network, no ' +
-                'database client, no clock that was not passed in (CODE-GRAPH.md).',
+                'L2: core-domain, grading and markdown import no I/O — no filesystem, no ' +
+                'network, no database client, no clock that was not passed in (CODE-GRAPH.md).',
             },
             {
               group: ['**/apps/**'],
@@ -299,8 +301,8 @@ export default tseslint.config(
               ]),
               message:
                 'L5: packages/ui is presentation only and imports no workspace package other ' +
-                'than contracts (types only), so it can never drag server code into a ' +
-                'candidate bundle (CODE-GRAPH.md).',
+                'than contracts (types only) and markdown (pure, no I/O), so it can never ' +
+                'drag server code into a candidate bundle (CODE-GRAPH.md).',
             },
           ],
         },

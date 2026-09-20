@@ -60,7 +60,7 @@ Two further constraints show up in this graph as *absent* edges, which is the on
 
 ## Graph at a glance
 
-Graph version 1.0.0, generated 2026-09-15. 5 applications, 10 packages, 3 datastores, 6 queues, 6 scheduled jobs, 7 external services. 54 runtime edges, 36 import edges.
+Graph version 1.0.0, generated 2026-09-15. 5 applications, 11 packages, 3 datastores, 6 queues, 6 scheduled jobs, 7 external services. 54 runtime edges, 38 import edges.
 
 ```mermaid
 flowchart LR
@@ -79,6 +79,7 @@ flowchart LR
     n_core_domain(["core-domain"])
     n_exec_adapter(["exec-adapter"])
     n_grading(["grading"])
+    n_markdown(["markdown"])
     n_auth(["auth"])
     n_config(["config"])
     n_observability(["observability"])
@@ -208,6 +209,8 @@ flowchart LR
   n_grading -. imports .-> n_contracts
   n_ui -. imports .-> n_contracts
   n_observability -. imports .-> n_config
+  n_ui -. imports .-> n_markdown
+  n_web -. imports .-> n_markdown
   n_api -. imports .-> n_credentials
   n_worker -. imports .-> n_credentials
 ```
@@ -231,6 +234,7 @@ Solid arrows are runtime calls, labelled by kind. Dotted arrows are compile-time
 | `db` | db | package | M0 | in-progress | `packages/db` | Drizzle schema, migrations, row-level-security policies and the seed data that mirror docs/hiring_platform_schema.sql. |
 | `exec-adapter` | exec-adapter | package | M2 | planned | `packages/exec-adapter` | Thin adapter over Piston behind execute(language, version, files, stdin, args, limits) so the sandbox stays swappable. |
 | `grading` | grading | package | M1 | in-progress | `packages/grading` | Pure comparison and weighted scoring: MCQ and short-answer matching, test-case comparison per grading mode, partial credit and optional negative marking. |
+| `markdown` | markdown | package | M0 | in-progress | `packages/markdown` | Parses author-supplied markdown - question prompts, explanations, scorecard notes - into a closed union of node types. It is the only route by which author content becomes anything renderable (T-038, ADR-022). |
 | `observability` | observability | package | M0 | built | `packages/observability` | Structured logger, OpenTelemetry tracing setup and the metric registry shared by every service. |
 | `ui` | ui | package | M0 | in-progress | `packages/ui` | Shared React components and Tailwind design tokens used by both front ends. |
 | `object-store` | SeaweedFS (S3-compatible) | datastore | M0 | planned | `service: seaweedfs S3 :8333 (S3_ENDPOINT)` | Object storage for export files, packaged session replays, archived event partitions, large submission artefacts and proctor media. |
@@ -497,6 +501,23 @@ Invariants:
 
 Specified by: [`docs/02-HLD.md`](docs/02-HLD.md), [`docs/04-ADRs.md`](docs/04-ADRs.md), [`docs/16-ai-usage-policy.md`](docs/16-ai-usage-policy.md)
 
+#### `markdown` — markdown
+
+**Owner:** _unassigned_ (expected: frontend lead) · **Milestone:** M0 · **Status:** in-progress
+
+Public surface:
+
+- Exported symbols: parseMarkdown(source) -> MarkdownDocument, findRawHtml(source), safeUrl(url), allowedSchemes, textOf(nodes), and the Block/Inline node types
+
+Invariants:
+
+- Emits no HTML. There is no stage at which a string of markup exists, so there is nothing for a payload to survive in and no sanitiser to get wrong (ADR-022).
+- Raw HTML in the source is text. It is reported with its line number so an importer can refuse the row and an author can be told, never silently stripped.
+- A link or image destination is kept only when its scheme is http, https or mailto, or when it is a relative reference. safeUrl is the single gate.
+- Pure and total: no I/O, no configuration, and every input produces a document rather than an exception - a malformed prompt must not become an error screen in a timed attempt.
+
+Specified by: [`docs/14-threat-model.md`](docs/14-threat-model.md), [`docs/17-engineering-standards.md`](docs/17-engineering-standards.md), [`docs/04-ADRs.md`](docs/04-ADRs.md)
+
 #### `observability` — observability
 
 **Owner:** _unassigned_ (expected: platform engineer) · **Milestone:** M0 · **Status:** built
@@ -524,8 +545,9 @@ Public surface:
 Invariants:
 
 - Presentation only: no data fetching, no route definitions, no permission logic.
-- Imports no workspace package other than contracts (types only), so it can never drag server code into a client bundle.
+- Imports no workspace package other than contracts (types only) and markdown (pure, no I/O), so it can never drag server code into a client bundle.
 - Every component meets the contrast and keyboard requirements in docs/15-accessibility-conformance.md.
+- Renders author-supplied content only through the Markdown component, which builds React elements from parsed nodes. No source in this package, apps/web or apps/candidate uses dangerouslySetInnerHTML, asserted by tests/fixtures/no-inner-html.test.ts (ADR-022).
 
 Specified by: [`docs/15-accessibility-conformance.md`](docs/15-accessibility-conformance.md), [`docs/08-i18n-and-localisation.md`](docs/08-i18n-and-localisation.md)
 
@@ -971,6 +993,8 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/13-environmen
 | `grading` | `contracts` | imports | workspace dependency (types only) | yes | M1 | Grading mode and result types only. |
 | `ui` | `contracts` | imports | workspace dependency (types only) | yes | M0 | Prop types for the components that render domain objects. |
 | `observability` | `config` | imports | workspace dependency | yes | M0 | LOG_LEVEL, OTEL_* settings and the service name. |
+| `ui` | `markdown` | imports | workspace dependency | yes | M0 | The Markdown component renders the parser's nodes as React elements. It is the only consumer that renders them. |
+| `web` | `markdown` | imports | workspace dependency | yes | M0 | The authoring editor parses a draft prompt to report raw HTML and refused destinations back to the author while they can still fix them. |
 | `api` | `credentials` | imports | in-process | yes | M4 | Issuance, verification and revocation endpoints build and sign claim sets through the credentials package. |
 | `worker` | `credentials` | imports | in-process | yes | M4 | Status-list publication and the deterministic PDF rendering job run in the worker. |
 
@@ -1007,12 +1031,12 @@ Specified by: [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/13-environmen
 
 Dependency direction is one-way and enforced by the generator's validation pass, by the workspace dependency graph, and by a lint rule once code exists.
 
-Direction of dependency, top to bottom: **apps (composition roots)** → **impure packages (db, auth, exec-adapter, observability, config, ui)** → **pure packages (core-domain, grading)** → **contracts (root)**.
+Direction of dependency, top to bottom: **apps (composition roots)** → **impure packages (db, auth, exec-adapter, observability, config, ui)** → **pure packages (core-domain, grading, markdown)** → **contracts (root)**.
 
 | Rule | Statement | Why | Enforced by |
 |---|---|---|---|
 | L1 | An app may import any package. A package must never import an app. | Apps are composition roots. A package that reaches back into an app cannot be tested or reused, and it makes the dependency graph cyclic. | scripts/gen-code-graph.mjs validation, pnpm workspace dependencies |
-| L2 | core-domain and grading must not import db, auth, exec-adapter, observability, or any I/O module. | Scoring and the attempt state machine have to be reproducible from their inputs alone. If they can read a clock or a database they stop being testable and a re-grade stops being deterministic (ADR-008). | scripts/gen-code-graph.mjs validation, plus a lint rule banning node:fs, node:net, database and HTTP clients in those packages |
+| L2 | core-domain, grading and markdown must not import db, auth, exec-adapter, observability, or any I/O module. | Scoring and the attempt state machine have to be reproducible from their inputs alone. If they can read a clock or a database they stop being testable and a re-grade stops being deterministic (ADR-008). The markdown parser is on the same list because it runs inside a candidate bundle, where a package that can reach a database is a package that can leak one. | scripts/gen-code-graph.mjs validation, plus a lint rule banning node:fs, node:net, database and HTTP clients in those packages |
 | L3 | contracts imports no other workspace package. | It is the root of the graph and is consumed by both servers and both browser bundles; a dependency here would pull server code into a client bundle. | scripts/gen-code-graph.mjs validation |
 | L4 | An app must not import another app. | Shared behaviour between apps belongs in a package. Direct app-to-app imports are how a staff-only module ends up in the candidate bundle. | scripts/gen-code-graph.mjs validation |
 | L5 | apps/candidate and packages/ui must not import db, auth, core-domain, grading or exec-adapter. | The candidate bundle must be incapable of carrying bank access, correct-answer logic or scoring rules, whatever a future refactor does. This is a build-graph guarantee, not a code review habit. | scripts/gen-code-graph.mjs forbidden_imports, plus a bundle-content test in CI |
