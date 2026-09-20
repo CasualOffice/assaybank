@@ -82,6 +82,8 @@ export interface TestCaseContent {
   readonly stdin: string;
   readonly expectedStdout: string | null;
   readonly args: readonly string[] | null;
+  /** The unit test this case runs, in `unit_tests` mode; null otherwise (ADR-024). */
+  readonly assertionCode: string | null;
   readonly isSample: boolean;
   readonly weight: number;
 }
@@ -168,6 +170,7 @@ function testCaseFrom(
     stdin: input.stdin,
     expectedStdout: input.expected_stdout ?? null,
     args: input.args ?? null,
+    assertionCode: input.assertion_code ?? null,
     isSample: input.is_sample,
     weight: input.weight ?? DEFAULTS.testCaseWeight,
   };
@@ -258,6 +261,7 @@ function baseline(prior: QuestionVersionRecord | undefined): VersionContent | un
       stdin: testCase.stdin,
       expectedStdout: testCase.expected_stdout,
       args: testCase.args === null ? null : [...testCase.args],
+      assertionCode: testCase.assertion_code,
       isSample: testCase.is_sample,
       weight: testCase.weight,
     })),
@@ -322,8 +326,7 @@ export function mergeVersionContent(
     estSeconds: chosen(input.est_seconds, base?.estSeconds ?? DEFAULTS.estSeconds),
     maxScore: chosen(input.max_score, base?.maxScore ?? DEFAULTS.maxScore),
     negativeScore: chosen(input.negative_score, base?.negativeScore ?? DEFAULTS.negativeScore),
-    options:
-      input.options === undefined ? (base?.options ?? []) : input.options.map(optionFrom),
+    options: input.options === undefined ? (base?.options ?? []) : input.options.map(optionFrom),
     codingSpec: mergeCodingSpec(base?.codingSpec ?? null, input.coding_spec),
     testCases:
       input.test_cases === undefined ? (base?.testCases ?? []) : input.test_cases.map(testCaseFrom),

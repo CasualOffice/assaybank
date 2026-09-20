@@ -27,6 +27,9 @@ export const FORBIDDEN_CANDIDATE_FIELDS: readonly string[] = Object.freeze([
   'expectedOutput',
   'expected_stdout',
   'expectedStdout',
+  /** `test_cases.assertion_code` — the unit test itself, which names the expected value (ADR-024). */
+  'assertion_code',
+  'assertionCode',
   'hidden_cases',
   'hiddenCases',
   'test_case_expected',

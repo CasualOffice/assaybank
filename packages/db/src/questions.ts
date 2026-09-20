@@ -246,6 +246,7 @@ async function loadVersionChildren(
         stdin: testCases.stdin,
         expectedStdout: testCases.expectedStdout,
         args: testCases.args,
+        assertionCode: testCases.assertionCode,
         isSample: testCases.isSample,
         weight: testCases.weight,
       })
@@ -298,6 +299,7 @@ async function loadVersionChildren(
       stdin: testCase.stdin,
       expected_stdout: testCase.expectedStdout,
       args: testCase.args,
+      assertion_code: testCase.assertionCode,
       is_sample: testCase.isSample,
       weight: num(testCase.weight, 1),
     })),
@@ -832,6 +834,7 @@ async function writeVersionChildren(
         stdin: testCase.stdin,
         expectedStdout: testCase.expectedStdout,
         args: testCase.args === null ? null : [...testCase.args],
+        assertionCode: testCase.assertionCode,
         isSample: testCase.isSample,
         weight: testCase.weight.toFixed(2),
       })),

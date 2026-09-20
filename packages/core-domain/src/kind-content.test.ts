@@ -26,7 +26,13 @@ const COMPLETE: Record<QuestionKind, KindContentShape> = {
   true_false: { ...EMPTY, optionCount: 2, correctOptionCount: 1 },
   short_answer: { ...EMPTY, answerKeyCount: 1 },
   coding: { ...EMPTY, hasCodingSpec: true, testCaseCount: 3, hiddenTestCaseCount: 2 },
-  sql: { ...EMPTY, hasCodingSpec: true, hasFixtureSql: true, testCaseCount: 1, hiddenTestCaseCount: 1 },
+  sql: {
+    ...EMPTY,
+    hasCodingSpec: true,
+    hasFixtureSql: true,
+    testCaseCount: 1,
+    hiddenTestCaseCount: 1,
+  },
   subjective: EMPTY,
   system_design: EMPTY,
 };
@@ -61,14 +67,11 @@ describe('validateKindContent', () => {
     }
   }
 
-  it.each(foreign)(
-    '%s refuses %s as wrong_kind, even in a draft',
-    (kind, key, field) => {
-      const shape: KindContentShape = { ...COMPLETE[kind], [key]: 2 };
-      const issues = validateKindContent(kind, shape, 'draft');
-      expect(issues).toContainEqual(expect.objectContaining({ severity: 'wrong_kind', field }));
-    },
-  );
+  it.each(foreign)('%s refuses %s as wrong_kind, even in a draft', (kind, key, field) => {
+    const shape: KindContentShape = { ...COMPLETE[kind], [key]: 2 };
+    const issues = validateKindContent(kind, shape, 'draft');
+    expect(issues).toContainEqual(expect.objectContaining({ severity: 'wrong_kind', field }));
+  });
 
   it('refuses a coding_spec on a non-code kind in a draft', () => {
     for (const kind of ['mcq_single', 'short_answer', 'subjective'] as const) {
@@ -80,7 +83,11 @@ describe('validateKindContent', () => {
   });
 
   it('refuses fixture_sql on a coding question, which would leak unused content to candidates', () => {
-    const issues = validateKindContent('coding', { ...COMPLETE.coding, hasFixtureSql: true }, 'draft');
+    const issues = validateKindContent(
+      'coding',
+      { ...COMPLETE.coding, hasFixtureSql: true },
+      'draft',
+    );
     expect(issues).toContainEqual(expect.objectContaining({ field: 'coding_spec' }));
   });
 
@@ -96,8 +103,59 @@ describe('validateKindContent', () => {
       );
     });
 
+    it('refuses a unit-test question with a case that has no assertion (ADR-024)', () => {
+      // The assertion *is* the case in this mode. A row without one is a case the harness
+      // cannot run, and an unrunnable case scores a silent zero for every candidate rather
+      // than failing loudly — which is the failure nobody notices until a dispute.
+      const issues = validateKindContent(
+        'coding',
+        { ...COMPLETE.coding, gradingMode: 'unit_tests', casesWithoutAssertion: 1 },
+        'publish',
+      );
+
+      expect(issues).toContainEqual(
+        expect.objectContaining({ severity: 'incomplete', field: 'test_cases' }),
+      );
+    });
+
+    it('accepts a unit-test question whose every case carries one', () => {
+      const issues = validateKindContent(
+        'coding',
+        { ...COMPLETE.coding, gradingMode: 'unit_tests', casesWithoutAssertion: 0 },
+        'publish',
+      );
+
+      expect(issues).toEqual([]);
+    });
+
+    it('does not ask for an assertion in the mode that has no use for one', () => {
+      // A stdin/stdout question has no assertion_code by design, and demanding one would
+      // make every coding question already in the bank unpublishable.
+      const issues = validateKindContent(
+        'coding',
+        { ...COMPLETE.coding, gradingMode: 'test_cases', casesWithoutAssertion: 3 },
+        'publish',
+      );
+
+      expect(issues).toEqual([]);
+    });
+
+    it('says nothing at draft, because an author saves before the tests are written', () => {
+      const issues = validateKindContent(
+        'coding',
+        { ...COMPLETE.coding, gradingMode: 'unit_tests', casesWithoutAssertion: 3 },
+        'draft',
+      );
+
+      expect(issues).toEqual([]);
+    });
+
     it('refuses an sql question with no fixture database', () => {
-      const issues = validateKindContent('sql', { ...COMPLETE.sql, hasFixtureSql: false }, 'publish');
+      const issues = validateKindContent(
+        'sql',
+        { ...COMPLETE.sql, hasFixtureSql: false },
+        'publish',
+      );
       expect(issues).toContainEqual(expect.objectContaining({ field: 'coding_spec' }));
     });
 
@@ -111,7 +169,11 @@ describe('validateKindContent', () => {
     });
 
     it('refuses a true_false question with three options', () => {
-      const issues = validateKindContent('true_false', { ...COMPLETE.true_false, optionCount: 3 }, 'publish');
+      const issues = validateKindContent(
+        'true_false',
+        { ...COMPLETE.true_false, optionCount: 3 },
+        'publish',
+      );
       expect(issues).toContainEqual(expect.objectContaining({ field: 'options' }));
     });
 

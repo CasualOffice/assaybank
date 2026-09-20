@@ -257,6 +257,11 @@ function writeTestCase(testCase: BankTestCase): string {
     (testCase.args === null
       ? ''
       : `<ab:args>${testCase.args.map((a) => textElement('ab:arg', a)).join('')}</ab:args>`) +
+    // Absent rather than empty when null, so a `test_cases`-mode question round-trips to a
+    // package identical to the one it produced before ADR-024 added the field.
+    (testCase.assertion_code === null
+      ? ''
+      : textElement('ab:assertion-code', testCase.assertion_code)) +
     `</ab:test-case>`
   );
 }
@@ -478,6 +483,7 @@ function readTestCase(node: XmlElement): BankTestCase {
     stdin: optionalText(node, 'stdin') ?? '',
     expected_stdout: optionalText(node, 'expected-stdout'),
     args: args === undefined ? null : children(args, 'arg').map(text),
+    assertion_code: optionalText(node, 'assertion-code'),
     is_sample: boolAttr(node, 'is-sample') ?? false,
     weight: numberAttr(node, 'weight') ?? Number.NaN,
   };

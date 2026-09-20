@@ -106,6 +106,7 @@ function dangerousVersion(): QuestionVersionRecord {
         stdin: '1 2 3',
         expected_stdout: '3 2 1',
         args: null,
+        assertion_code: null,
         is_sample: true,
         weight: 0,
       },
@@ -116,6 +117,7 @@ function dangerousVersion(): QuestionVersionRecord {
         stdin: '9 8 7',
         expected_stdout: '7 8 9',
         args: ['--fast'],
+        assertion_code: null,
         is_sample: false,
         weight: 1,
       },
@@ -126,6 +128,9 @@ function dangerousVersion(): QuestionVersionRecord {
         stdin: '',
         expected_stdout: '',
         args: null,
+        // A unit-test case (ADR-024), so the mapper is exercised with a value here and with
+        // null above rather than only with null.
+        assertion_code: 'assert reverse([1, 2, 3]) == [3, 2, 1]',
         is_sample: false,
         weight: 1,
       },

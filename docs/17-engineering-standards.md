@@ -398,6 +398,24 @@ Explicitly not allowed, each because it has a specific failure mode here:
 
 ---
 
+## 2b. Decide the shape before the data arrives
+
+A column whose meaning has never been settled is not a spare column, it is a decision deferred to
+whoever fills it first. `question_versions.grading_mode` has read `test_cases | unit_tests |
+custom_checker` since the initial schema and only the first ever had semantics — which was fine
+until an import wanted to write two hundred rows in the second.
+
+The rule: **when work is about to put data into a shape nobody has decided, decide it first, in
+writing, and say what it means.** Not because the design is hard, but because of what makes it
+expensive — a published `question_version` is immutable (ADR-003), so rows written into a wrong
+shape cannot be edited into a right one, and the fix is a re-import that changes every
+`external_ref` and orphans anything already graded. ADR-024 is that decision; `H-190` is the row it
+was done under.
+
+The cheap test for whether this applies: *if the first consumer of this field turns out to disagree
+with the first producer, what does the fix cost?* When the answer is a migration, proceed. When the
+answer is re-importing somebody's bank, stop and write it down.
+
 ## 2a. A new workspace package lands in `tsconfig.base.json` too
 
 `pnpm-workspace.yaml` picks a new package up from a glob, which is what makes adding one cheap —

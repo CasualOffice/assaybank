@@ -456,3 +456,38 @@ The costs are real and worth stating. Polling has latency — a candidate added 
 The outbound layer is unaffected. Events still leave through the webhook contract, and an adapter that both pulls and pushes is still a client of that contract rather than a parallel path — which is the clause in ADR-019 that this decision is careful not to weaken.
 
 **Revisit when** a third vendor is asked for, at which point the interface has had two implementations and its shape is evidence rather than a bet; or when a vendor's push mechanism proves reliable enough to make polling the fallback rather than the mechanism; or if a customer requires that resumes never leave their ATS, which is a legitimate position and makes the attachment a reference rather than a copy.
+
+---
+
+## ADR-024 — A unit-test case is one assertion, in its own column
+
+**Status:** accepted
+**Depends on:** ADR-003, ADR-002
+**Blocks:** `H-032` (dataset importers)
+
+**Context.** `question_versions.grading_mode` has read `test_cases | unit_tests | custom_checker` since the initial schema, and only the first has ever had semantics. Execution is M2, so nothing has needed the other two — until now. `H-032` imports HumanEval, MBPP, LBPP and Exercism, and **all four are unit-test datasets**: each gives a function to implement and Python assertions that call it. There is no stdin and no expected stdout anywhere in them.
+
+Two things make this expensive to get wrong rather than merely awkward. A published version is immutable (ADR-003), so 200 imported questions are 200 rows that cannot be edited into a different shape — the fix would be re-importing and re-publishing, which changes every `external_ref` mapping and orphans any attempt already graded against the old ones. And the harness that will read this field is built in M2, against whatever the bank already holds.
+
+Three shapes were available.
+
+**Convert the assertions to stdin/stdout.** Generate a driver per problem, parse `assert candidate(a, b) == c` into arguments and an expected value, and import as `test_cases` mode. This is the only option that needs no schema change, and it is the one that does not work: MBPP asserts compare floats with `math.isclose`, return sets whose order is not stable, pass and return nested structures, and occasionally assert over a class instance. Parsing a meaningful fraction of Python expression semantics with a regular expression produces questions that are subtly wrong, and subtly wrong is worse here than absent — a candidate loses marks to our parser.
+
+**Put the whole test module in `checker_code`.** It exists, it is a text column, and it needs no migration. It also collapses every problem to one pass-or-fail: no partial credit, no per-case weight, and no way to show a candidate which assertion failed. HumanEval and MBPP give three to eight assertions per problem, and discarding that granularity to avoid a nullable column is a bad trade.
+
+**Overload `test_cases.stdin`.** Cheapest, and it makes the field name a lie. Somebody reads `stdin` in six months and reasons about standard input.
+
+**Decision.** `test_cases` gains a nullable **`assertion_code`** column, and one test case is **one assertion**.
+
+1. In `unit_tests` mode, a case's `assertion_code` is the source that exercises the candidate's submission; `stdin`, `expected_stdout` and `args` are unused and stay as they are. In `test_cases` mode `assertion_code` is null and nothing changes. The column is nullable and added without a backfill, which is expand-contract (invariant 15) — existing rows are untouched and existing behaviour is unaffected.
+2. **Partial credit falls out of the existing model.** Each case already carries a `weight`; a unit-test question scores the sum of the weights of the assertions that passed, which is the same arithmetic every other coding question uses. That is the whole reason for one-assertion-per-case rather than one module per question.
+3. **The first assertion is a sample; the rest are hidden.** The datasets' first assertion is almost always the worked example their prompt refers to, so this preserves the author's intent and satisfies the kind rule's requirement of at least one hidden case. A problem carrying exactly one assertion imports it as hidden, and is therefore a draft that cannot be published until somebody adds a second — which is correct, because a question graded only on a case the candidate can read is passed by reading it.
+4. **The publish bar is extended**: a coding question in `unit_tests` mode needs `assertion_code` on every case. Checked at publish, not at draft, like every other `incomplete` rule — an author mid-import should not be blocked from saving.
+
+**Consequences.** The import is a faithful copy. No Python is parsed, no expression semantics are interpreted, and an imported question is byte-identical to the dataset's assertion — which also means a bug in our import cannot silently change what a question asks.
+
+**The leak question answers itself, and that is not luck.** `assertion_code` is hidden-case content of exactly the kind invariant 7 governs, and the candidate payload was already built so that it carries **no test-case rows at all** — only counts (`questions.ts`, "What a candidate is not sent"). There is no candidate-facing shape for this field to be added to, so the guarantee does not depend on anybody remembering to filter it. The field is added to `packages/observability`'s redaction list in the same change, because a log line is the other way content escapes.
+
+The costs. A nullable column whose meaning depends on a sibling row's `grading_mode` is not self-describing; a database-level `CHECK` cannot express it because the mode lives on `question_versions`, so the rule is application-level and is enforced in `packages/core-domain` where the other kind rules already are. The interchange formats both gain a field, and "lossless" is re-proved by the round-trip tests rather than assumed. And M2 inherits a contract it did not write — which is the point: the alternative was M2 inheriting 200 questions in a shape nobody had decided.
+
+**Revisit when** the M2 harness is built and the per-assertion timeout turns out to need its own column rather than sharing `coding_spec.time_limit_ms`; or when a dataset arrives whose tests genuinely are stdin/stdout, which `test_cases` mode already serves and which needs nothing from this decision.

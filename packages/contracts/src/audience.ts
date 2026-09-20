@@ -63,6 +63,7 @@
  * | `correct_option_ids`, `answer_key`, `answer_keys` | the same thing, aggregated |
  * | `solution_code`, `checker_code` | the reference solution (`coding_specs`) |
  * | `expected_stdout`, `expected_output` | what a test case expects (`test_cases`) |
+ * | `assertion_code` | the unit test itself, which names the function and the expected value |
  * | `match_type`, `pattern`, `tolerance` | the whole of a `short_answer_keys` row |
  * | `explanation_md` | the worked answer, written for the post-attempt review screen |
  *
@@ -92,6 +93,8 @@ export type AnswerKeyField =
   | 'expectedStdout'
   | 'expected_output'
   | 'expectedOutput'
+  | 'assertion_code'
+  | 'assertionCode'
   | 'match_type'
   | 'matchType'
   | 'pattern'
@@ -128,6 +131,8 @@ export const ANSWER_KEY_FIELDS = Object.freeze([
   'expectedStdout',
   'expected_output',
   'expectedOutput',
+  'assertion_code',
+  'assertionCode',
   'match_type',
   'matchType',
   'pattern',

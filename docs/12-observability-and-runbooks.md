@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-17
+**Last updated:** 2026-09-20
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`14-threat-model.md`](14-threat-model.md), [`../project/RISKS.md`](../project/RISKS.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md)
 
 ---
@@ -326,7 +326,7 @@ Domain identifiers (`attempt_id`, `submission_id`, `question_version_id`, `org_i
 | **Credentials and secrets** | `password`, `password_hash`, `secret`, `token`, `attempt_token`, `invitation_token`, `ws_ticket`, `ticket`, `api_key`, `session`, `session_secret`, `TOKEN_PEPPER`, `SESSION_SECRET`, `S3_SECRET_ACCESS_KEY`, `S3_ACCESS_KEY_ID`, `OIDC_CLIENT_SECRET`, `LIVEKIT_API_SECRET`, `WEBHOOK_SIGNING_SECRET`, `DATABASE_URL` (contains the password), `REDIS_URL`, `SMTP_URL` |
 | **Headers** | `authorization`, `cookie`, `set-cookie`, `x-signature`, `proxy-authorization` |
 | **Candidate answers** | `answers.text_answer`, `answers.selected_option_ids`, `submissions.source_code`, `submissions.compile_stderr`, `submission_results.actual_stdout`, `submission_results.stderr` — stdout and stderr routinely contain the candidate's own source or data |
-| **Question secrets** | `mcq_options.is_correct`, `short_answer_keys.*`, `test_cases.expected_stdout`, `test_cases.stdin` and `test_cases.expected_stdout` where `is_sample = false`, `coding_specs.solution_code`, and anything under a `hidden` key. HLD §1: *"Nothing the candidate must not see ever reaches the client"* — a log aggregator that recruiters can read is a client |
+| **Question secrets** | `mcq_options.is_correct`, `short_answer_keys.*`, `test_cases.expected_stdout`, `test_cases.stdin` and `test_cases.expected_stdout` where `is_sample = false`, `coding_specs.solution_code`, `test_cases.assertion_code` (the unit test itself — it names the function and the value expected of it, ADR-024), and anything under a `hidden` key. HLD §1: *"Nothing the candidate must not see ever reaches the client"* — a log aggregator that recruiters can read is a client |
 | **Candidate PII** | `candidates.email`, `full_name`, `phone`, `resume_url`, `linkedin_url`, any `demographic_*` field (voluntarily collected, PRD §9, and the most sensitive data in the system), `proctor_media.*` object keys and any webcam or screen artefact reference |
 | **Signed URLs** | Any value matching a presigned-URL shape. The query string *is* the credential. Log the object key, never the URL |
 

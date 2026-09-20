@@ -87,6 +87,7 @@ function priorVersion(): QuestionVersionRecord {
         stdin: '1 2 3',
         expected_stdout: '3 2 1',
         args: null,
+        assertion_code: null,
         is_sample: true,
         weight: 0,
       },
@@ -97,6 +98,7 @@ function priorVersion(): QuestionVersionRecord {
         stdin: '9 8 7',
         expected_stdout: '7 8 9',
         args: ['--fast'],
+        assertion_code: 'assert solve([9, 8, 7]) == [7, 8, 9]',
         is_sample: false,
         weight: 1.5,
       },
@@ -125,9 +127,9 @@ describe('missingFirstVersionFields', () => {
   });
 
   it('is satisfied by a complete first version', () => {
-    expect(missingFirstVersionFields(undefined, { prompt_md: 'Why?', difficulty: 2 })).toStrictEqual(
-      [],
-    );
+    expect(
+      missingFirstVersionFields(undefined, { prompt_md: 'Why?', difficulty: 2 }),
+    ).toStrictEqual([]);
   });
 
   it('requires nothing at all once there is a version to copy forward from', () => {
@@ -205,6 +207,7 @@ describe('mergeVersionContent — copying forward', () => {
       stdin: '9 8 7',
       expectedStdout: '7 8 9',
       args: ['--fast'],
+      assertionCode: 'assert solve([9, 8, 7]) == [7, 8, 9]',
       isSample: false,
       weight: 1.5,
     });

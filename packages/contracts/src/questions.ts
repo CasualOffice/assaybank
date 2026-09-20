@@ -207,6 +207,16 @@ export const MAX_TEST_CASES = 200;
 /** The most short-answer keys one version may carry. */
 export const MAX_ANSWER_KEYS = 50;
 
+/**
+ * The most source a single unit-test assertion may be (ADR-024).
+ *
+ * Generous, because an imported assertion sometimes carries a setup block with it — MBPP's
+ * `test_setup_code` and Exercism's fixtures both do — and stingy compared with a prompt,
+ * because a case that needs more than this is a test module rather than an assertion and
+ * belongs in `custom_checker` mode.
+ */
+export const MAX_ASSERTION_LENGTH = 8_000;
+
 /** The characters an excerpt of a prompt is truncated to, for a list row. */
 export const PROMPT_EXCERPT_LENGTH = 200;
 
@@ -297,6 +307,14 @@ export interface TestCaseRecord {
   /** HIDDEN. The expectation ADR-002 keeps out of the sandbox entirely. */
   readonly expected_stdout: string | null;
   readonly args: readonly string[] | null;
+  /**
+   * HIDDEN. The unit test this case runs, in `unit_tests` mode (ADR-024).
+   *
+   * Null in every other mode. It is hidden-case content in exactly the sense
+   * `expected_stdout` is — it names the function and the expected value — and the candidate
+   * payload has no shape that could carry it, which is the guarantee rather than a filter.
+   */
+  readonly assertion_code: string | null;
   readonly is_sample: boolean;
   readonly weight: number;
 }
@@ -430,6 +448,7 @@ export const AuthorTestCaseSchema = z
     stdin: z.string(),
     expected_stdout: z.string().nullable(),
     args: z.array(z.string()).nullable(),
+    assertion_code: z.string().nullable(),
     is_sample: z.boolean(),
     weight: z.number(),
   })
@@ -792,6 +811,7 @@ export const TestCaseInputSchema = z
     stdin: z.string().default(''),
     expected_stdout: z.string().nullable().optional(),
     args: z.array(z.string()).nullable().optional(),
+    assertion_code: z.string().max(MAX_ASSERTION_LENGTH).nullable().optional(),
     is_sample: z.boolean().default(false),
     weight: scoreValue(0.01).optional(),
   })
@@ -1009,6 +1029,7 @@ function authorTestCase(testCase: TestCaseRecord): AuthorQuestionVersionView['te
     stdin: testCase.stdin,
     expected_stdout: testCase.expected_stdout,
     args: testCase.args === null ? null : [...testCase.args],
+    assertion_code: testCase.assertion_code,
     is_sample: testCase.is_sample,
     weight: testCase.weight,
   };

@@ -231,6 +231,7 @@ CREATE TABLE test_cases (
     stdin               text NOT NULL DEFAULT '',
     expected_stdout     text,
     args                text[],
+    assertion_code      text,               -- unit_tests mode: the test this case runs (ADR-024)
     is_sample           boolean NOT NULL DEFAULT false,  -- visible to candidate
     weight              numeric(6,2) NOT NULL DEFAULT 1.0,
     UNIQUE (question_version_id, ordinal)

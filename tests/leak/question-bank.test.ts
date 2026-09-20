@@ -89,6 +89,7 @@ const SECRETS: readonly string[] = [
   'hidden-case-stdin',
   'hidden-case-expectation',
   'hidden-case-argument',
+  'hidden-case-assertion',
   'sample 1',
   'hidden 1',
 ];
@@ -145,6 +146,7 @@ function dangerousVersion(): QuestionVersionRecord {
         stdin: 'sample-case-stdin',
         expected_stdout: 'sample-case-expectation',
         args: null,
+        assertion_code: null,
         is_sample: true,
         weight: 0,
       },
@@ -155,6 +157,7 @@ function dangerousVersion(): QuestionVersionRecord {
         stdin: 'hidden-case-stdin',
         expected_stdout: 'hidden-case-expectation',
         args: ['hidden-case-argument'],
+        assertion_code: 'assert solve(x) == "hidden-case-assertion"',
         is_sample: false,
         weight: 1,
       },
@@ -165,6 +168,7 @@ function dangerousVersion(): QuestionVersionRecord {
         stdin: 'hidden-case-stdin',
         expected_stdout: 'hidden-case-expectation',
         args: null,
+        assertion_code: 'assert solve(y) == "hidden-case-assertion"',
         is_sample: false,
         weight: 1,
       },
@@ -239,6 +243,10 @@ describe('the author view is the other type, and it is not what a candidate gets
     expect(findAnswerKeyFields(author).length).toBeGreaterThan(0);
     expect(JSON.stringify(author)).toContain('def solve(head): return reversed(head)');
     expect(JSON.stringify(author)).toContain('hidden-case-expectation');
+    // ADR-024's field is author-visible and candidate-invisible, exactly like the
+    // expectation beside it. Asserted on the author side too, so a serialiser that dropped
+    // it would fail here rather than silently shipping an unrunnable question to M2.
+    expect(JSON.stringify(author)).toContain('hidden-case-assertion');
   });
 
   it('is a different shape from the candidate view, not the same shape with fields removed', () => {

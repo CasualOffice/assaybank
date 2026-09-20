@@ -237,6 +237,12 @@ export const testCases = pgTable(
     /** HIDDEN unless `is_sample`. This is the expectation ADR-002 keeps out of the sandbox. */
     expectedStdout: text('expected_stdout'),
     args: text('args').array(),
+    /**
+     * The unit test this case runs, in `unit_tests` mode (ADR-024). NULL in every other
+     * mode, and never served or logged: it is hidden-case content in the same sense
+     * `expected_stdout` is, and it is the thing the four M0 datasets actually contain.
+     */
+    assertionCode: text('assertion_code'),
     /** The one flag that makes a case visible to a candidate. */
     isSample: boolean('is_sample').notNull().default(false),
     weight: numeric('weight', { precision: 6, scale: 2 }).notNull().default('1.0'),

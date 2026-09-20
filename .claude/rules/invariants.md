@@ -41,6 +41,13 @@ is the full table of what automation may and may not touch.
 | 10 | The payload handed to `packages/exec-adapter` contains no question id, no attempt id and no expected output. A sandbox escape therefore teaches the attacker nothing about the hidden cases. | HLD §3.2, ADR-002 | Structural assertion, task H-066: the execution node holds no secrets, no database credentials and no cloud role, verified by enumerating the sandbox environment and filesystem against an allow-list | M2 |
 | 11 | Candidate attempt tokens, staff sessions and WebSocket tickets are separate credential domains and never interchangeable. | API spec §1 | Negative tests in `packages/auth`: each credential type is rejected on every surface it does not belong to | M1 |
 
+**ADR-024 adds a field to invariant 7's list, 2026-09-20.** `test_cases.assertion_code` is the unit
+test a case runs, and it names both the function under test and the value expected of it — the same
+disclosure `expected_stdout` is, and it joins it on `ANSWER_KEY_FIELDS`, on the leak suite's
+deny-list and in `packages/observability`'s redaction. It needed no new candidate-side filter, and
+that is the design rather than luck: the candidate payload carries no test-case rows at all, only
+counts, so there is no shape the field could have been added to.
+
 ## Time, jobs and data
 
 | # | Invariant | From | Guarded by | Lands |

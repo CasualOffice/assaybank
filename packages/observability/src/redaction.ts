@@ -169,7 +169,8 @@ const DENY_PREFIXES: readonly string[] = [
 
 /**
  * Suffix rules catch the family rather than the member: `refresh_token`, `ws_ticket`,
- * `text_answer`, `expected_stdout`. Over-redaction is the acceptable direction of error.
+ * `text_answer`, `expected_stdout`, `assertion_code`. Over-redaction is the acceptable
+ * direction of error.
  */
 const DENY_SUFFIXES: readonly string[] = [
   'password',
@@ -367,6 +368,9 @@ const REDACT_LEAVES: readonly string[] = [
   'selected_option_ids',
   'stdin',
   'expected_stdout',
+  // The unit test itself (ADR-024): it names the function and the value expected of it,
+  // which is the same disclosure `expected_stdout` is and belongs on the same list.
+  'assertion_code',
   'solution_code',
   'prompt_md',
 ];

@@ -320,6 +320,7 @@ tedious and the mechanism by which a bank fills with near-duplicates.
 | H-187 | P2 | Ceipal adapter over the ingestion interface, with its own rate-limit budget and a per-tenant credential | worker | M4 | H-186 | ADR-023 | M | todo | _unassigned_ |
 | H-188 | P2 | Bullhorn adapter over the same interface, built second so the interface is proven by two rather than shaped by one | worker | M4 | H-186 | ADR-023 | M | todo | _unassigned_ |
 | H-189 | P1 | Assessment invitation email: the template, the link, the expiry, and a preview a recruiter can read before sending — the first candidate-facing words the product writes on a customer's behalf | api | M1 | H-182 | docs/18 §2.4 | M | todo | _unassigned_ |
+| H-190 | P0 | The `unit_tests` grading contract: where a unit-test assertion lives, how partial credit works over assertions, and which cases a candidate sees — decided before `H-032` imports 200 questions into it, because a published version is immutable (ADR-003) and a wrong shape is not migratable — _done 2026-09-20 as **ADR-024**: one test case is one assertion, in a nullable `assertion_code` column (migration 0012, expand-contract). Partial credit falls out of the existing per-case `weight`; the publish bar refuses a `unit_tests` case with no assertion, proven by removing the rule. Added to the answer-key deny-list, the leak suite's list and log redaction — and it needed no new candidate-side filter, because the candidate payload carries no test-case rows at all_ | db | M0 | — | ADR-024, docs/18 §2.2 | M | done | _unassigned_ |
 
 
 ---
@@ -356,7 +357,12 @@ tedious path through the product and the mechanism by which a bank fills with ne
 `H-178` is the first step and needs no server work at all: the endpoint exists.
 
 `H-178` shipped on 2026-09-20 and needed no server work at all — the endpoint was already there.
-`H-184` near-duplicate detection is the next one that is startable today. Everything from `H-179`
+
+`H-032` turned out to be blocked on a decision nobody had made: all four datasets are *unit-test*
+datasets, and `grading_mode = 'unit_tests'` had no semantics. `H-190` settled it (ADR-024) so the
+adapters have a shape to write into; the adapters themselves are next.
+
+`H-184` near-duplicate detection is the other one that is startable today. Everything from `H-179`
 onwards waits on the assessment engine in P3.
 
 ### The console, which can now read and write the bank
@@ -405,12 +411,12 @@ weeks is how three of the four end up half-done.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 44 | 22 | 22 | 22 |
+| M0 | P1–P2 | 45 | 23 | 23 | 22 |
 | M1 | P3 | 37 | 19 | 0 | 37 |
 | M2 | P4 | 32 | 15 | 0 | 32 |
 | M3 | P5 | 16 | 4 | 0 | 16 |
 | M4 | P6 | 21 | 5 | 0 | 21 |
-| **Total** | | **189** | **101** | **60** | **129** |
+| **Total** | | **190** | **102** | **61** | **129** |
 
 Counted from the rows above on 2026-09-20, not carried forward. The twelve rows added that
 afternoon are the guided flow: `H-178` to `H-189`, from reading the console back as a product

@@ -35,6 +35,9 @@ export function shapeOfContent(content: VersionContent): KindContentShape {
     testCaseCount: content.testCases.length,
     hiddenTestCaseCount: content.testCases.filter((c) => !c.isSample).length,
     answerKeyCount: content.answerKeys.length,
+    gradingMode: content.codingSpec?.gradingMode ?? null,
+    casesWithoutAssertion: content.testCases.filter((c) => (c.assertionCode ?? '').trim() === '')
+      .length,
   };
 }
 
@@ -47,6 +50,9 @@ export function shapeOfRecord(version: QuestionVersionRecord): KindContentShape 
     testCaseCount: version.test_cases.length,
     hiddenTestCaseCount: version.test_cases.filter((c) => !c.is_sample).length,
     answerKeyCount: version.answer_keys.length,
+    gradingMode: version.coding_spec?.grading_mode ?? null,
+    casesWithoutAssertion: version.test_cases.filter((c) => (c.assertion_code ?? '').trim() === '')
+      .length,
   };
 }
 

@@ -38,6 +38,22 @@ export interface KindContentShape {
   readonly testCaseCount: number;
   readonly hiddenTestCaseCount: number;
   readonly answerKeyCount: number;
+  /**
+   * The version's `coding_spec.grading_mode`, or null when it has no spec.
+   *
+   * A `string` rather than a union of the three documented values, because the column is
+   * `text` with no enum behind it: narrowing the type here would assert something the schema
+   * does not enforce, and the one comparison below works either way. Only `unit_tests`
+   * changes anything, and what it changes is the field beneath.
+   */
+  readonly gradingMode?: string | null | undefined;
+  /**
+   * Test cases with no `assertion_code`. Meaningful only in `unit_tests` mode (ADR-024).
+   *
+   * A count rather than the rows, like everything else here — this module stays pure and
+   * table-testable, and the caller already knows which row is which.
+   */
+  readonly casesWithoutAssertion?: number | undefined;
 }
 
 export type KindContentSeverity = 'wrong_kind' | 'incomplete';
@@ -101,7 +117,10 @@ export function validateKindContent(
   // ---- content the kind needs, checked only when it is about to become immutable ------
   if (kind === 'true_false') {
     if (shape.optionCount !== 2) {
-      missing('options', `a true_false question has exactly two options, not ${String(shape.optionCount)}`);
+      missing(
+        'options',
+        `a true_false question has exactly two options, not ${String(shape.optionCount)}`,
+      );
     }
     if (shape.correctOptionCount !== 1) {
       missing('options', 'a true_false question has exactly one correct option');
@@ -141,7 +160,20 @@ export function validateKindContent(
       );
     }
     if (kind === 'sql' && !shape.hasFixtureSql) {
-      missing('coding_spec', 'an sql question needs fixture_sql — the database the query runs against');
+      missing(
+        'coding_spec',
+        'an sql question needs fixture_sql — the database the query runs against',
+      );
+    }
+    // ADR-024. In unit_tests mode the assertion *is* the case: a row without one is a case
+    // the harness cannot run, which would score as a silent zero for every candidate rather
+    // than as an error anybody notices.
+    if (shape.gradingMode === 'unit_tests' && (shape.casesWithoutAssertion ?? 0) > 0) {
+      missing(
+        'test_cases',
+        `a ${kind} question graded by unit tests needs assertion_code on every case; ` +
+          `${String(shape.casesWithoutAssertion ?? 0)} has none`,
+      );
     }
   }
   // subjective and system_design are human-graded and need no machine-checkable content.

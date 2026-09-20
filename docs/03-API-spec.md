@@ -174,6 +174,8 @@ A draft may be unfinished; it may not be wrong. Refusing `incomplete` content on
 | `short_answer` | `answer_keys` | ≥ 1 answer key |
 | `coding` | `coding_spec`, `test_cases` | a `coding_spec`, and ≥ 1 **hidden** test case — sample cases are shown to the candidate, so a question graded only on them can be passed by printing the expected output. No `fixture_sql` |
 | `sql` | `coding_spec`, `test_cases` | a `coding_spec` with `fixture_sql`, and ≥ 1 hidden test case |
+
+**`assertion_code`, added 2026-09-20 (ADR-024).** A test case carries one of two things depending on `coding_spec.grading_mode`. In `test_cases` mode it is `stdin` and `expected_stdout` and `assertion_code` is null; in `unit_tests` mode it is `assertion_code` — the source that exercises the candidate's submission — and one case is one assertion, so per-case `weight` gives partial credit over assertions. Publishing a `unit_tests` question with a case that has no `assertion_code` is refused with the same `incomplete` treatment as a coding question with no hidden case: allowed while it is a draft, refused at the irreversible step. It is author-only, like `expected_stdout`, and the candidate payload has no shape that could carry it.
 | `subjective`, `system_design` | nothing machine-checkable | nothing — human graded |
 
 A refusal is `422 validation_failed`, reporting every problem at once. `details.fields[]` names each one as `{field: "body/<field>", rule: "wrong_kind" \| "incomplete", message}`, and `details.stage` is `draft` or `publish`. A refused publish stamps nothing: `published_at` stays null.
@@ -237,7 +239,8 @@ The routes above are not built yet. The formats they carry are, as pure codecs i
                    "coding_spec": { "allowed_languages", "starter_code", "solution_code",
                                     "time_limit_ms", "memory_limit_kb", "grading_mode",
                                     "checker_code", "fixture_sql" } | null,
-                   "test_cases":  [{ "label", "stdin", "expected_stdout", "args", "is_sample", "weight" }],
+                   "test_cases":  [{ "label", "stdin", "expected_stdout", "args",
+                                      "assertion_code", "is_sample", "weight" }],
                    "answer_keys": [{ "match_type", "pattern", "tolerance", "score" }] }] }] }
 ```
 

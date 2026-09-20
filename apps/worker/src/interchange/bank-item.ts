@@ -30,6 +30,7 @@ import {
   DifficultySchema,
   ExternalRefSchema,
   hasAtMostTwoDecimals,
+  MAX_ASSERTION_LENGTH,
   MAX_SCORE_VALUE,
   MAX_WEIGHT_VALUE,
   scoreValue,
@@ -70,6 +71,8 @@ export const BankTestCaseSchema = z.strictObject({
   stdin: z.string(),
   expected_stdout: z.string().nullable(),
   args: z.array(z.string()).nullable(),
+  /** The unit test this case runs, in `unit_tests` mode; null otherwise (ADR-024). */
+  assertion_code: z.string().max(MAX_ASSERTION_LENGTH).nullable(),
   is_sample: z.boolean(),
   weight: scoreValue(0.01),
 });
@@ -221,6 +224,9 @@ export function shapeOfBankVersion(version: BankVersion): KindContentShape {
     testCaseCount: version.test_cases.length,
     hiddenTestCaseCount: version.test_cases.filter((t) => !t.is_sample).length,
     answerKeyCount: version.answer_keys.length,
+    gradingMode: version.coding_spec?.grading_mode ?? null,
+    casesWithoutAssertion: version.test_cases.filter((t) => (t.assertion_code ?? '').trim() === '')
+      .length,
   };
 }
 

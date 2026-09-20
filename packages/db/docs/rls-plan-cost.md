@@ -197,6 +197,13 @@ Migration 0010 (2026-09-17) adds `bank_jobs`, a tenant table with the ordinary `
 index on `(status, created_at, id)`. Neither touches a gated table, and no captured plan changed.
 The claim's own plan has not been captured.
 
+Migration 0012 (2026-09-20) adds a nullable `assertion_code` column to `test_cases` and changes no
+policy, no index and no predicate (ADR-024). `test_cases` is not on the gated list; it is read by
+primary-key join from one `question_version`, and a wider row does not change that plan's shape. The
+one thing worth watching is width rather than cost: an imported unit-test bank puts a few hundred
+bytes of Python on every case row, so a version with two hundred cases carries more heap than the
+same version did in `test_cases` mode. Nothing was re-measured.
+
 Migration 0009 (2026-09-17) adds a nullable `ordinal` column to `short_answer_keys` and changes no
 policy. The table is not on the gated list; its read now sorts by `ordinal NULLS LAST, id` over the
 handful of keys one version carries, which is not a plan whose cost scales.
