@@ -156,3 +156,14 @@ logs/
 #   cannot leave a deliberate layering violation committed to the tree.
 # ---------------------------------------------------------------------------
 packages/*/src/layering-fixture.generated.ts
+
+# ---------------------------------------------------------------------------
+# Scratch scripts run from inside a workspace
+#   A throwaway fixture or probe has to live under a workspace to resolve that
+#   workspace's dependencies, which puts it where `git add -A` will take it. One
+#   reached `main` on 2026-09-21 and failed the licence-header gate and lint
+#   before anyone read the CI result. Scratch belongs in the session scratchpad;
+#   this catches the ones that do not make it there.
+# ---------------------------------------------------------------------------
+**/.dev-*.mjs
+**/.probe*.mjs
