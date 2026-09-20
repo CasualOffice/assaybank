@@ -390,11 +390,18 @@ export function registerStaffAuthRoutes(
       // identity provider.
       if (orgId === undefined) throw ApiError.notFound();
 
-      const { url, state } = await withOrg(db, orgId, (tx) =>
+      const { url, state, response } = await withOrg(db, orgId, (tx) =>
         inTenantContext(tx, () => startOidc(auth, request, services)),
       );
 
-      // Set before the client follows the redirect, and bound to this flow's `state`.
+      // Better Auth's own cookies for this flow — the signed `state` the callback checks
+      // against the `state` parameter. Relayed verbatim, like the session cookies on the
+      // credential path: they are its cookies and rebuilding them here would be a second
+      // opinion about a format we do not own.
+      relayCookies(reply, response);
+
+      // Ours, set before the client follows the redirect, and bound to this flow's
+      // `state`. It carries the organisation, which Better Auth's cookie does not.
       void reply.header(
         'set-cookie',
         oidcOrgCookie({
@@ -491,17 +498,58 @@ async function startOidc(
   auth: StaffAuth,
   request: FastifyRequest,
   services: StaffIdentityServices,
-): Promise<{ url: string; state: string }> {
-  const result: unknown = await auth.api.signInSocial({
-    body: {
-      provider: OIDC_PROVIDER_ID,
-      // Where the browser ends up after a successful sign-in. Validated by Better Auth
-      // against `trustedOrigins`, so a caller cannot turn this into an open redirect.
-      callbackURL: services.consoleUrl,
-      errorCallbackURL: `${services.consoleUrl}/login`,
-    },
-    headers: toWebHeaders(request),
-  });
+): Promise<{ url: string; state: string; response: Response }> {
+  // `asResponse: true`, so the cookies come back with the URL.
+  //
+  // Better Auth sets a **signed `state` cookie** here and the callback refuses the flow
+  // without it — `state.mjs` throws `State mismatch: State not persisted correctly` when
+  // it is absent, having already found the verification row. Reading only `result.url`
+  // dropped that cookie on the floor, which meant no OIDC sign-in could ever complete.
+  //
+  // Nothing said so, because no test finished a callback: the fake provider of
+  // `staff-identity.test.ts` served a discovery document and 404'd the token endpoint, so
+  // every callback test asserted a refusal and got one for a reason it had not named. The
+  // suite that found this is `oidc-callback.test.ts`, and the test that found it is the
+  // happy path — a file of negative tests cannot tell a control that works from a flow
+  // that is broken before the control is reached.
+  //
+  // Two cookies now travel from this route: Better Auth's `state`, and ours carrying the
+  // organisation across the round trip. They are independent and both are required.
+  let response: Response;
+  try {
+    response = await auth.api.signInSocial({
+      body: {
+        provider: OIDC_PROVIDER_ID,
+        // Where the browser ends up after a successful sign-in. Validated by Better Auth
+        // against `trustedOrigins`, so a caller cannot turn this into an open redirect.
+        callbackURL: services.consoleUrl,
+        errorCallbackURL: `${services.consoleUrl}/login`,
+      },
+      headers: toWebHeaders(request),
+      asResponse: true,
+    });
+  } catch (cause) {
+    // The commonest cause is a provider that was never registered, and the commonest
+    // reason for *that* is `requireIdTokenVerification` refusing a discovery document
+    // with no `jwks_uri` (see `better-auth.ts`). The deployment is misconfigured.
+    //
+    // `internal` rather than `not_found`, deliberately. `not_found` is the honest answer
+    // to "start a flow with a provider this deployment does not have", and it would be
+    // the dishonest one here: it tells the console there is no OIDC, which looks
+    // identical to nobody having configured any, and an operator who has configured one
+    // would go looking in the wrong place. A 500 with this log line points at the
+    // discovery document.
+    request.log.error(
+      { event: 'auth.oidc_start_failed', reason: 'provider_unavailable', err: cause },
+      'the OIDC provider is configured but not registered — check the discovery document',
+    );
+    throw ApiError.internal();
+  }
+
+  const result: unknown = await response
+    .clone()
+    .json()
+    .catch(() => undefined);
 
   const url =
     typeof result === 'object' && result !== null ? (result as { url?: unknown }).url : undefined;
@@ -525,7 +573,7 @@ async function startOidc(
     throw ApiError.internal();
   }
 
-  return { url, state };
+  return { url, state, response };
 }
 
 /**

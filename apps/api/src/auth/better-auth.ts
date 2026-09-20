@@ -61,6 +61,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { genericOAuth } from 'better-auth/plugins/generic-oauth';
+import type { GenericOAuthUserInfo } from 'better-auth/plugins/generic-oauth';
 
 import type { HttpConfig, OidcConfig, SecretsConfig } from '@assaybank/config';
 import { API_BASE_PATH } from '@assaybank/contracts';
@@ -318,6 +319,57 @@ function hashForBetterAuth(password: string): Promise<string> {
 }
 
 /**
+ * The claims of an already-verified ID token, as the profile Better Auth expects.
+ *
+ * `null` when there is no token, which is what makes it a refusal: the library treats a
+ * null profile as "unable to get user info" and abandons the sign-in.
+ *
+ * The payload is decoded, not validated. Validation happened a few lines earlier inside
+ * the plugin — signature against the discovery JWKS, issuer, audience, `exp`, `nbf` and
+ * the nonce bound to this flow's state — and repeating a subset of it here would be a
+ * second opinion that could disagree with the first. What this does is read three claims
+ * out of a document already established as authentic.
+ */
+function profileFromIdToken(idToken: string | undefined): GenericOAuthUserInfo | null {
+  if (typeof idToken !== 'string') return null;
+
+  const segments = idToken.split('.');
+  const payload = segments.length === 3 ? segments[1] : undefined;
+  if (payload === undefined) return null;
+
+  let claims: unknown;
+  try {
+    claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+  } catch {
+    // Unreachable for a token that verified, and cheaper to handle than to reason about.
+    return null;
+  }
+
+  if (typeof claims !== 'object' || claims === null) return null;
+  const record = claims as Record<string, unknown>;
+
+  const sub = record['sub'];
+  const email = record['email'];
+  if (typeof sub !== 'string' || typeof email !== 'string') return null;
+
+  return {
+    // Every claim, then the four fields the library reads by name. The spread comes first
+    // for one specific reason: `accountSubject` resolves an OIDC provider's account key
+    // from `profile.sub`, so a profile built only from the named fields links the account
+    // to an empty string and the sign-in fails with no useful message. This mirrors the
+    // library's own `fetchUserInfo` rather than improving on it.
+    ...record,
+    id: sub,
+    email,
+    // An unverified address is still refused a session, because `disableSignUp` means it
+    // has to match a `users` row somebody provisioned. This carries the claim rather than
+    // asserting it.
+    emailVerified: record['email_verified'] === true,
+    name: typeof record['name'] === 'string' ? record['name'] : email,
+  };
+}
+
+/**
  * The OIDC provider, when one is configured.
  *
  * `config.oidc` is a discriminated union, so `enabled: false` is not three empty strings
@@ -344,6 +396,23 @@ function oidcPlugins(config: StaffAuthConfig) {
           // endpoint keeps working, and there is no way to configure a token endpoint
           // belonging to a different issuer than the one whose assertions are trusted.
           discoveryUrl: `${config.oidc.issuer.replace(/\/$/, '')}/.well-known/openid-configuration`,
+          // Fail closed when discovery cannot support ID-token verification (docs/14
+          // `H-150`).
+          //
+          // The default is `false`, and the default is a silent downgrade: without
+          // `jwks_uri` and `issuer` in the discovery document the library registers the
+          // provider anyway, with no signature check, and identity then comes from a
+          // userinfo response instead of from a verified assertion. The library's own
+          // documentation names it — *"prevents an unavailable or incomplete discovery
+          // document from silently downgrading the provider to unverified token
+          // decoding"* — and a downgrade nobody is told about is the shape of control
+          // failure this codebase refuses everywhere else.
+          //
+          // The cost is that a misconfigured IdP produces no provider rather than a
+          // working-looking one, and `POST /auth/oidc/start` then answers `not_found`.
+          // That is the right way round: a deployment whose identity provider cannot be
+          // verified should have no OIDC, not unverified OIDC.
+          requireIdTokenVerification: true,
           clientId: config.oidc.clientId,
           clientSecret: config.oidc.clientSecret,
           scopes: ['openid', 'email', 'profile'],
@@ -359,6 +428,25 @@ function oidcPlugins(config: StaffAuthConfig) {
           // refused rather than turned into a staff account (docs/14 `H-150`).
           disableSignUp: true,
           disableImplicitSignUp: true,
+          // Identity comes from the verified assertion, and from nowhere else.
+          //
+          // The library verifies an ID token **if one is present**: `getUserInfo` in the
+          // generic-oauth plugin reads `if (oauthTokens.idToken && provider.idToken)` and
+          // otherwise falls through to the userinfo endpoint. A token response that simply
+          // omits `id_token` therefore signs somebody in on the strength of an unsigned
+          // JSON document fetched with an access token the same party issued — the check
+          // is not bypassed, it is never reached.
+          //
+          // `requireIdTokenVerification` above closes the boot-time half of that (a
+          // discovery document that cannot support verification). This closes the
+          // run-time half. Supplying `getUserInfo` replaces the fallback rather than
+          // adding to it, which is the intent: there is no configuration of this product
+          // in which userinfo should decide who somebody is.
+          //
+          // By the time this runs the token has already been verified against the
+          // discovery JWKS, the issuer, the audience and the nonce — the claims below are
+          // being read, not trusted for the first time.
+          getUserInfo: (tokens) => Promise.resolve(profileFromIdToken(tokens.idToken)),
         },
       ],
     }),

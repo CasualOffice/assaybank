@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_
-**Last updated:** 2026-09-20
+**Last updated:** 2026-09-21
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`13-environments-and-release.md`](13-environments-and-release.md), [`../project/TRACKER.md`](../project/TRACKER.md), [`../project/RISKS.md`](../project/RISKS.md)
 
 ---
@@ -346,7 +346,13 @@ Category key: **S** spoofing · **T** tampering · **R** repudiation · **I** in
 *Scenario.* The `GET /auth/oidc/callback` handler validates the token signature but not the issuer, audience, nonce or expiry, so a token minted by a different tenant of the same IdP — or replayed from an unrelated application — logs the holder in as a staff user.
 *Likelihood* low · *Impact* high · *Residual* low.
 *Existing control.* `OIDC_ISSUER`, `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` are canonical environment variables validated at boot by `packages/config`, which fails fast if they are absent — so the values needed for validation are guaranteed present.
-*Action.* `H-150` (proposed) — the callback validates issuer, audience, `nonce`, `exp`, `iat` skew and the PKCE verifier, with the `state` parameter bound to the originating session; email claims map to an existing `users` row rather than auto-provisioning, so an IdP that lets anyone sign up cannot mint staff accounts. Negative tests for each validation step.
+*Action.* `H-150` **built 2026-09-21** — and the building of it found that the flow had never worked. `POST /auth/oidc/start` read only the authorisation URL out of `signInSocial`, discarding the signed `state` cookie Better Auth sets there, and the callback refuses a flow without it. Every OIDC sign-in had been failing since the route was written, and the existing tests could not see it: they asserted refusals, and a refusal is what they got, for a reason none of them named. See [`17-engineering-standards.md`](17-engineering-standards.md) §8a.
+
+What is verified now, proven in `apps/api/test/integration/oidc-callback.test.ts` by presenting an assertion that is correct in every respect but one: the **signature** against the discovery JWKS, the **issuer**, the **audience**, the **`nonce`** bound to this flow's `state`, **`exp`** and **`nbf`**, the **PKCE verifier** on the wire to the token endpoint, and the `state` itself — unknown, and already spent. An address the organisation does not know signs nobody in and provisions no row.
+
+Two downgrades were closed in the same change, both of the same shape: a check that is not bypassed but never reached. `requireIdTokenVerification` makes a discovery document with no `jwks_uri` produce **no provider** rather than one that silently verifies nothing and takes identity from userinfo. And a `getUserInfo` hook refuses a token exchange that returns no `id_token` at all, because the library verifies an assertion only `if (oauthTokens.idToken && provider.idToken)` and otherwise falls through to an unsigned userinfo document fetched with an access token the same party issued.
+
+*Residual reasoning.* `iat` skew is named in the row and is **not** separately enforced: `jose` validates `exp` and `nbf`, and the library exposes no `maxTokenAge`. The gap is narrow here because the assertion arrives over a server-to-server exchange this API initiated, bound to a single-use `state` and a `nonce` minted for that flow — an old token cannot be replayed into it without the code and the verifier. Worth revisiting if an `id_token`-POST flow is ever added, where the binding is weaker and token age does the work.
 
 **T-016 · API / staff auth · S · Compromised staff session used for bulk extraction**
 *Scenario.* A phished recruiter's session is used at 03:00 to page through `GET /questions`, run `GET /questions/export`, and pull `POST /org/export` — the entire bank and candidate list, through endpoints working exactly as designed.

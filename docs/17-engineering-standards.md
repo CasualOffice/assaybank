@@ -517,6 +517,31 @@ Two things follow, and the second is the one worth remembering.
 
 The residue of that second one is worth stating plainly, because it is a property of the database and not of this codebase: **a partition's own row-level security governs a direct query on it, and the parent's governs a query through the parent.** Enabling RLS on a partition with no policy denies direct access and changes nothing about access through the parent. That was established by running it, not by reading about it, and the transcript is in the T-043 entry of [`14-threat-model.md`](14-threat-model.md).
 
+## 8a. A suite of negative tests proves nothing until one positive test passes
+
+The OIDC callback had six controls — issuer, audience, `nonce`, `exp`, PKCE, `state` — and a
+test file that presented a bad assertion to each and asserted a refusal. Every one passed. The
+flow had never worked: `POST /auth/oidc/start` discarded the signed `state` cookie Better Auth
+sets there, so every callback was refused before any assertion was examined, and the tests were
+reading a refusal that had nothing to do with what they named. It had been that way since the
+route was written, and no sign-in with an identity provider could have succeeded.
+
+The test that found it was the one asserting a **valid** assertion signs somebody in. Nothing
+else could have: a server that refuses everything satisfies every negative test ever written
+against it.
+
+So, wherever a test asserts that something is refused:
+
+- **Assert the accepting case in the same file**, and treat it as load-bearing rather than as a
+  sanity check. It is the only thing separating "the control works" from "the path is dead".
+- **Assert on the outcome that differs, not on the status code.** Better Auth answers this
+  callback with a redirect either way — to the console on success, to its error page on failure
+  — so the status is `302` for both and the honest assertion is *whether a session cookie was
+  issued*. A test that asserted `302` would have passed against every one of these.
+- **Mutate the control and watch the right tests fail.** Removing the `state`-cookie relay
+  fails the four positive tests and leaves all twelve negatives green, which is the signature
+  of this failure and is worth recognising on sight.
+
 ## 9a. A citation in a comment is code, and it rots like code
 
 A task id written into a comment to explain *why* code behaves a certain way is a reference the

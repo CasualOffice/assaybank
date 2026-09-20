@@ -21,5 +21,18 @@ export default defineConfig({
     // seconds later. Leaving it at 5s buys a flake, and docs/17 §8 does not tolerate one.
     testTimeout: 30_000,
     hookTimeout: 300_000,
+    // At most four test files at once, because each integration file starts its own
+    // PostgreSQL container.
+    //
+    // Nine of them do now, and the number grows with the suite rather than with anything
+    // anybody decided. Running the whole workspace on a laptop produced one failed suite
+    // out of three runs — green on either side of it, which is the signature of resource
+    // contention rather than a fault — and a GitHub runner has two cores and 7 GB, so the
+    // margin there is thinner than here.
+    //
+    // Four is a bound, not a measurement: it keeps the container count fixed as files are
+    // added, which is the property worth having. The cost is wall-clock on a machine that
+    // could have run more, and docs/17 §8 will not tolerate a flake to buy it back.
+    maxWorkers: 4,
   },
 });
