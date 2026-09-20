@@ -551,6 +551,19 @@ Category key: **S** spoofing · **T** tampering · **R** repudiation · **I** in
 
 ---
 
+**The mitigation ids in the implementing code were wrong, and were corrected 2026-09-20.** The
+renumbering on 2026-09-17 fixed this document and the citations sitting next to a `docs/14`
+reference. Nine more survived, in the files that *implement* these mitigations rather than name the
+document: `csrf.ts` credited the candidate-bundle task for CSRF three times, `staff-session.ts`
+credited the worker skeleton for session invalidation, and `refusal.ts`, `permissions.ts` and an
+attempt-token test all credited the countdown hook for "answer `not_found` rather than `forbidden`
+across a tenant boundary".
+
+Every one of them named a real task, so the existence check passed; none was on a line mentioning
+this document, so the attribution check never looked. `scripts/check-task-ids.mjs` now records that
+blind spot in its own header, because the useful thing to know about a gate is what it does not
+catch — the alternatives were tried and each was noisier than the bug.
+
 ## 6. Defence in depth by boundary
 
 Each boundary should survive the failure of any single control. Where it would not, that is stated.

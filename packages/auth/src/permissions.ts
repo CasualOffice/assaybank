@@ -152,7 +152,7 @@ export function can(principal: Principal, permission: Permission): boolean {
  *
  * On a route that takes a resource id, prefer letting the lookup fail: the threat model
  * requires `not_found` rather than `forbidden` where a 403 would confirm that some other
- * tenant holds the id (`H-128`). This is for the permission itself, where the caller
+ * tenant holds the id (`H-154`). This is for the permission itself, where the caller
  * already knows the action exists.
  */
 export function assertCan(principal: Principal, permission: Permission): void {

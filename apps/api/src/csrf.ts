@@ -40,10 +40,10 @@
  * this API never reaches that middleware: the routes in `auth/routes.ts` call
  * `auth.api.*` in process, which bypasses the whole chain. Depending on a control that is
  * not running is worse than having none, because nobody looks for it again. This check
- * also covers routes Better Auth has never heard of, which is where `H-127` actually
+ * also covers routes Better Auth has never heard of, which is where `H-153` actually
  * points — `POST /user-roles`, `PATCH /attempts/{id}` — and those are the majority.
  *
- * `H-127` also asks for double-submit tokens. They are the remaining half and they need a
+ * `H-153` also asks for double-submit tokens. They are the remaining half and they need a
  * client to carry them; the staff console does not exist until P8. Strict origin checking
  * is the half that works with no client cooperation at all, and it is the half that stops
  * the attack outright rather than making it noisier.
@@ -135,7 +135,7 @@ export interface CsrfOptions {
  * parsing, rate-limit accounting or a route handler, and refusing it before the body is
  * read also means a hostile page cannot make us allocate a megabyte.
  *
- * Refused with `forbidden` rather than `unauthenticated`, per `H-127`. The distinction
+ * Refused with `forbidden` rather than `unauthenticated`, per `H-153`. The distinction
  * matters to a client: the credential was fine, the *context* was not, and re-logging-in
  * would not help.
  */

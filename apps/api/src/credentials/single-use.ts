@@ -8,7 +8,7 @@
  * A signature cannot notice that it has been seen before; only state can. docs/14
  * `T-013` says what that state has to be: *"single-use is the control, and it must be
  * enforced atomically in Valkey — a check-then-delete race under reconnection storms is
- * how single-use quietly becomes multi-use."* `H-122` adds the mechanism: *"ticket
+ * how single-use quietly becomes multi-use."* `H-148` adds the mechanism: *"ticket
  * redemption is a single atomic Valkey operation."*
  *
  * So the interface has exactly one method, and it is a claim rather than a lookup. There

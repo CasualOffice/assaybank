@@ -28,7 +28,7 @@ import { randomBytes } from 'node:crypto';
 
 import { constantTimeEquals, hmacHex } from './crypto.js';
 
-/** Bytes of CSPRNG output behind every token. 32 bytes is 256 bits (`H-120`). */
+/** Bytes of CSPRNG output behind every token. 32 bytes is 256 bits (`H-146`). */
 export const TOKEN_BYTES = 32;
 
 /**

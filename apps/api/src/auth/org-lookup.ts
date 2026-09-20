@@ -20,7 +20,7 @@
  * different situations — no such address, an address held in two organisations, no such
  * slug — and the caller is required to treat all three identically to a wrong password.
  * Anything else turns this lookup into the account-enumeration oracle that docs/14
- * `H-118` exists to close. That is why these functions return `OrgId | undefined` rather
+ * `H-176` exists to close. That is why these functions return `OrgId | undefined` rather
  * than throwing distinguishable errors: there is no error to distinguish.
  *
  * **Why the lookup runs through `withElevated` and not `withOrg`.** It cannot run through

@@ -75,7 +75,7 @@ export const REFUSAL_REASONS = [
   'replayed',
   /** The principal is real but is not the kind this route serves. */
   'wrong_principal',
-  /** The session does not exist in this tenant — or exists in another one (`H-128`). */
+  /** The session does not exist in this tenant — or exists in another one (`H-154`). */
   'no_such_session',
   /** The interview is over; a ticket would admit the holder to nothing. */
   'session_ended',
@@ -141,9 +141,9 @@ export function refuse(
 /**
  * The status a refusal is served with.
  *
- * Redemption is uniformly `not_found` (`H-120`). A ticket request that names a session
+ * Redemption is uniformly `not_found` (`H-146`). A ticket request that names a session
  * the caller cannot see is also `not_found` rather than `forbidden`, because a 403 there
- * would confirm that the session exists in somebody else's organisation (`H-128`,
+ * would confirm that the session exists in somebody else's organisation (`H-154`,
  * ADR-010). Everything else is `unauthenticated`: the credential in the header was not
  * good enough, and saying so tells the holder nothing they did not already know.
  */

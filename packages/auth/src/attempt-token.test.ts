@@ -90,7 +90,7 @@ describe('an attempt token is scoped to exactly one attempt', () => {
 
   it('names its one attempt even when the caller passes no expectation', () => {
     // A route that omits the expectation must still compare before it touches a row
-    // (H-128), and it can only do that because the id is in the claims.
+    // (H-154), and it can only do that because the id is in the claims.
     const result = verifyAttemptToken(
       issueAttemptToken(CLAIMS, SECRET),
       SECRET,

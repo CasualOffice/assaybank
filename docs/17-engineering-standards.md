@@ -471,6 +471,20 @@ contract already owns, which is the drift this package exists to prevent. A clie
 *casts* an interface has no check at all: a server change arrives as `undefined` two components
 away from its cause, and the stack trace names the component rather than the response.
 
+## 9a. A citation in a comment is code, and it rots like code
+
+A task id written into a comment to explain *why* code behaves a certain way is a reference the
+compiler cannot check, the tests cannot exercise and a renumbering silently invalidates. It then
+reads correctly forever while pointing at somebody else's finished work — `docs/14` lost
+twenty-six mitigations that way, and nine more were found on 2026-09-20 in the files implementing
+them.
+
+Two rules follow. **Cite the requirement, not only the task**: `T-017` and `ADR-024` are stable in
+a way an `H-NNN` allocated from a growing backlog is not, and a comment carrying both survives the
+loss of one. And **in review, read the id** — a comment explaining why is exactly where one gets
+written from memory, and `scripts/check-task-ids.mjs` says in its own header that it cannot check
+this for you.
+
 ## 10a. A loading state is a state, not the absence of one
 
 "Not yet known" is not "known to be absent", and a front end that collapses the two ships one of

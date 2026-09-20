@@ -25,6 +25,29 @@
  *    have caught it: a login test citing the checker-sandbox task is wrong in a way an id
  *    existence check cannot see.
  *
+ * ## What this cannot check, proved on 2026-09-20
+ *
+ * Check 3 only looks at lines that mention `docs/14`. That is narrow on purpose — but it is
+ * narrower than the bug. Nine more citations from the same renumbering survived it, in the
+ * files that *implement* the mitigations rather than name the document:
+ *
+ *   * `csrf.ts` cited `H-127`, the candidate-bundle task, three times for CSRF.
+ *   * `staff-session.ts` cited the worker skeleton for session invalidation.
+ *   * `refusal.ts`, `permissions.ts` and an attempt-token test cited the countdown hook for
+ *     "return `not_found` rather than `forbidden` across a tenant boundary".
+ *
+ * Every one named a real task, so check 2 passed; none was on a `docs/14` line, so check 3
+ * never looked. Widening to file level was tried and rejected: twenty files legitimately
+ * mention `docs/14` and cite an unrelated id, and a gate that cries wolf twenty times is a
+ * gate somebody disables. Narrowing to "a foundation task cited from a behavioural comment"
+ * found the remaining bugs and two false positives, which is not clean enough to fail a build.
+ *
+ * So this is the honest position: **"the id names the task this prose is about" is not
+ * mechanically checkable, and this script does not check it.** What it checks is that the id
+ * exists and, near a `docs/14` reference, that it is a threat-model task. The rest is review —
+ * and the thing to look at in review is a comment explaining *why* code behaves a certain way,
+ * because that is where an id gets written from memory.
+ *
  * Run: `node scripts/check-task-ids.mjs`
  */
 

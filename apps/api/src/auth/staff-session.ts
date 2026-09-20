@@ -41,7 +41,7 @@
  *
  * The cost is that an administrator who edits their *own* roles is signed out. That is a
  * rare action with an obvious explanation, and it is the right way round: the alternative
- * — a privilege change that leaves live sessions behind — is the failure mode `H-123`
+ * — a privilege change that leaves live sessions behind — is the failure mode `H-149`
  * names.
  */
 

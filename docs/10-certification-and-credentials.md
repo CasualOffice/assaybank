@@ -7,6 +7,14 @@
 
 ---
 
+**Nothing in this document changed on 2026-09-20.** `apps/api/src/credentials/**` triggers it, and
+that path was touched — but only to correct task ids in comments that the 2026-09-17 renumbering had
+invalidated (`refusal.ts` and `single-use.ts`; the record is in
+[`14-threat-model.md`](14-threat-model.md) §5). The refusal shapes, the single-use semantics and
+everything below are as they were. The line is here rather than in a pull-request body because the
+freshness gate asks a document to say when it was looked at, and "looked at, nothing to change" is
+an answer worth keeping.
+
 ## 1. The decision
 
 PRD §11 open question 4 asks whether certification mode issues verifiable credentials or a PDF. The docs index lists the same thing as a known gap: "Certificate issuance format undecided (PDF vs Open Badges)". This document closes it.
