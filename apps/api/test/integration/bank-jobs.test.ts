@@ -32,6 +32,7 @@ import {
   BANK_JOB_ACTIONS,
   EXPORT_JOB_ROUTE,
   IMPORT_JOB_ROUTE,
+  QUESTIONS_ATTRIBUTIONS_ROUTE,
   QUESTIONS_EXPORT_ROUTE,
   QUESTIONS_IMPORT_ROUTE,
 } from '../../src/bank-jobs/routes.js';
@@ -312,5 +313,71 @@ describe('export', () => {
     });
     expect(res.statusCode).toBe(403);
     expect(EXPORT_JOB_ROUTE).toBe('/api/v1/export-jobs/:id');
+  });
+});
+
+describe('GET /questions/attributions', () => {
+  // This file seeds no questions elsewhere and cleans none up, so these tests clear their own
+  // rows rather than reading each other's. Scoped to this block so nothing else changes.
+  beforeEach(async () => {
+    await fixture().owner`DELETE FROM questions`;
+  });
+
+  /** Puts a question in `org` with a licence and a source, at a given status. */
+  const seed = async (
+    org: OrgId,
+    ref: string,
+    licence: string,
+    status: 'draft' | 'published',
+  ): Promise<void> => {
+    await fixture().owner`
+      INSERT INTO questions (org_id, kind, status, source_license, external_ref)
+      VALUES (${org}, 'coding', ${status}::question_status, ${licence}, ${ref})`;
+  };
+
+  it('credits every source in this organisation, and no other organisation’s', async () => {
+    await seed(ACME, 'humaneval/HumanEval/0', 'MIT', 'published');
+    await seed(ACME, 'humaneval/HumanEval/1', 'MIT', 'draft');
+    await seed(ACME, 'mbpp/601', 'CC-BY-4.0', 'published');
+    // The rival's bank is under the same licence and must not appear in ours (ADR-010).
+    await seed(RIVAL, 'mbpp/602', 'CC-BY-4.0', 'published');
+
+    acting = reader();
+    const res = await get(QUESTIONS_ATTRIBUTIONS_ROUTE);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ data: unknown[] }>().data).toEqual([
+      { source_license: 'CC-BY-4.0', dataset: 'mbpp', questions: 1, published: 1 },
+      { source_license: 'MIT', dataset: 'humaneval', questions: 2, published: 1 },
+    ]);
+  });
+
+  it('counts what is held separately from what is served', async () => {
+    // The licence obligation follows every copy; the ratio docs/05 §2 asks teams to watch is
+    // about the published bank, so the two are different numbers and both are reported.
+    await seed(ACME, 'humaneval/HumanEval/7', 'MIT', 'draft');
+
+    acting = reader();
+    const [row] = (await get(QUESTIONS_ATTRIBUTIONS_ROUTE)).json<{
+      data: { questions: number; published: number }[];
+    }>().data;
+
+    expect(row).toEqual(expect.objectContaining({ questions: 1, published: 0 }));
+  });
+
+  it('says nothing about questions written in-house', async () => {
+    await fixture().owner`
+      INSERT INTO questions (org_id, kind, status, source_license)
+      VALUES (${ACME}, 'coding', 'draft', 'proprietary')`;
+
+    acting = reader();
+    expect((await get(QUESTIONS_ATTRIBUTIONS_ROUTE)).json<{ data: unknown[] }>().data).toEqual([]);
+  });
+
+  it('is readable by anyone who can read the bank, not only by an exporter', async () => {
+    // Gating the record of what we owe behind the ability to download the bank would hide it
+    // from most of the people who need to know about it.
+    acting = reader();
+    expect((await get(QUESTIONS_ATTRIBUTIONS_ROUTE)).statusCode).toBe(200);
   });
 });

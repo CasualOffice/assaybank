@@ -15,7 +15,8 @@ import { describe, expect, it } from 'vitest';
 
 import { checkBankItem } from '../bank-item.js';
 import { UnreadableDocumentError } from '../bank-document.js';
-import { dedent, splitAssertions } from './assertions.js';
+import { dedent, splitAssertions, splitTestMethods } from './assertions.js';
+import { readExercismTrack } from './exercism.js';
 import { readJsonlDataset } from './jsonl.js';
 import { DATASET_SPECS } from './spec.js';
 
@@ -293,5 +294,178 @@ describe('the descriptors', () => {
     const prefixes = Object.values(DATASET_SPECS).map((s) => s.refPrefix);
 
     expect(new Set(prefixes).size).toBe(prefixes.length);
+  });
+});
+
+/** One exercise, in the shape an Exercism track actually has. */
+const TWO_FER = new Map<string, string>([
+  [
+    'python-main/exercises/practice/two-fer/.docs/instructions.md',
+    '# Two Fer\n\nGive one, keep one.',
+  ],
+  [
+    'python-main/exercises/practice/two-fer/.meta/example.py',
+    'def two_fer(name="you"):\n    return f"One for {name}, one for me."\n',
+  ],
+  ['python-main/exercises/practice/two-fer/two_fer.py', 'def two_fer(name="you"):\n    pass\n'],
+  [
+    'python-main/exercises/practice/two-fer/two_fer_test.py',
+    [
+      'import unittest',
+      '',
+      'from two_fer import two_fer',
+      '',
+      '',
+      'class TwoFerTest(unittest.TestCase):',
+      '    def test_no_name_given(self):',
+      '        self.assertEqual(two_fer(), "One for you, one for me.")',
+      '',
+      '    def test_a_name_given(self):',
+      '        """ the word def appears in this docstring',
+      '        def test_not_a_method(self): pass',
+      '        """',
+      '        self.assertEqual(two_fer("Alice"), "One for Alice, one for me.")',
+      '',
+      '    def test_another_name_given(self):',
+      '        self.assertEqual(',
+      '            two_fer("Bob"),',
+      '            "One for Bob, one for me.",',
+      '        )',
+      '',
+      '',
+      'if __name__ == "__main__":',
+      '    unittest.main()',
+    ].join('\n'),
+  ],
+]);
+
+describe('splitTestMethods', () => {
+  const source = TWO_FER.get('python-main/exercises/practice/two-fer/two_fer_test.py') ?? '';
+
+  it('finds one case per test method, not per assertion', () => {
+    // ADR-024's unit is the smallest independently runnable check. For unittest that is the
+    // method: it is what the framework discovers and what setUp runs before.
+    const { methods } = splitTestMethods(source);
+
+    expect(methods.map((m) => m.name)).toEqual([
+      'test_no_name_given',
+      'test_a_name_given',
+      'test_another_name_given',
+    ]);
+  });
+
+  it('is not fooled by a `def` inside a docstring', () => {
+    expect(splitTestMethods(source).methods).toHaveLength(3);
+  });
+
+  it('keeps a call that spans several lines inside its method', () => {
+    const last = splitTestMethods(source).methods[2];
+
+    expect(last?.code).toContain('"One for Bob, one for me.",');
+    expect(last?.code).toContain(')');
+  });
+
+  it('stops a method at the next top-level statement', () => {
+    const last = splitTestMethods(source).methods[2];
+
+    expect(last?.code).not.toContain('unittest.main()');
+  });
+
+  it('takes the imports as preamble and names the class', () => {
+    const { preamble, className } = splitTestMethods(source);
+
+    expect(preamble).toContain('from two_fer import two_fer');
+    expect(className).toBe('TwoFerTest');
+  });
+});
+
+describe('Exercism', () => {
+  const read = readExercismTrack(TWO_FER);
+  const item = read.items[0]?.item;
+  const version = item?.versions[0];
+
+  it('reads an exercise out of a track, through a repo-name wrapper directory', () => {
+    expect(read.problems).toEqual([]);
+    expect(item?.external_ref).toBe('exercism/two-fer');
+    expect(item?.ref).toBe('exercism-two-fer');
+  });
+
+  it('carries MIT, which is what docs/05 §2 says Exercism is', () => {
+    expect(item?.source_license).toBe('MIT');
+  });
+
+  it('uses the instructions as the prompt — they are already markdown', () => {
+    expect(version?.prompt_md).toContain('# Two Fer');
+  });
+
+  it('takes the stub as starter code and .meta/example.py as the solution', () => {
+    expect(version?.coding_spec?.starter_code['python']).toContain('pass');
+    expect(version?.coding_spec?.solution_code['python']).toContain('One for {name}');
+  });
+
+  it('emits each case as a module the harness can run on its own', () => {
+    const first = version?.test_cases[0]?.assertion_code ?? '';
+
+    expect(first).toContain('from two_fer import two_fer');
+    expect(first).toContain('class TwoFerTest(unittest.TestCase):');
+    expect(first).toContain('def test_no_name_given');
+    // One method per case, so the other two are not in this one.
+    expect(first).not.toContain('def test_a_name_given');
+  });
+
+  it('shows the first behaviour and hides the rest', () => {
+    expect(version?.test_cases.map((c) => c.is_sample)).toEqual([true, false, false]);
+    expect(version?.test_cases.map((c) => c.label)).toEqual([
+      'test_no_name_given',
+      'test_a_name_given',
+      'test_another_name_given',
+    ]);
+  });
+
+  it('produces an item the importer accepts', () => {
+    expect('problems' in checkBankItem(item, 0)).toBe(false);
+  });
+});
+
+describe('an incomplete track', () => {
+  it('reports an exercise missing its reference solution and imports the rest', () => {
+    const entries = new Map(TWO_FER);
+    entries.set('exercises/practice/bob/.docs/instructions.md', '# Bob');
+    entries.set('exercises/practice/bob/bob_test.py', 'import unittest\n');
+
+    const read = readExercismTrack(entries);
+
+    expect(read.items).toHaveLength(1);
+    expect(read.problems[0]).toMatchObject({ ref: 'exercism-bob', path: '.meta/example.py' });
+  });
+
+  it('ignores a directory that is not an exercise, in silence', () => {
+    const entries = new Map(TWO_FER);
+    entries.set('python-main/.github/workflows/ci.yml', 'name: CI');
+    entries.set('python-main/bin/fetch-configlet', '#!/bin/sh');
+
+    const read = readExercismTrack(entries);
+
+    expect(read.items).toHaveLength(1);
+    expect(read.problems).toEqual([]);
+  });
+
+  it('refuses a zip with no exercises at all, and says where they live', () => {
+    expect(() => readExercismTrack(new Map([['readme.md', '# not a track']]))).toThrow(
+      /exercises\/practice/u,
+    );
+  });
+
+  it('imports exercises in a stable order, because a checkpoint is a position in it', () => {
+    // Invariant 17: a retried job resumes at its checkpoint. If the order changed between
+    // runs, the resume would land on a different exercise.
+    const entries = new Map(TWO_FER);
+    for (const [path, content] of TWO_FER) {
+      entries.set(path.replace('two-fer', 'acronym').replace('two_fer', 'acronym'), content);
+    }
+
+    const refs = readExercismTrack(entries).items.map((i) => i.item.ref);
+
+    expect(refs).toEqual(['exercism-acronym', 'exercism-two-fer']);
   });
 });

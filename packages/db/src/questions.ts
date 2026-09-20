@@ -569,6 +569,61 @@ interface SummaryRow extends Record<string, unknown> {
  * uses the trigram index 0001 built over `prompt_md`. `skill_id` is an `EXISTS` over
  * `question_skills`, which is how ADR-009's indirection is actually queried.
  */
+/**
+ * One licence and dataset the bank holds content under, with how much of it.
+ *
+ * The same shape an export's header carries, computed over the live bank instead of over one
+ * file — so the console can show the obligation without exporting first.
+ */
+export interface AttributionRecord {
+  readonly source_license: string;
+  /** The dataset, from the part of `external_ref` before the first `/`. Null when there is none. */
+  readonly dataset: string | null;
+  readonly questions: number;
+  readonly published: number;
+}
+
+/**
+ * What this organisation's bank owes credit for (`H-032`, docs/05 §2).
+ *
+ * CC-BY-4.0 requires attribution "in any reasonable manner", and for a hiring platform docs/05
+ * §2 makes that concrete: an attributions page in the console and the credit preserved in every
+ * export. The export half has existed since the interchange formats; this is the other half.
+ *
+ * `proprietary` is excluded, because a question written in-house is not somebody else's work to
+ * credit — and the count of what remains is the metric docs/05 §2 asks teams to watch, since
+ * imported content should be the minority of a published bank by month six.
+ *
+ * Archived questions are counted. An archived question is hidden from browsing, not deleted,
+ * and the licence obligation follows the copy rather than its visibility.
+ */
+export async function listAttributions(tx: DbTransaction): Promise<AttributionRecord[]> {
+  const rows = await tx.execute<{
+    source_license: string;
+    dataset: string | null;
+    questions: string | number;
+    published: string | number;
+  }>(sql`
+    SELECT
+      q.source_license                                          AS source_license,
+      NULLIF(split_part(COALESCE(q.external_ref, ''), '/', 1), '') AS dataset,
+      count(*)                                                  AS questions,
+      count(*) FILTER (WHERE q.status = 'published')            AS published
+    FROM questions q
+    WHERE q.source_license IS NOT NULL
+      AND q.source_license <> 'proprietary'
+    GROUP BY 1, 2
+    ORDER BY 1, 2 NULLS FIRST
+  `);
+
+  return [...rows].map((row) => ({
+    source_license: row.source_license,
+    dataset: row.dataset,
+    questions: Number(row.questions),
+    published: Number(row.published),
+  }));
+}
+
 export async function listQuestions(
   tx: DbTransaction,
   query: ListQuestionsQuery,

@@ -12,6 +12,9 @@ import * as contracts from './index.js';
  * of names those workspaces are entitled to rely on.
  */
 const PUBLIC_SURFACE = [
+  'AttributionListResponseSchema',
+  'AttributionSchema',
+  'QUESTIONS_ATTRIBUTIONS_PATH',
   'WORKSPACE_NAME',
   // primitives
   'UuidSchema',

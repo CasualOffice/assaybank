@@ -136,7 +136,7 @@ and picking it up anyway is how two people end up editing the same file.
 | H-029 | P1 | Question CRUD across all eight kinds with kind-specific payload validation for options, coding specs, test cases and answer keys | api | M0 | H-024 | PRD 6 M0 | L | done | _unassigned_ |
 | H-030 | P0 | Version lifecycle draft → review → published → retired; `PATCH` on a published version returns 409 `version_immutable` | api | M0 | H-029 | FR-1, ADR-003 | M | done | _unassigned_ |
 | H-031 | P1 | `PUT /questions/{id}/skills` with weights; no route, column or import path permits tagging a question with a job role | api | M0 | H-028 | FR-2, ADR-009 | S | done | _unassigned_ |
-| H-032 | P2 | Import job adapters for HumanEval, MBPP, LBPP and Exercism, rejecting any row without `source_license`, preserving `external_ref`, emitting per-row errors instead of failing the file, and driving an attributions page in the staff console — _partial 2026-09-20: the three line-delimited datasets (HumanEval, MBPP, LBPP) import through one descriptor-driven reader, as drafts, graded by unit tests (ADR-024), with the licence taken from docs/05 §2 rather than from the uploader and `external_ref` keeping the dataset's own `dataset/id`. Per-row problems, and a file that is not the format at all says so. **Remaining:** Exercism, which is a directory tree rather than a JSONL file and needs the zip reader; and the attributions page in the console_ | worker | M0 | H-029 | FR-3 | L | todo | _unassigned_ |
+| H-032 | P2 | Import job adapters for HumanEval, MBPP, LBPP and Exercism, rejecting any row without `source_license`, preserving `external_ref`, emitting per-row errors instead of failing the file, and driving an attributions page in the staff console — _done 2026-09-20: all four import as drafts graded by unit tests (ADR-024). The three JSONL datasets go through one descriptor-driven reader; Exercism is a zip of exercise directories and has its own, where a case is a `unittest` method. The licence comes from docs/05 §2 rather than from the uploader, `external_ref` keeps the dataset's own `dataset/id`, and `GET /questions/attributions` plus `/attributions` in the console discharge the CC-BY credit obligation that the import creates_ | worker | M0 | H-029 | FR-3 | L | done | _unassigned_ |
 | H-033 | P2 | QTI 2.1 import and export, round-trip without loss across all eight question kinds | worker | M0 | H-032 | M0 exit | L | done | _unassigned_ |
 | H-034 | P2 | JSON bank export in an open, documented shape, with CC-BY attribution preserved in the payload | worker | M0 | H-032 | FR-29, G6 | M | done | _unassigned_ |
 | H-035 | P1 | Nightly `question_stats` job computing p-value and point-biserial discrimination per question version once n ≥ 30 | worker | M0 | H-015 | FR-5 | M | done | _unassigned_ |
@@ -362,12 +362,12 @@ tedious path through the product and the mechanism by which a bank fills with ne
 datasets, and `grading_mode = 'unit_tests'` had no semantics. `H-190` settled it (ADR-024) so the
 adapters have a shape to write into; the adapters themselves are next.
 
-`H-032` is now three-quarters done: HumanEval, MBPP and LBPP import, and what remains is Exercism
-(a directory tree, so it needs the zip reader the QTI package already uses) and the attributions
-page. After that, `H-040` — the 200-question load and the lossless round trip — is the M0 exit.
+`H-032` closed on 2026-09-20. **`H-040` is now the only thing between here and the M0 exit**: load
+200 questions tagged to at least three job roles, and prove a lossless export and re-import. Every
+mechanism it needs exists — the importers, both interchange formats, the taxonomy, the roles.
 
-`H-184` near-duplicate detection is the other one that is startable today, and it matters more now
-that a dataset import can put a thousand rows in at once. Everything from `H-179`
+`H-184` near-duplicate detection is the other one startable today, and it matters more now that one
+upload can put a thousand rows in at once. Everything from `H-179`
 onwards waits on the assessment engine in P3.
 
 ### The console, which can now read and write the bank
@@ -416,12 +416,12 @@ weeks is how three of the four end up half-done.
 | Milestone | Phase | Tasks | P0 | done | todo |
 |---|---|---|---|---|---|
 | M-1 | P0 | 39 | 36 | 38 | 1 |
-| M0 | P1–P2 | 45 | 23 | 23 | 22 |
+| M0 | P1–P2 | 45 | 23 | 24 | 21 |
 | M1 | P3 | 37 | 19 | 0 | 37 |
 | M2 | P4 | 32 | 15 | 0 | 32 |
 | M3 | P5 | 16 | 4 | 0 | 16 |
 | M4 | P6 | 21 | 5 | 0 | 21 |
-| **Total** | | **190** | **102** | **61** | **129** |
+| **Total** | | **190** | **102** | **62** | **128** |
 
 Counted from the rows above on 2026-09-20, not carried forward. The twelve rows added that
 afternoon are the guided flow: `H-178` to `H-189`, from reading the console back as a product

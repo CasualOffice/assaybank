@@ -151,16 +151,13 @@ export function auditActorFor(principal: Principal): AuditActor {
  */
 function asApiError(error: unknown): unknown {
   if (error instanceof AuditReasonRequiredError) {
-    return ApiError.validationFailed(
-      'This action requires a reason.',
-      {
-        details: {
-          fields: [{ field: 'body/reason', rule: 'required' }],
-          action: error.action,
-        },
-        cause: error,
+    return ApiError.validationFailed('This action requires a reason.', {
+      details: {
+        fields: [{ field: 'body/reason', rule: 'required' }],
+        action: error.action,
       },
-    );
+      cause: error,
+    });
   }
   return error;
 }
@@ -215,59 +212,59 @@ export function registerAudit(app: FastifyInstance, options: AuditOptions): void
 
   if (app.hasRequestDecorator('audited')) return;
 
-  app.decorateRequest(
-    'audited',
-    async function audited<T>(
-      this: FastifyRequest,
-      spec: AuditSpec,
-      work: AuditedWork<T>,
-    ): Promise<T> {
-      const principal: Principal = currentPrincipal(this);
-      const actor = auditActorFor(principal);
-      const at = now();
-      // Parsed, not passed through: on a deployed tier `request.ip` is the X-Forwarded-For
-      // value, which is client-controlled text. See auditClientAddress.
-      const ip = auditClientAddress(this);
+  app.decorateRequest('audited', async function audited<
+    T,
+  >(this: FastifyRequest, spec: AuditSpec, work: AuditedWork<T>): Promise<T> {
+    const principal: Principal = currentPrincipal(this);
+    const actor = auditActorFor(principal);
+    const at = now();
+    // Parsed, not passed through: on a deployed tier `request.ip` is the X-Forwarded-For
+    // value, which is client-controlled text. See auditClientAddress.
+    const ip = auditClientAddress(this);
 
-      let entry: AuditSpec = spec;
+    let entry: AuditSpec = spec;
 
-      // Validated before the transaction opens, so a void with no reason costs nothing
-      // and answers 422 rather than doing the work and rolling it back. The same
-      // validation runs again inside writeAudit against the amended entry — this pass is
-      // an early exit, not the guarantee.
+    // Validated before the transaction opens, so a void with no reason costs nothing
+    // and answers 422 rather than doing the work and rolling it back. The same
+    // validation runs again inside writeAudit against the amended entry — this pass is
+    // an early exit, not the guarantee.
+    try {
+      prepareAuditEntry({ ...entry, orgId: principal.orgId, actor, ip, at });
+    } catch (error: unknown) {
+      throw asApiError(error);
+    }
+
+    const handle: AuditEntry = {
+      amend(patch: AuditAmendment): void {
+        entry = merge(entry, patch);
+      },
+    };
+
+    const { result, auditId } = await withOrg(db, principal.orgId, async (tx) => {
+      const value = await work(tx, handle);
       try {
-        prepareAuditEntry({ ...entry, orgId: principal.orgId, actor, ip, at });
+        const id = await writeAudit(tx, { ...entry, orgId: principal.orgId, actor, ip, at });
+        return { result: value, auditId: id };
       } catch (error: unknown) {
+        // Thrown inside the transaction, so the work rolls back with it: an action
+        // that cannot be recorded does not take effect.
         throw asApiError(error);
       }
+    });
 
-      const handle: AuditEntry = {
-        amend(patch: AuditAmendment): void {
-          entry = merge(entry, patch);
-        },
-      };
+    // A pointer from the trace to the record, not a copy of it. No reason, no payload:
+    // a reason is written by a human about a candidate, and docs/12 §7.2 keeps that out
+    // of a log that is shipped, sampled and kept for thirty days.
+    this.log.info(
+      {
+        event: 'audit.recorded',
+        audit_id: auditId,
+        action: entry.action,
+        entity_type: entry.entityType,
+      },
+      'audit entry committed',
+    );
 
-      const { result, auditId } = await withOrg(db, principal.orgId, async (tx) => {
-        const value = await work(tx, handle);
-        try {
-          const id = await writeAudit(tx, { ...entry, orgId: principal.orgId, actor, ip, at });
-          return { result: value, auditId: id };
-        } catch (error: unknown) {
-          // Thrown inside the transaction, so the work rolls back with it: an action
-          // that cannot be recorded does not take effect.
-          throw asApiError(error);
-        }
-      });
-
-      // A pointer from the trace to the record, not a copy of it. No reason, no payload:
-      // a reason is written by a human about a candidate, and docs/12 §7.2 keeps that out
-      // of a log that is shipped, sampled and kept for thirty days.
-      this.log.info(
-        { event: 'audit.recorded', audit_id: auditId, action: entry.action, entity_type: entry.entityType },
-        'audit entry committed',
-      );
-
-      return result;
-    },
-  );
+    return result;
+  });
 }

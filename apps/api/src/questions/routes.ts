@@ -302,18 +302,14 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
   const publish = { ...rateLimitFor('staff_api'), ...requirePermission('question.publish') };
 
   // --- GET /questions ----------------------------------------------------------
-  app.get(
-    QUESTIONS_ROUTE,
-    { config: read },
-    async (request): Promise<QuestionListResponse> => {
-      const principal = staffOnly(request);
-      const query = parseRequestPart(ListQuestionsQuerySchema, request.query, 'querystring');
+  app.get(QUESTIONS_ROUTE, { config: read }, async (request): Promise<QuestionListResponse> => {
+    const principal = staffOnly(request);
+    const query = parseRequestPart(ListQuestionsQuerySchema, request.query, 'querystring');
 
-      const page = await withOrg(db, principal.orgId, (tx) => listQuestions(tx, query));
+    const page = await withOrg(db, principal.orgId, (tx) => listQuestions(tx, query));
 
-      return { data: page.rows.map(toAuthorSummaryView), next_cursor: page.nextCursor };
-    },
-  );
+    return { data: page.rows.map(toAuthorSummaryView), next_cursor: page.nextCursor };
+  });
 
   // --- POST /questions ---------------------------------------------------------
   app.post(
@@ -702,7 +698,9 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
     if (question.kind !== 'coding' && question.kind !== 'sql') {
       throw ApiError.validationFailed(
         `Only coding and sql questions can be previewed; this one is ${question.kind}.`,
-        { details: { kind: question.kind, fields: [{ field: 'params/id', rule: 'runnable_kind' }] } },
+        {
+          details: { kind: question.kind, fields: [{ field: 'params/id', rule: 'runnable_kind' }] },
+        },
       );
     }
 
@@ -719,27 +717,31 @@ export function registerQuestionRoutes(app: FastifyInstance, options: QuestionRo
   // sweep has not reached — or one with no current version — answers zeros and nulls rather
   // than 404: the question exists, it has simply not been measured, and conflating the two
   // would tell a caller the question is missing.
-  app.get(QUESTION_STATS_ROUTE, { config: read }, async (request): Promise<QuestionStatsResponse> => {
-    const principal = staffOnly(request);
-    const { id } = parseRequestPart(QuestionParamsSchema, request.params, 'params');
+  app.get(
+    QUESTION_STATS_ROUTE,
+    { config: read },
+    async (request): Promise<QuestionStatsResponse> => {
+      const principal = staffOnly(request);
+      const { id } = parseRequestPart(QuestionParamsSchema, request.params, 'params');
 
-    return withOrg(db, principal.orgId, async (tx) => {
-      const question = await getQuestionWithCurrentVersion(tx, id);
-      if (question === undefined) throw ApiError.notFound();
+      return withOrg(db, principal.orgId, async (tx) => {
+        const question = await getQuestionWithCurrentVersion(tx, id);
+        if (question === undefined) throw ApiError.notFound();
 
-      const version = question.current_version;
-      const stats = version === null ? undefined : await getQuestionStats(tx, version.id);
+        const version = question.current_version;
+        const stats = version === null ? undefined : await getQuestionStats(tx, version.id);
 
-      return {
-        question_id: question.id,
-        version_no: version?.version_no ?? null,
-        n_attempts: stats?.nAttempts ?? 0,
-        p_value: stats?.pValue ?? null,
-        discrimination: stats?.discrimination ?? null,
-        mean_seconds: stats?.meanSeconds ?? null,
-        computed_at: stats?.computedAt?.toISOString() ?? null,
-        min_responses: MIN_RESPONSES_FOR_STATS,
-      };
-    });
-  });
+        return {
+          question_id: question.id,
+          version_no: version?.version_no ?? null,
+          n_attempts: stats?.nAttempts ?? 0,
+          p_value: stats?.pValue ?? null,
+          discrimination: stats?.discrimination ?? null,
+          mean_seconds: stats?.meanSeconds ?? null,
+          computed_at: stats?.computedAt?.toISOString() ?? null,
+          min_responses: MIN_RESPONSES_FOR_STATS,
+        };
+      });
+    },
+  );
 }

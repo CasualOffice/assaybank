@@ -29,6 +29,7 @@ import { QuestionEditor } from '../routes/QuestionEditor.js';
 import { QuestionsScreen } from '../routes/QuestionsScreen.js';
 import { AppShellLayout } from './AppShell.js';
 import { NavIcon } from './NavIcon.js';
+import { AttributionsScreen } from '../routes/AttributionsScreen.js';
 import { RolesScreen } from '../routes/RolesScreen.js';
 import { ErrorEnvelopeView, toDisplayEnvelope } from './ErrorBoundary.js';
 import {
@@ -284,6 +285,12 @@ const questionsRoute = createRoute({
   component: QuestionsRouteScreen,
 });
 
+const attributionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/attributions',
+  component: AttributionsScreen,
+});
+
 const rolesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/roles',
@@ -335,6 +342,7 @@ const questionDetailRoute = createRoute({
 export const routeTree = rootRoute.addChildren([
   dashboardRoute,
   questionsRoute,
+  attributionsRoute,
   rolesRoute,
   questionDetailRoute,
   assessmentsRoute,

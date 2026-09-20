@@ -86,6 +86,7 @@ export {
   getLatestVersion,
   getQuestionWithCurrentVersion,
   getVersion,
+  listAttributions,
   listQuestions,
   listVersions,
   publishVersion,
@@ -97,6 +98,7 @@ export {
 } from './questions.js';
 export type {
   CreateQuestionInput,
+  AttributionRecord,
   Page,
   ReadQuestionOptions,
   ReadVersionOptions,

@@ -209,13 +209,15 @@ GET    /import-jobs/{id}            → job view
 POST   /questions/export            ?format=json|qti&status=&skill_id=   → 202 {job_id, status, job_url}
 GET    /export-jobs/{id}            → job view
 GET    /export-jobs/{id}/file       → the file, until expires_at
+GET    /questions/attributions      → [{source_license, dataset, questions, published}]
 ```
 
 Import is asynchronous and reports per-row errors rather than failing the whole file. `source_license` is mandatory on import — see `05-licensing-and-compliance.md`.
 
 **As built (2026-09-17)**, for `json` and `qti`. **Extended 2026-09-20 (`H-032`)** with three
-dataset formats — `humaneval`, `mbpp`, `lbpp` — which are **import only**. `exercism` is a
-directory tree rather than a line-delimited file and is not accepted yet.
+dataset formats — `humaneval`, `mbpp`, `lbpp` and `exercism` — all **import only**. The first three are
+line-delimited JSON; an Exercism track is a zip of exercise directories, read by the same
+unzip the QTI package uses.
 
 Three things about a dataset import differ from a bank document, and each is a decision rather
 than an omission:
@@ -229,6 +231,15 @@ than an omission:
 - **`external_ref` keeps the dataset's own `dataset/id`**; the item's interchange `ref` is the
   same identifier with its slashes replaced, because in a QTI package a `ref` becomes a file
   name.
+
+`GET /questions/attributions` is the credit CC-BY-4.0 requires, not a report. docs/05 §2 decides
+what "in any reasonable manner" means here — a page in the console and the credit preserved in
+every export — and this is the endpoint behind the first half. It needs `question.read` rather than
+an export permission: gating the record of what we owe behind the ability to download the bank
+would hide it from most of the people who need to know. In-house content (`proprietary`) is
+excluded, because a question we wrote is not somebody else's work to credit. `questions` and
+`published` are separate because they answer different things: the obligation follows every copy
+held, and the ratio is the metric docs/05 §2 asks teams to watch.
 
 Asking for a dataset format on **export** is `422`: we do not own those file shapes, and a
 question edited here has no MBPP row to become. An export of imported content is a JSON bank

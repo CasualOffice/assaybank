@@ -4,7 +4,15 @@
 
 /** The dataset importers (`H-032`, docs/05 §2). */
 
-export { dedent, splitAssertions, type SplitAssertion } from './assertions.js';
+export {
+  dedent,
+  splitAssertions,
+  splitTestMethods,
+  structuralLines,
+  type SplitAssertion,
+  type TestMethod,
+} from './assertions.js';
+export { EXERCISM_LICENCE, readExercismTrack } from './exercism.js';
 export { readJsonlDataset } from './jsonl.js';
 export {
   DATASET_SPECS,

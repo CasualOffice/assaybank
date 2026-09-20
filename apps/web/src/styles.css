@@ -952,3 +952,24 @@
   flex-direction: column;
   align-items: flex-end;
 }
+
+/* ------------------------------------------------------------- attributions */
+
+.ab-attributions__table {
+  min-width: 46rem;
+}
+
+.ab-attributions__licence {
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* The obligation is a sentence, so it gets a measure rather than the column's full width. */
+.ab-attributions__obligation {
+  max-width: 34ch;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  line-height: 1.45;
+}

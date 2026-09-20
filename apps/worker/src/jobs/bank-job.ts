@@ -59,6 +59,7 @@ import {
 import type { ItemProblem } from '../interchange/bank-item.js';
 import {
   JSONL_DATASETS,
+  readExercismTrack,
   readJsonlDataset,
   type JsonlDataset,
 } from '../interchange/datasets/index.js';
@@ -174,9 +175,13 @@ async function runImport(deps: RunDeps, orgId: OrgId, job: BankJobRow): Promise<
     // is not the authority on somebody else's licence.
     read = isJsonlDataset(job.format)
       ? readJsonlDataset(job.format, Buffer.from(input).toString('utf8'), difficulty)
-      : job.format === 'json'
-        ? readBankDocument(Buffer.from(input).toString('utf8'))
-        : readQtiPackage(unzipPackage(input), difficulty);
+      : job.format === 'exercism'
+        ? // A track is a repository, so it arrives as a zip — the same reader a QTI package
+          // uses, because the hazards of an untrusted archive are the same either way.
+          readExercismTrack(unzipPackage(input), difficulty)
+        : job.format === 'json'
+          ? readBankDocument(Buffer.from(input).toString('utf8'))
+          : readQtiPackage(unzipPackage(input), difficulty);
   } catch (error) {
     if (error instanceof UnreadableDocumentError || error instanceof UnreadablePackageError) {
       return fail(deps, orgId, job.id, error.message);

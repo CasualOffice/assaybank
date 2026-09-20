@@ -18,6 +18,7 @@ import { QuestionStatusSchema, SourceLicenseSchema } from './questions.js';
 
 export const QUESTIONS_IMPORT_PATH = '/questions/import';
 export const QUESTIONS_EXPORT_PATH = '/questions/export';
+export const QUESTIONS_ATTRIBUTIONS_PATH = '/questions/attributions';
 export const IMPORT_JOB_PATH = '/import-jobs/{id}';
 export const EXPORT_JOB_PATH = '/export-jobs/{id}';
 export const EXPORT_JOB_FILE_PATH = '/export-jobs/{id}/file';
@@ -31,7 +32,7 @@ export const EXPORT_JOB_FILE_PATH = '/export-jobs/{id}/file';
  * An export of imported content is a JSON bank document, which keeps its `source_license` and
  * `external_ref` and so keeps the attribution CC-BY-4.0 requires (docs/05 §2).
  */
-export const BANK_FORMATS = ['json', 'qti', 'humaneval', 'mbpp', 'lbpp'] as const;
+export const BANK_FORMATS = ['json', 'qti', 'humaneval', 'mbpp', 'lbpp', 'exercism'] as const;
 
 /** The formats an export may be asked for. A dataset format is not one of them. */
 export const EXPORT_FORMATS = ['json', 'qti'] as const;
@@ -81,6 +82,41 @@ export const ExportQuerySchema = z.strictObject({
   skill_id: SkillIdSchema.optional(),
 });
 export type ExportQuery = z.infer<typeof ExportQuerySchema>;
+
+/**
+ * One licence the bank holds content under, and how much of it (`H-032`, docs/05 §2).
+ *
+ * CC-BY-4.0 requires attribution "in any reasonable manner", and for a hiring platform docs/05
+ * §2 makes that concrete: an attributions page in the recruiter console, and the credit
+ * preserved in every export. The export half has existed since the interchange formats; this is
+ * the endpoint behind the other half.
+ *
+ * `published` is separate from `questions` because they answer different questions. The
+ * obligation follows every copy held, published or not. The ratio is the metric docs/05 §2 asks
+ * teams to watch — imported content should be the minority of a *published* bank by month six,
+ * because these datasets were built to benchmark language models and are in the training data
+ * of every model a candidate might use.
+ */
+export const AttributionSchema = z
+  .object({
+    source_license: z.string(),
+    /** The dataset, from `external_ref`'s first segment. Null for content with no source. */
+    dataset: z.string().nullable(),
+    questions: z.number().int().min(0),
+    published: z.number().int().min(0),
+  })
+  .describe('One licence and dataset the bank holds content under, with its counts.')
+  .openapi('Attribution');
+
+export type AttributionView = z.infer<typeof AttributionSchema>;
+
+/** The body of `GET /questions/attributions`. Unpaginated: a bank has a handful of licences. */
+export const AttributionListResponseSchema = z
+  .object({ data: z.array(AttributionSchema) })
+  .describe('Every licence this organisation owes credit for.')
+  .openapi('AttributionListResponse');
+
+export type AttributionListResponse = z.infer<typeof AttributionListResponseSchema>;
 
 export const BankJobParamsSchema = z.strictObject({ id: z.uuid() });
 

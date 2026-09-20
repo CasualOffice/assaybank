@@ -44,6 +44,13 @@ const PATHS: Readonly<Record<ConsolePath, ReactNode>> = {
       <path d="m3 17 9 4.5 9-4.5" />
     </>
   ),
+  // A tag with its hole: a label attached to something, which is what an attribution is.
+  '/attributions': (
+    <>
+      <path d="M3 12.3V4a1 1 0 0 1 1-1h8.3a2 2 0 0 1 1.4.6l6.7 6.7a2 2 0 0 1 0 2.8l-8.3 8.3a2 2 0 0 1-2.8 0L3.6 13.7a2 2 0 0 1-.6-1.4Z" />
+      <circle cx="7.5" cy="7.5" r="1.3" />
+    </>
+  ),
   // A briefcase: the job, which is what a role is. Not a person — that is `/candidates`
   // below, and the two must not read as variations of one another.
   '/roles': (

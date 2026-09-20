@@ -92,6 +92,22 @@ function scanLine(line: string, state: ScanState): ScanState {
   return { depth: line.trimEnd().endsWith('\\') ? Math.max(depth, 1) : depth, quote };
 }
 
+/**
+ * Which lines begin in code rather than part-way through a string or a bracket.
+ *
+ * Shared by both splitters below, because "is this line the start of a statement" is the only
+ * question either of them asks of Python, and answering it twice would be two chances to
+ * answer it differently.
+ */
+export function structuralLines(lines: readonly string[]): readonly boolean[] {
+  let state: ScanState = { depth: 0, quote: null };
+  return lines.map((line) => {
+    const structural = state.depth === 0 && state.quote === null;
+    state = scanLine(line, state);
+    return structural;
+  });
+}
+
 /** `assert` as a statement: the word, then whitespace or end of line. */
 const ASSERT = /^\s*assert(\s|$)/u;
 
@@ -108,13 +124,12 @@ export function splitAssertions(block: string): {
   const lines = block.replace(/\r\n?/gu, '\n').split('\n');
   const preamble: string[] = [];
   const assertions: SplitAssertion[] = [];
+  const structuralAt = structuralLines(lines);
 
-  let state: ScanState = { depth: 0, quote: null };
   let current: { lines: string[]; line: number } | null = null;
 
   lines.forEach((line, index) => {
-    const structural = state.depth === 0 && state.quote === null;
-    const starts = structural && ASSERT.test(line);
+    const starts = structuralAt[index] === true && ASSERT.test(line);
 
     if (starts) {
       if (current !== null) {
@@ -126,8 +141,6 @@ export function splitAssertions(block: string): {
     } else {
       preamble.push(line);
     }
-
-    state = scanLine(line, state);
   });
 
   if (current !== null) {
@@ -153,4 +166,105 @@ export function dedent(block: string): string {
     .map((line) => line.length - line.trimStart().length);
   const common = widths.length === 0 ? 0 : Math.min(...widths);
   return lines.map((line) => (line.trim() === '' ? line : line.slice(common))).join('\n');
+}
+
+/** One `unittest` test method, lifted out with the class it belongs to. */
+export interface TestMethod {
+  /** The method name, `test_something`, used as the case label. */
+  readonly name: string;
+  /** The `def` line and its body, at their original indentation. */
+  readonly code: string;
+  /** 1-based line of the `def` within the file. */
+  readonly line: number;
+}
+
+/** `class BobTest(unittest.TestCase):` at the top level. */
+const CLASS = /^class\s+([A-Za-z_]\w*)\s*(\(|:)/u;
+/** `    def test_something(self):`, at whatever indent the class body uses. */
+const TEST_DEF = /^(\s+)def\s+(test\w*)\s*\(/u;
+
+/**
+ * Splits a `unittest` module into one case per test method.
+ *
+ * ## Why a method rather than an assertion here
+ *
+ * ADR-024's unit is the smallest thing that can be run and scored on its own, and for a
+ * `unittest` file that is a method, not a statement. A method is what the framework
+ * discovers, what `setUp` runs before, and what a name like `test_handles_empty_input`
+ * describes; two `assertEqual` calls inside one are two halves of a single behaviour, and
+ * pulling them apart would produce cases that fail for reasons their names do not explain
+ * — and would break any that share a local built in the first line.
+ *
+ * Same discipline as the assertion splitter: this finds where a method begins and ends and
+ * reads nothing inside it.
+ */
+export function splitTestMethods(source: string): {
+  readonly preamble: string;
+  readonly className: string | null;
+  readonly methods: readonly TestMethod[];
+} {
+  const lines = source.replace(/\r\n?/gu, '\n').split('\n');
+  const structural = structuralLines(lines);
+
+  const preamble: string[] = [];
+  const methods: TestMethod[] = [];
+  let className: string | null = null;
+  let inClass = false;
+  let current: { name: string; lines: string[]; line: number; indent: number } | null = null;
+
+  const close = (): void => {
+    if (current === null) return;
+    const done = current;
+    methods.push({
+      name: done.name,
+      code: done.lines.join('\n').trimEnd(),
+      line: done.line,
+    });
+    current = null;
+  };
+
+  lines.forEach((line, index) => {
+    const isStructural = structural[index] === true;
+
+    if (isStructural && CLASS.test(line)) {
+      close();
+      // The first class wins. An Exercism test file has one; if a later one appears it is a
+      // helper, and its methods are not the exercise's tests.
+      if (className === null) className = CLASS.exec(line)?.[1] ?? null;
+      inClass = true;
+      return;
+    }
+
+    const def = isStructural ? TEST_DEF.exec(line) : null;
+    if (def !== null && inClass) {
+      close();
+      current = {
+        name: def[2] ?? 'test',
+        lines: [line],
+        line: index + 1,
+        indent: (def[1] ?? '').length,
+      };
+      return;
+    }
+
+    if (current !== null) {
+      const blank = line.trim() === '';
+      const indent = line.length - line.trimStart().length;
+      // A structural line at or left of the `def` ends the method: the next method, or
+      // anything after the class. A blank line does not, because a method may contain one.
+      if (!blank && isStructural && indent <= current.indent) {
+        close();
+        preamble.push(line);
+        return;
+      }
+      current.lines.push(line);
+      return;
+    }
+
+    if (!inClass) preamble.push(line);
+  });
+
+  close();
+
+  return { preamble: preamble.join('\n').trimEnd(), className, methods };
 }

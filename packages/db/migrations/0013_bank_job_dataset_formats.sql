@@ -6,10 +6,12 @@
 -- 0013_bank_job_dataset_formats — the named datasets H-032 imports.
 --
 -- 0010 constrained `bank_jobs.format` to the two interchange formats
--- this system both reads and writes. The dataset importers add three
--- it only ever reads: HumanEval, MBPP and LBPP, whose licences and
--- field mappings are in apps/worker/src/interchange/datasets/spec.ts
--- and whose terms are in docs/05 §2.
+-- this system both reads and writes. The dataset importers add four
+-- it only ever reads: HumanEval, MBPP, LBPP and Exercism, whose
+-- licences and field mappings are in
+-- apps/worker/src/interchange/datasets/, and whose terms are in
+-- docs/05 §2. Exercism arrives as a zip of exercise directories
+-- rather than a line-delimited file; the other three are JSONL.
 --
 -- Import-only is a deliberate asymmetry rather than an unfinished
 -- half. We do not own those file shapes, and a question edited here
@@ -35,9 +37,9 @@ ALTER TABLE bank_jobs
 
 ALTER TABLE bank_jobs
     ADD CONSTRAINT bank_jobs_format_check
-    CHECK (format IN ('json', 'qti', 'humaneval', 'mbpp', 'lbpp'));
+    CHECK (format IN ('json', 'qti', 'humaneval', 'mbpp', 'lbpp', 'exercism'));
 
--- An export is still one of ours. The constraint above admits five values for the
+-- An export is still one of ours. The constraint above admits six values for the
 -- column; this one says which of them an export row may carry, so a dataset format
 -- cannot reach an export path through a route nobody re-checked.
 ALTER TABLE bank_jobs

@@ -197,6 +197,14 @@ Migration 0010 (2026-09-17) adds `bank_jobs`, a tenant table with the ordinary `
 index on `(status, created_at, id)`. Neither touches a gated table, and no captured plan changed.
 The claim's own plan has not been captured.
 
+`listAttributions` (2026-09-20) is a new read of `questions`, which **is** on the gated list. It is
+an aggregate with no join and no correlated subquery — a group-by over `source_license` and the
+first segment of `external_ref`, filtered to non-proprietary rows — so the RLS predicate is
+evaluated once per row of a sequential scan rather than per row of a nested loop, which is Finding
+1's expensive shape and is not this one. It reads the whole tenant's bank, so it belongs with the
+psychometrics sweep in the list of queries whose plan has **not** been captured; it is read rarely
+and by one page, so it is not the first one to measure.
+
 Migration 0013 (2026-09-20) widens the `bank_jobs.format` CHECK to admit three import-only
 dataset formats and adds a second CHECK confining an export row to the two formats we write. Both
 are constraints rather than predicates or indexes; `bank_jobs` is not on the gated list, and its

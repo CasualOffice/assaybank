@@ -416,6 +416,18 @@ finds out. When a choice is between a loud failure and a quiet one, buy the loud
 format genuinely requires understanding its contents, that is a signal to store the source as it is
 and interpret it at execution time, which is what ADR-024 did.
 
+## 1c. An obligation the code creates, the code discharges
+
+`H-032` imports a dataset and, in doing so, creates a licence obligation — CC-BY-4.0 requires
+credit "in any reasonable manner". The rule that follows: **the change that creates an obligation
+ships the thing that discharges it.** Not the next sprint, and not a ticket.
+
+An import that lands without its attributions page has not deferred half the work; it has created
+the whole liability and none of the compliance, and it is invisible until somebody asks. The same
+shape applies to a retention clock on new personal data (docs/11), an audit row for a new
+privileged action, and a runbook for a new alert — in each case the obligation arrives with the
+feature and the only question is whether it arrives alone.
+
 ## 2b. Decide the shape before the data arrives
 
 A column whose meaning has never been settled is not a spare column, it is a decision deferred to

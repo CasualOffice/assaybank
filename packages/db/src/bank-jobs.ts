@@ -38,7 +38,7 @@ export type BankJobKind = 'import' | 'export';
  * writing one back out would claim a fidelity we cannot promise. An export of imported content
  * is a JSON bank document, which keeps `source_license` and `external_ref` per item.
  */
-export type BankJobFormat = 'json' | 'qti' | 'humaneval' | 'mbpp' | 'lbpp';
+export type BankJobFormat = 'json' | 'qti' | 'humaneval' | 'mbpp' | 'lbpp' | 'exercism';
 export type BankJobStatus = 'queued' | 'dispatched' | 'running' | 'succeeded' | 'failed';
 
 /** The largest file either direction may carry, matching the `bank_jobs_*_bytes_check` constraints. */

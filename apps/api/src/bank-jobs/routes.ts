@@ -36,7 +36,9 @@ import {
   IMPORT_JOB_PATH,
   ImportQuerySchema,
   MAX_BANK_FILE_BYTES,
+  QUESTIONS_ATTRIBUTIONS_PATH,
   QUESTIONS_EXPORT_PATH,
+  type AttributionListResponse,
   QUESTIONS_IMPORT_PATH,
   parseRequestPart,
   type BankJobAccepted,
@@ -45,6 +47,7 @@ import {
 import {
   createBankJob,
   getBankJob,
+  listAttributions,
   invisibleSkillIds,
   readBankJobResult,
   withOrg,
@@ -64,6 +67,7 @@ export interface BankJobRouteOptions {
 
 export const QUESTIONS_IMPORT_ROUTE = fastifyPath(QUESTIONS_IMPORT_PATH);
 export const QUESTIONS_EXPORT_ROUTE = fastifyPath(QUESTIONS_EXPORT_PATH);
+export const QUESTIONS_ATTRIBUTIONS_ROUTE = fastifyPath(QUESTIONS_ATTRIBUTIONS_PATH);
 export const IMPORT_JOB_ROUTE = fastifyPath(IMPORT_JOB_PATH);
 export const EXPORT_JOB_ROUTE = fastifyPath(EXPORT_JOB_PATH);
 export const EXPORT_JOB_FILE_ROUTE = fastifyPath(EXPORT_JOB_FILE_PATH);
@@ -240,6 +244,26 @@ export function registerBankJobRoutes(app: FastifyInstance, options: BankJobRout
 
       reply.code(202);
       return accepted(row);
+    },
+  );
+
+  // --- GET /questions/attributions -----------------------------------------------------
+  //
+  // The obligation, not a report. CC-BY-4.0 requires attribution "in any reasonable manner",
+  // and docs/05 §2 makes that concrete for a hiring platform: a page in the console listing
+  // the sources, and the credit preserved in every export. The export half has existed since
+  // the interchange formats were built; this is the other half (`H-032`).
+  //
+  // `question.read`, not an export permission: it is a statement about the bank a recruiter
+  // may look at, and gating it behind the ability to export would hide the obligation from
+  // most of the people who need to know about it.
+  app.get(
+    QUESTIONS_ATTRIBUTIONS_ROUTE,
+    { config: read },
+    async (request): Promise<AttributionListResponse> => {
+      const principal = staffOnly(request);
+      const rows = await withOrg(db, principal.orgId, (tx) => listAttributions(tx));
+      return { data: rows };
     },
   );
 
