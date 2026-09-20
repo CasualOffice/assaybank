@@ -8,72 +8,75 @@ import { type ReactNode } from 'react';
 import { Lockup } from './Lockup.js';
 import { APP_NAME, SURFACE_NAME } from './routes.js';
 
-/**
- * The id the skip link targets. Exported so the link and the landmark cannot drift apart
- * — a skip link pointing at an id that no longer exists is a bypass block that silently
- * does nothing.
- */
+/** The id the skip link targets and the router moves focus to. */
 export const MAIN_CONTENT_ID = 'main-content';
 
 /** Props for {@link AppShellLayout}. */
 export interface AppShellLayoutProps {
-  /** The navigation list. Supplied by the router-aware {@link AppShell}. */
+  /** The grouped navigation. Supplied by the router-aware `ConsoleNav`. */
   nav: ReactNode;
   /** The page. */
   children: ReactNode;
 }
 
 /**
- * The console chrome, with no router dependency.
+ * The console chrome: a fixed sidebar and a scrolling work area.
  *
- * Split from {@link AppShell} so the layout — which is where the accessibility baseline
- * lives — can be rendered and asserted without a router context. That is not a testing
- * convenience bolted on afterwards: the landmark structure and the DOM order below are the
- * things every screen from P2 onward inherits, and they have to be verifiable on their
- * own.
+ * ## Why a sidebar and not the top bar this replaced
  *
- * The structure, and why each part is the way it is:
+ * A horizontal bar is fine for four links and wrong for the twelve this console will have
+ * by P6 — reports, interviews, integrations, settings, the review queue. A top bar answers
+ * that by hiding things behind "More", which is where features go to be undiscovered. A
+ * sidebar grows downwards, holds section headings so the twelve read as three groups of
+ * four, and keeps the full width for the tables that are the actual work. It is what every
+ * console of this shape converges on, and the convergence is not fashion: it is that the
+ * content here is wide, dense and horizontally scrolled, so vertical chrome costs nothing
+ * and horizontal chrome costs the thing the user came for.
  *
- * - **The skip link is first in the DOM**, so it is the first thing a keyboard user
- *   reaches (SC 2.4.1). It targets a `<main>` carrying `tabIndex={-1}`, without which the
- *   browser scrolls but leaves focus where it was — the failure that makes a skip link
- *   look implemented and not be (docs/15 §9.3).
+ * ## The accessibility contract, which the layout does not get to change
+ *
+ * - **The skip link is the first thing in the tab order.** A sidebar makes this matter
+ *   more, not less: without it every keyboard user tabs through every navigation item on
+ *   every page before reaching the table they are trying to read.
  * - **One `<main>`, one `<header>`, one named `<nav>`.** Landmarks are how a screen-reader
- *   user moves around a page without reading it, and an unnamed `<nav>` in a page with two
- *   of them is a list of "navigation, navigation".
+ *   user moves around a page without reading it.
  * - **`aria-current="page"`** marks the active item, alongside a visible indicator that is
- *   not only a colour (SC 1.4.1).
- * - **The header is `surface-raised`, not an inverse panel.** An inverse header would have
- *   to carry the accent for its active-nav indicator, and the accent cannot clear 3:1 on
- *   an inverse surface in both themes — see `NON_TEXT_CONTRAST_PAIRS` in
- *   `@assaybank/ui`. The layout follows the token layer rather than fighting it.
+ *   not only a colour (SC 1.4.1) — the active item carries a bar and a weight change.
+ * - **The sidebar scrolls independently of the page**, so a long navigation never pushes
+ *   the work area, and `--ab-sticky-top` stays honest for SC 2.4.11.
+ *
+ * The surfaces follow the token layer rather than fighting it: the sidebar is
+ * `surface-sunken` against a `surface` work area, which is a one-token separation that
+ * survives both themes. An inverse sidebar would need the accent to clear 3:1 on an
+ * inverse ground, which `NON_TEXT_CONTRAST_PAIRS` in `@assaybank/ui` says it does not.
  */
 export function AppShellLayout({ nav, children }: AppShellLayoutProps): ReactNode {
   return (
     <div className="ab-console">
       <SkipLink targetId={MAIN_CONTENT_ID}>Skip to main content</SkipLink>
 
-      <header className="ab-console__header">
+      <header className="ab-console__sidebar">
         <div className="ab-console__brand">
           {/* The lockup inherits currentColor, so it is ink in the light theme and paper
               in the dark one with no second asset and no theme branch. */}
           <Lockup className="ab-console__lockup" title={`${APP_NAME} ${SURFACE_NAME}, home`} />
         </div>
+
         <nav className="ab-console__nav" aria-label={SURFACE_NAME}>
-          <ul className="ab-console__nav-list">{nav}</ul>
+          {nav}
         </nav>
+
+        {/* Not decoration. ADR-007 and ADR-011 are the product's central constraint, and a
+            console that quietly drifted towards ranking candidates would do it one screen
+            at a time — so the sentence sits where every screen carries it. */}
+        <footer className="ab-console__footer">
+          <p>Assessment results are evidence for a human decision, never a decision.</p>
+        </footer>
       </header>
 
       <main id={MAIN_CONTENT_ID} className="ab-console__main" tabIndex={-1}>
-        {children}
+        <div className="ab-console__work">{children}</div>
       </main>
-
-      <footer className="ab-console__footer">
-        <p>
-          {APP_NAME} {SURFACE_NAME}. Assessment results are evidence for a human decision, never a
-          decision.
-        </p>
-      </footer>
     </div>
   );
 }

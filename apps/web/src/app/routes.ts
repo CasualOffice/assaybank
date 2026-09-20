@@ -18,10 +18,25 @@
 /** The paths the console serves. A closed union, so a `to` prop cannot be a typo. */
 export type ConsolePath = '/' | '/questions' | '/assessments' | '/candidates';
 
+/**
+ * The sidebar sections, in the order they appear.
+ *
+ * A flat list of four items needs no grouping; a console's navigation is never four items
+ * for long, and a group added once there are twelve is a group added after everyone has
+ * learned the flat order. The manifest carries the section so the sidebar renders itself
+ * and no second list can disagree with it.
+ */
+export const NAV_SECTIONS = ['Overview', 'Question bank', 'Hiring'] as const;
+
+/** One section of the sidebar. */
+export type NavSection = (typeof NAV_SECTIONS)[number];
+
 /** One route, and everything the shell needs to know about it. */
 export interface RouteDescriptor {
   /** The path, which is also the route id. */
   readonly path: ConsolePath;
+  /** Which sidebar section it belongs to. */
+  readonly section: NavSection;
   /** The navigation label and the page's `<h1>`. */
   readonly title: string;
   /** A sentence describing what the screen will do. */
@@ -47,6 +62,7 @@ export const SURFACE_NAME = 'Staff console';
 export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
   {
     path: '/',
+    section: 'Overview',
     title: 'Dashboard',
     summary: 'What needs attention: open reviews, running assessments, recent activity.',
     phase: 'P2',
@@ -56,6 +72,7 @@ export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
   },
   {
     path: '/questions',
+    section: 'Question bank',
     title: 'Questions',
     summary: 'The shared question bank: authoring, versions, skills and publication.',
     phase: 'P2',
@@ -65,6 +82,7 @@ export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
   },
   {
     path: '/assessments',
+    section: 'Hiring',
     title: 'Assessments',
     summary: 'Assessment definitions, sections, draw rules and invitations.',
     phase: 'P3',
@@ -74,6 +92,7 @@ export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
   },
   {
     path: '/candidates',
+    section: 'Hiring',
     title: 'Candidates',
     summary: 'Candidate records, their invitations, attempts and scorecards.',
     phase: 'P3',
@@ -82,6 +101,23 @@ export const ROUTE_MANIFEST: readonly RouteDescriptor[] = Object.freeze([
       'results and P6 the certification history.',
   },
 ]);
+
+/**
+ * The manifest grouped into sidebar sections, in section order then manifest order.
+ *
+ * Derived rather than declared: a second hand-written structure is a second thing that can
+ * disagree with the first, and the disagreement shows up as a route that exists and has no
+ * link to it.
+ */
+export function navSections(): readonly {
+  section: NavSection;
+  routes: readonly RouteDescriptor[];
+}[] {
+  return NAV_SECTIONS.map((section) => ({
+    section,
+    routes: ROUTE_MANIFEST.filter((route) => route.section === section),
+  })).filter((group) => group.routes.length > 0);
+}
 
 /** The descriptor for a path, or `undefined` for a path the console does not serve. */
 export function routeFor(path: string): RouteDescriptor | undefined {

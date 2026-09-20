@@ -19,91 +19,210 @@
 
 /* ------------------------------------------------------------------ the shell */
 
+/* A fixed sidebar beside a scrolling work area.
+ *
+ * The console sets its own base size — 14px — rather than inheriting the 16px a document
+ * gets. A console is read at a glance across a wide table, not sentence by sentence, and
+ * 16px body text in a data grid costs about two columns of width for no legibility gain.
+ * It is set in `rem`, so a user who raises their browser's base size moves this with it
+ * (SC 1.4.4), which a pixel value would not.
+ */
 .ab-console {
-  min-height: 100dvh;
+  --ab-sidebar-width: 15.25rem;
+
   display: grid;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: var(--ab-sidebar-width) minmax(0, 1fr);
+  min-height: 100dvh;
+  font-size: 0.875rem;
 }
 
-.ab-console__header {
+.ab-console__sidebar {
+  position: sticky;
+  top: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ab-space-4) var(--ab-space-8);
-  padding: var(--ab-space-3) var(--ab-space-6);
-  background-color: var(--ab-surface-raised);
-  border-bottom: 1px solid var(--ab-border);
+  flex-direction: column;
+  gap: var(--ab-space-4);
+  height: 100dvh;
+  padding: var(--ab-space-4) var(--ab-space-3);
+  overflow-y: auto;
+  background: var(--ab-surface-sunken);
+  /* A line, not a shadow. A shadow implies the sidebar floats above the page; it does not,
+     and the implication costs a blurred edge that never looks crisp at 1x. */
+  border-inline-end: 1px solid var(--ab-border);
 }
 
 .ab-console__brand {
   display: flex;
   align-items: center;
+  min-height: 2rem;
+  padding: var(--ab-space-1) var(--ab-space-2) var(--ab-space-2);
 }
 
-/* The lockup inherits currentColor from here, which is the page text colour, which is ink
-   in the light theme and paper in the dark one. One asset, both themes. */
 .ab-console__lockup {
-  display: block;
-  height: 2rem;
+  height: 1.25rem;
   width: auto;
-  color: var(--ab-text);
+}
+
+/* ---- navigation ---- */
+
+.ab-console__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-6);
+  /* Takes the slack, so the footer sits at the bottom of the sidebar rather than under
+     the last link. */
+  flex: 1 1 auto;
+}
+
+.ab-console__nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-1);
+}
+
+/* The section name. Small and quiet on purpose: it is a signpost for the eye scanning for
+   a group, and it competes with the links if it is not. */
+.ab-console__nav-heading {
+  margin: 0 0 var(--ab-space-1);
+  padding-inline: var(--ab-space-2);
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .ab-console__nav-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--ab-space-1);
+  flex-direction: column;
+  gap: 1px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .ab-console__nav-link {
-  display: inline-flex;
+  position: relative;
+  display: flex;
   align-items: center;
-  min-height: var(--ab-control-height);
-  padding: 0 var(--ab-space-3);
-  border-radius: var(--ab-radius);
-  /* The 3px transparent border is reserved here rather than added on the current item, so
-     the label does not shift by three pixels when it becomes current. */
-  border-bottom: 3px solid transparent;
+  min-height: 2rem;
+  padding: 0 var(--ab-space-2);
+  border-radius: var(--ab-radius-sm);
   color: var(--ab-text-muted);
+  font-weight: 500;
   text-decoration: none;
-  font-weight: 600;
 }
 
 .ab-console__nav-link:hover {
+  background: var(--ab-surface-raised);
   color: var(--ab-text);
-  background-color: var(--ab-surface-sunken);
 }
 
-/* The current item is marked three ways, because one of them is a colour and colour is
-   never the only carrier of meaning (SC 1.4.1): aria-current="page" for assistive
-   technology, a weight and colour change for everyone, and an underline rule that survives
-   a colour-vision deficiency and forced-colors mode alike. */
+.ab-console__nav-link:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: -1px;
+}
+
+/* The current item carries three signals, and only one of them is colour (SC 1.4.1): a
+   raised ground, a heavier weight, and a bar on the leading edge. Any one of the three
+   survives a monochrome display or a colour-vision deficiency. */
 .ab-console__nav-link--current,
 .ab-console__nav-link[aria-current='page'] {
-  color: var(--ab-accent-text);
-  border-bottom-color: var(--ab-accent);
-  background-color: transparent;
+  background: var(--ab-surface-raised);
+  color: var(--ab-text);
+  font-weight: 650;
 }
 
-.ab-console__main {
-  padding: var(--ab-space-8) var(--ab-space-6);
-  max-width: 72rem;
-  width: 100%;
-  margin-inline: auto;
+.ab-console__nav-link--current::before,
+.ab-console__nav-link[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.375rem;
+  inset-inline-start: calc(var(--ab-space-2) * -1 + 1px);
+  width: 2px;
+  border-radius: 1px;
+  background: var(--ab-accent);
 }
+
+/* ---- the standing statement ---- */
 
 .ab-console__footer {
-  padding: var(--ab-space-4) var(--ab-space-6);
+  padding: var(--ab-space-3) var(--ab-space-2) var(--ab-space-1);
   border-top: 1px solid var(--ab-border);
-  color: var(--ab-text-muted);
-  font-size: var(--ab-text-sm);
 }
 
 .ab-console__footer p {
-  max-width: 60ch;
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* ---- the work area ---- */
+
+.ab-console__main {
+  min-width: 0;
+  background: var(--ab-surface);
+}
+
+/* The content column is bounded. A table stretched across a 2,560px display puts its first
+   and last columns a head-turn apart, and the eye loses the row between them. */
+.ab-console__work {
+  max-width: 82rem;
+  padding: var(--ab-space-8) var(--ab-space-8) var(--ab-space-12);
+}
+
+/* One column below the point at which the sidebar stops paying for itself. The nav becomes
+   a horizontal strip at the top, which is the right shape for a narrow viewport and the
+   wrong one for a wide one — hence both. */
+@media (max-width: 60rem) {
+  .ab-console {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ab-console__sidebar {
+    position: static;
+    height: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--ab-space-3);
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--ab-border);
+  }
+
+  .ab-console__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--ab-space-4);
+  }
+
+  .ab-console__nav-group {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--ab-space-1);
+  }
+
+  .ab-console__nav-heading {
+    display: none;
+  }
+
+  .ab-console__nav-list {
+    flex-direction: row;
+    gap: var(--ab-space-1);
+  }
+
+  .ab-console__footer {
+    flex-basis: 100%;
+    border-top: 0;
+    padding-inline: 0;
+  }
+
+  .ab-console__work {
+    padding: var(--ab-space-6) var(--ab-space-4) var(--ab-space-12);
+  }
 }
 
 /* ------------------------------------------------------------------ a page */
@@ -173,4 +292,153 @@
   font-family: var(--ab-font-mono);
   /* Selectable and legible: this is the string a user reads out to support. */
   user-select: all;
+}
+
+/* ---------------------------------------------------------------------- screen */
+
+/* The standard index-screen stack: header, filters, count, table, pager. Every list screen
+ * the console grows uses this, so the layout is learned once and then known. */
+.ab-screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-4);
+}
+
+.ab-screen__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ab-space-4);
+}
+
+/* The title block yields before the action does. Without this the lede's measure keeps the
+   row wide enough to wrap, and the primary action lands under the paragraph — which reads
+   as a button belonging to the sentence above it. */
+.ab-screen__heading-block {
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+
+.ab-screen__actions {
+  flex: 0 0 auto;
+}
+
+/* 22px, not the 28px a marketing page would use. A page title in a console is a label for
+   where you are, and it is read once; the table under it is read for minutes. */
+.ab-screen__title {
+  margin: 0 0 var(--ab-space-1);
+  font-size: var(--ab-text-xl);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  line-height: var(--ab-leading-tight);
+}
+
+/* The router moves focus here on navigation, so the indicator has to be visible — a
+   keyboard user needs to see where focus went. It hugs the word rather than spanning the
+   column: a ring around a full-width block reads as a rendering fault, not as focus. */
+.ab-screen__title:focus-visible {
+  width: fit-content;
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 4px;
+  border-radius: var(--ab-radius-sm);
+}
+
+/* Bounded, because a line of prose that runs the width of a 1,600px console is a line
+   nobody reads to the end of. */
+.ab-screen__lede {
+  max-width: 72ch;
+  margin: 0;
+  color: var(--ab-text-muted);
+  text-wrap: pretty;
+}
+
+.ab-screen__actions {
+  display: flex;
+  gap: var(--ab-space-2);
+}
+
+/* Columns that are a word or a date stay on one line; the prompt is the only one that
+   gives. Below the table's minimum the scroll container takes over, and it is keyboard
+   reachable (SC 2.1.1) — which is why crushing the columns instead would be the worse
+   trade. */
+.ab-questions__table {
+  min-width: 54rem;
+}
+
+.ab-questions__nowrap {
+  white-space: nowrap;
+}
+
+.ab-screen__count {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ab-screen__error-actions {
+  margin: var(--ab-space-3) 0 0;
+}
+
+/* ---------------------------------------------------------------------- questions */
+
+/* One line. The full prompt is on the question, not in the index: a cell that wraps to
+   three lines turns a twenty-row table into a seven-row one, and the scan is the reason
+   the table exists. */
+.ab-questions__prompt {
+  max-width: 0;
+  width: 45%;
+  font-weight: 400;
+}
+
+.ab-questions__link {
+  display: block;
+  overflow: hidden;
+  color: var(--ab-text);
+  font-weight: 550;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ab-questions__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* The row's focus indicator sits on the link, which is the row's tab stop. */
+.ab-questions__link:focus-visible {
+  outline: 2px solid var(--ab-focus);
+  outline-offset: 2px;
+  border-radius: var(--ab-radius-sm);
+}
+
+.ab-questions__meta {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+.ab-questions__licence {
+  font-family: var(--ab-font-mono);
+}
+
+/* An absent value is an em dash, not an empty cell: an empty cell looks like a rendering
+   failure, and a screen reader says nothing at all for one. */
+.ab-questions__none {
+  color: var(--ab-text-muted);
+}
+
+.ab-questions__skeleton-second {
+  margin-top: var(--ab-space-2);
+}
+
+/* ---------------------------------------------------------------------- pager */
+
+.ab-pager {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ab-space-2);
 }

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead, with People lead for the accommodation process)
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-20
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`05-licensing-and-compliance.md`](05-licensing-and-compliance.md), [`11-data-retention-and-dpia.md`](11-data-retention-and-dpia.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`08-i18n-and-localisation.md`](08-i18n-and-localisation.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`../project/MILESTONES.md`](../project/MILESTONES.md), [`../project/RISKS.md`](../project/RISKS.md)
 
 ---
@@ -60,6 +60,27 @@ Full 2.1 AA for the staff console is the aspiration and the direction of travel.
 | 4.1.3 Status Messages | AA | Bulk invite progress, export readiness, save confirmations |
 
 Everything outside this subset is tracked in the known-limitations register (§19) with a target milestone, not silently dropped.
+
+**Verified on the console's first real screen, 2026-09-20.** The question bank list — with its
+filter toolbar, data table, loading, error and two empty states — was audited with axe-core 4.13
+against the built bundle over `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa` and `wcag22aa`: **0
+violations** on `/`, `/questions`, and `/questions` with filters applied. The audit is not yet a
+CI gate — that is the `@axe-core/playwright` job of §15.1, which activates at M1 — so this is a
+point-in-time result, recorded because an unverified claim of conformance is worth less than none.
+
+Two things that audit taught, both now fixed and both worth stating because they are traps rather
+than mistakes:
+
+- **A control with a `background-image` has no computable contrast.** The select's chevron was
+  drawn with two CSS gradients, the usual technique; axe could not resolve the control's background
+  and returned `color-contrast` as *needs review* on every select in the product. The criterion
+  most likely to regress had quietly stopped being checkable. The arrow moved to a pseudo-element
+  on a wrapper and the control kept a flat background colour.
+- **Programmatic focus on a heading must not run on first load.** The route announcer moves focus
+  to the page `<h1>` so a screen reader reads the new screen; doing it on the initial render means
+  the title is announced twice and a keyboard user's first Tab starts somewhere they did not
+  choose. The guard is the *previous pathname*, not a "have we started" flag — a flag is defeated
+  by React StrictMode's deliberate double-mount, which is how the bug survived its first fix.
 
 ### 2.3 WCAG 2.2, and what we do about it
 

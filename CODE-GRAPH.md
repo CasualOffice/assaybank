@@ -332,6 +332,8 @@ Invariants:
 - Renders state; it never decides a score, a deadline or a question draw.
 - Talks only to the API and the collaboration service; it never reaches Postgres, Valkey or the object store directly.
 - Never ships in the candidate bundle and never shares a build output with apps/candidate.
+- List screens keep their filters, sort and page in the URL, so a filtered view is shareable, survives a refresh and is undone by the browser's Back button.
+- Every status, kind and lifecycle state is rendered as a word; colour only ever repeats it (SC 1.4.1). Verified by component tests and an axe pass over the built bundle.
 
 Specified by: [`docs/01-PRD.md`](docs/01-PRD.md), [`docs/03-API-spec.md`](docs/03-API-spec.md), [`docs/15-accessibility-conformance.md`](docs/15-accessibility-conformance.md)
 

@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-20
 **Companion docs:** [`02-HLD.md`](02-HLD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`06-testing-strategy.md`](06-testing-strategy.md), [`12-observability-and-runbooks.md`](12-observability-and-runbooks.md), [`14-threat-model.md`](14-threat-model.md), [`../CLAUDE.md`](../CLAUDE.md), [`../project/DEFINITION-OF-DONE.md`](../project/DEFINITION-OF-DONE.md)
 
 ---
@@ -245,7 +245,15 @@ enforce it, and each must have a named test.
   strands the job, one sent before a rollback runs a job with no request behind it. Write the job row
   in the request's transaction and let a relay claim committed rows (ADR-021). A job that writes
   many items advances its checkpoint in the transaction that writes each one, so a retry resumes.
-- **A sweep that crosses tenants enumerates them elevated and works under RLS.** List organisations through `withElevated` — audited, and named `job.<verb>` so the null-actor row reads as a machine — then do the work per organisation inside `withOrg`. One elevated transaction over every tenant would let a query bug pool one organisation's candidates into another's results with nothing in the database to refuse it. See [`02-HLD.md`](02-HLD.md) §3.4a.
+- **A list screen's filters, sort and page live in the URL, not in component state.** A filtered
+view that cannot be sent to a colleague, survive a refresh, or be undone with the browser's Back
+button is three bugs, and they are all the same bug. Parse the query string at the route with the
+same suspicion as a request body (§1): a user can type `?difficulty=banana`, and that has to
+become a screen with no difficulty filter rather than a request carrying `banana` to the API.
+Holding the state in the URL also makes the screen a function of its props, which is what lets a
+filtered empty state be rendered and asserted without a router.
+
+**A sweep that crosses tenants enumerates them elevated and works under RLS.** List organisations through `withElevated` — audited, and named `job.<verb>` so the null-actor row reads as a machine — then do the work per organisation inside `withOrg`. One elevated transaction over every tenant would let a query bug pool one organisation's candidates into another's results with nothing in the database to refuse it. See [`02-HLD.md`](02-HLD.md) §3.4a.
 
 ## 7. Security
 

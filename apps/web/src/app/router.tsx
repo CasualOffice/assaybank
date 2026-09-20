@@ -4,24 +4,36 @@
 
 import { useAnnounce } from '@assaybank/ui';
 import {
+  Link,
+  Outlet,
   createRootRoute,
   createRoute,
   createRouter,
-  Link,
-  Outlet,
+  useNavigate,
   useRouterState,
 } from '@tanstack/react-router';
-import { type ReactNode, useEffect } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 
 import { Placeholder } from '../routes/Placeholder.js';
+import {
+  MAX_DIFFICULTY,
+  MIN_DIFFICULTY,
+  QUESTION_KINDS,
+  QUESTION_STATUSES,
+  type QuestionKind,
+  type QuestionStatus,
+} from '@assaybank/contracts';
+
+import { type QuestionFilters } from '../api/questions.js';
+import { QuestionsScreen } from '../routes/QuestionsScreen.js';
 import { AppShellLayout } from './AppShell.js';
 import { ErrorEnvelopeView, toDisplayEnvelope } from './ErrorBoundary.js';
 import {
-  type ConsolePath,
   documentTitleFor,
-  ROUTE_MANIFEST,
+  navSections,
   routeAnnouncementFor,
   routeFor,
+  type ConsolePath,
 } from './routes.js';
 
 /**
@@ -38,10 +50,23 @@ import {
  *
  * Focus is moved rather than stolen: it happens because the user navigated, which is the
  * distinction §9.3 draws between this and an asynchronous result grabbing attention.
+ *
+ * **None of the three happens on the first render.** A page the user has just loaded has not
+ * been navigated to within the application: the browser has already announced it, focus is
+ * already where the platform puts it, and moving it to the heading means a screen reader
+ * says the title twice and a keyboard user's first Tab starts from somewhere they did not
+ * choose. The title is still set, because the router owns it; the announcement and the
+ * focus move are what a navigation adds.
  */
 function RouteAnnouncer(): null {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { announceRoute } = useAnnounce();
+  // The last path announced, not a "have we started" flag. A flag is wrong under
+  // StrictMode, which mounts, unmounts and mounts again: the ref survives the remount, so
+  // the second mount looks like a navigation and steals focus on first load — which is
+  // exactly the bug this guard exists to prevent, arriving through the guard itself.
+  // Comparing the path is immune, because a remount carries the same one.
+  const lastPath = useRef<string | null>(null);
 
   useEffect(() => {
     const route = routeFor(pathname);
@@ -50,6 +75,17 @@ function RouteAnnouncer(): null {
     }
 
     document.title = documentTitleFor(route);
+
+    if (lastPath.current === pathname) {
+      return;
+    }
+
+    const isFirstRender = lastPath.current === null;
+    lastPath.current = pathname;
+    if (isFirstRender) {
+      return;
+    }
+
     announceRoute(routeAnnouncementFor(route));
 
     const heading = document.getElementById('page-heading');
@@ -59,27 +95,46 @@ function RouteAnnouncer(): null {
   return null;
 }
 
-/** The console's primary navigation, built from the one route manifest. */
+/**
+ * The console's primary navigation, built from the one route manifest.
+ *
+ * A list per section rather than one flat list: a screen-reader user hears "Question bank,
+ * list, 1 item" and can skip the group, which is the whole point of grouping. The section
+ * heading names the list through `aria-labelledby` so the group has a name rather than
+ * being a visual cluster with nothing behind it.
+ */
 function ConsoleNav(): ReactNode {
   return (
     <>
-      {ROUTE_MANIFEST.map((route) => (
-        <li key={route.path} className="ab-console__nav-item">
-          <Link
-            to={route.path}
-            className="ab-console__nav-link"
-            // `exact` on the dashboard only: without it "/" is a prefix of every path and
-            // every item renders as current at once.
-            activeOptions={{ exact: route.path === '/' }}
-            activeProps={{
-              'aria-current': 'page',
-              className: 'ab-console__nav-link ab-console__nav-link--current',
-            }}
-          >
-            {route.title}
-          </Link>
-        </li>
-      ))}
+      {navSections().map((group) => {
+        const headingId = `nav-section-${group.section.replace(/\s+/gu, '-').toLowerCase()}`;
+        return (
+          <div className="ab-console__nav-group" key={group.section}>
+            <h2 className="ab-console__nav-heading" id={headingId}>
+              {group.section}
+            </h2>
+            <ul className="ab-console__nav-list" aria-labelledby={headingId}>
+              {group.routes.map((route) => (
+                <li key={route.path}>
+                  <Link
+                    to={route.path}
+                    className="ab-console__nav-link"
+                    // `exact` on the dashboard only: without it "/" is a prefix of every
+                    // path and every item renders as current at once.
+                    activeOptions={{ exact: route.path === '/' }}
+                    activeProps={{
+                      'aria-current': 'page',
+                      className: 'ab-console__nav-link ab-console__nav-link--current',
+                    }}
+                  >
+                    {route.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
     </>
   );
 }
@@ -159,10 +214,70 @@ const dashboardRoute = createRoute({
   component: screenFor('/'),
 });
 
+/**
+ * The question bank's filters live in the query string.
+ *
+ * `validateSearch` is the parse-at-the-edge rule (docs/17 §1) applied to the URL: a user
+ * can type anything into the address bar, so `?difficulty=banana` has to become a screen
+ * with no difficulty filter rather than a request carrying `banana` to the API. Anything
+ * unrecognised is dropped, which also keeps a stale link from a previous release working.
+ */
+function parseQuestionSearch(search: Record<string, unknown>): QuestionFilters {
+  const str = (value: unknown): string | undefined =>
+    typeof value === 'string' && value.trim() !== '' ? value : undefined;
+
+  const kind = str(search['kind']);
+  const status = str(search['status']);
+  const difficulty = Number(search['difficulty']);
+
+  return {
+    q: str(search['q']),
+    kind: QUESTION_KINDS.includes(kind as QuestionKind) ? (kind as QuestionKind) : undefined,
+    status: QUESTION_STATUSES.includes(status as QuestionStatus)
+      ? (status as QuestionStatus)
+      : undefined,
+    difficulty:
+      Number.isInteger(difficulty) && difficulty >= MIN_DIFFICULTY && difficulty <= MAX_DIFFICULTY
+        ? difficulty
+        : undefined,
+    cursor: str(search['cursor']),
+  };
+}
+
+/**
+ * Connects the question bank screen to the URL.
+ *
+ * The adapter is the only part that knows about routing, so the screen stays a function of
+ * its props and can be rendered — and asserted — without a router.
+ */
+function QuestionsRouteScreen(): ReactNode {
+  const filters = questionsRoute.useSearch();
+  const navigate = useNavigate();
+
+  return (
+    <QuestionsScreen
+      filters={filters}
+      onFiltersChange={(next) => {
+        // `replace` for a filter, push for a page. Typing into the search box should not
+        // put a history entry behind every keystroke; turning a page should be undoable
+        // with Back, which is what makes the pager need only a "Next".
+        void navigate({
+          to: '/questions',
+          search: next,
+          replace: next.cursor === undefined,
+        });
+      }}
+    />
+  );
+}
+
 const questionsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/questions',
-  component: screenFor('/questions'),
+  validateSearch: parseQuestionSearch,
+  // The first route with a real screen behind it. The rest still resolve through the
+  // manifest, so an unbuilt one says which phase builds it rather than rendering blank.
+  component: QuestionsRouteScreen,
 });
 
 const assessmentsRoute = createRoute({

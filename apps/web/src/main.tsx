@@ -10,6 +10,7 @@
 //
 //   RootErrorBoundary    catches a render crash below it and shows the standard envelope
 //   QueryClientProvider  server state, with a retry policy that branches on the error code
+//   ApiProvider          the one HTTP client, so a test can replace it without module state
 //   LiveRegionProvider   mounts the live regions, empty, before anything can announce
 //   RouterProvider       renders the shell, which carries the skip link and the landmarks
 //
@@ -27,6 +28,7 @@ import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
+import { ApiProvider, createApiClient } from './api/api.js';
 import { createQueryClient } from './api/queryClient.js';
 import { RootErrorBoundary } from './app/ErrorBoundary.js';
 import { router } from './app/router.js';
@@ -38,6 +40,7 @@ if (container === null) {
 }
 
 const queryClient = createQueryClient();
+const apiClient = createApiClient();
 
 createRoot(container).render(
   <StrictMode>
@@ -50,9 +53,11 @@ createRoot(container).render(
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <LiveRegionProvider>
-          <RouterProvider router={router} />
-        </LiveRegionProvider>
+        <ApiProvider client={apiClient}>
+          <LiveRegionProvider>
+            <RouterProvider router={router} />
+          </LiveRegionProvider>
+        </ApiProvider>
       </QueryClientProvider>
     </RootErrorBoundary>
   </StrictMode>,

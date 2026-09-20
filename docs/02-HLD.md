@@ -2,7 +2,7 @@
 
 **Status:** draft
 **Owner:** _unassigned_ (engineering lead)
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-20
 **Companion docs:** [`01-PRD.md`](01-PRD.md), [`03-API-spec.md`](03-API-spec.md), [`04-ADRs.md`](04-ADRs.md), [`hiring_platform_schema.sql`](hiring_platform_schema.sql), [`../CODE-GRAPH.md`](../CODE-GRAPH.md)
 
 ---
@@ -146,6 +146,23 @@ They sit in the worker rather than in a package because nothing else parses them
 **Redis** — job queue, session presence, rate limiting, short-lived candidate session cache. Nothing here is a source of truth.
 
 **Object store (S3/R2)** — session recordings, proctor media, large submission artifacts, export files. Accessed only through pre-signed short-lived URLs.
+
+### 3.6 The two front ends
+
+Two bundles, never one (ADR-013): `apps/web` for staff and `apps/candidate` for candidates. The
+split is a security boundary rather than a packaging preference — it is what makes it impossible
+for a bundler mistake to ship a correct-answer flag or a bank query to a candidate's browser.
+
+Both draw on `packages/ui`, which owns the design tokens and the primitives. The token layer is the
+load-bearing part: every colour is defined once, in both themes, and a unit test asserts the
+contrast of each pair that appears in the product. A screen therefore cannot introduce a contrast
+failure by choosing a colour, because it has no colours to choose from.
+
+**The console's shape is a fixed sidebar beside a scrolling work area**, and every list screen
+inside it is the same stack: page header, filter toolbar, result count, table, pager. The
+repetition is the point — the second list screen costs a fraction of the first, and a recruiter who
+has learned one has learned them all. List state (filters, sort, page) lives in the URL, so a
+filtered view is a link somebody can send.
 
 ## 4. Key flows
 
